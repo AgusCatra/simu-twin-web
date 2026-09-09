@@ -1,0 +1,23 @@
+# 知识卡导出索引文件
+schema_version: 1
+locale: en-US
+branch: main
+nodes_managed: true
+exported_at: "2026-09-08T22:20:48Z"
+modules:
+    "":
+        dir_name: Next.js App Root Configuration
+        title: Next.js App Root Configuration
+        scope:
+            - README.md
+            - .gitignore
+            - package.json
+            - next.config.ts
+            - tsconfig.json
+            - eslint.config.mjs
+            - postcss.config.mjs
+            - package-lock.json
+        source_files: []
+        children: []
+        depends_on: []
+        related_to: []

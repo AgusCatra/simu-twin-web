@@ -1,0 +1,1 @@
+Root configuration for the simu-twin-web Next.js application, defining build scripts, TypeScript/ESLint/Tailwind tooling, and project metadata.

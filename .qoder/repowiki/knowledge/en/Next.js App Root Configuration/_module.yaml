@@ -1,0 +1,15 @@
+schema_version: 1
+module_path: ""
+title: Next.js App Root Configuration
+scope:
+    - README.md
+    - .gitignore
+    - package.json
+    - next.config.ts
+    - tsconfig.json
+    - eslint.config.mjs
+    - postcss.config.mjs
+    - package-lock.json
+source_files: []
+depends_on: []
+related_to: []

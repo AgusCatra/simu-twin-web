@@ -1,0 +1,1 @@
+Run `npm run dev` (or yarn/pnpm/bun dev) to start the Turbopack-backed development server on localhost:3000; `npm run build` triggers a Turbopack production build; `npm run lint` runs ESLint against the flat config.
