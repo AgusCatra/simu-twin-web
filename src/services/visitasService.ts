@@ -66,11 +66,9 @@ export async function crearSolicitudVisita(
     throw new Error('El cupo máximo permitido es de 40 alumnos');
   }
 
-  const disponible = await verificarTurnoDisponible(datos.fecha_visita, datos.turno);
-
-  if (!disponible) {
-    throw new Error('El turno seleccionado ya se encuentra ocupado');
-  }
+  // Si seleccionó una escuela de la lista oficial, lleva TUP automáticamente.
+  // Si es texto libre ("+ Otra institución"), no lleva transporte municipal.
+  const requiereTup = !!datos.id_escuela;
 
   const codigoReserva = generarCodigoReserva();
   const { asistentes, ...datosVisita } = datos;
@@ -79,6 +77,7 @@ export async function crearSolicitudVisita(
     .from('visitas_educativas')
     .insert({
       ...datosVisita,
+      requiere_tup: requiereTup,
       codigo_reserva: codigoReserva,
       estado_visita: 'Confirmada',
       estado_poliza: 'Pendiente',

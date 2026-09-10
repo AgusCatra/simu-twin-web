@@ -13,7 +13,6 @@ import type {
   Escuela,
   FechaHabilitada,
   SolicitudVisitaInput,
-  TurnoVisita,
   VisitaEducativa,
 } from '@/types/visitas';
 
@@ -22,23 +21,19 @@ interface FormState {
   usarOtraInstitucion: boolean;
   otra_institucion_nombre: string;
   fecha_visita: string;
-  turno: TurnoVisita | null;
   anio: AnioEscolar | null;
   division: string;
   cant_alumnos: string;
-  requiere_tup: boolean;
   nombre_director: string;
   cel_director: string;
   nombre_docente: string;
   cel_docente: string;
   email_contacto: string;
-  drive_nomina_url: string;
   acepta_imagenes: boolean;
   acepta_medidas_judiciales: boolean;
   asistentes: AsistenteInput[];
 }
 
-const TURNOS: readonly TurnoVisita[] = ['Mañana', 'Tarde'];
 const ANIOS: readonly AnioEscolar[] = ['5°', '6°'];
 const CUPO_MAXIMO = 40;
 const WHATSAPP = '3462-537643';
@@ -49,17 +44,14 @@ const FORM_INICIAL: FormState = {
   usarOtraInstitucion: false,
   otra_institucion_nombre: '',
   fecha_visita: '',
-  turno: null,
   anio: null,
   division: '',
   cant_alumnos: '',
-  requiere_tup: false,
   nombre_director: '',
   cel_director: '',
   nombre_docente: '',
   cel_docente: '',
   email_contacto: '',
-  drive_nomina_url: '',
   acepta_imagenes: false,
   acepta_medidas_judiciales: false,
   asistentes: [],
@@ -139,12 +131,6 @@ export default function FormularioVisita() {
       return;
     }
 
-    const turno = form.turno;
-    if (!turno) {
-      setError('Debe seleccionar un turno (Mañana o Tarde).');
-      return;
-    }
-
     const anio = form.anio;
     if (!anio) {
       setError('Debe seleccionar el año escolar (5° o 6°).');
@@ -171,17 +157,17 @@ export default function FormularioVisita() {
     setExito(null);
 
     try {
+      const idEscuela = form.usarOtraInstitucion ? null : form.id_escuela;
       const payload: SolicitudVisitaInput = {
-        id_escuela: form.usarOtraInstitucion ? null : form.id_escuela,
+        id_escuela: idEscuela,
         otra_institucion_nombre: form.usarOtraInstitucion
           ? form.otra_institucion_nombre.trim()
           : null,
         fecha_visita: form.fecha_visita,
-        turno,
         anio,
         division: form.division,
         cant_alumnos: cantAlumnosNumero,
-        requiere_tup: form.requiere_tup,
+        requiere_tup: !!idEscuela,
         nombre_director: form.nombre_director,
         cel_director: form.cel_director,
         nombre_docente: form.nombre_docente,
@@ -191,11 +177,6 @@ export default function FormularioVisita() {
         acepta_medidas_judiciales: form.acepta_medidas_judiciales,
         asistentes: form.asistentes.filter((a) => a.apellido_nombre.trim().length > 0),
       };
-
-      const nomina = form.drive_nomina_url.trim();
-      if (nomina) {
-        payload.drive_nomina_url = nomina;
-      }
 
       const registro = await crearSolicitudVisita(payload);
       setExito(registro);
@@ -247,7 +228,7 @@ export default function FormularioVisita() {
               <div>
                 <dt className="font-medium text-neutral-500 dark:text-neutral-400">Fecha</dt>
                 <dd className="text-neutral-900 dark:text-neutral-100">
-                  {formatearFecha(exito.fecha_visita)} · Turno {exito.turno}
+                  {formatearFecha(exito.fecha_visita)}
                 </dd>
               </div>
               <div>
@@ -328,16 +309,32 @@ export default function FormularioVisita() {
   return (
     <div className="w-full space-y-6">
       <header className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
-        <h1 className="text-xl font-bold text-neutral-900 dark:text-neutral-100">
-          Reserva de Visitas Educativas — Centro de Simuladores
-        </h1>
-        <p className="mt-2 text-sm text-neutral-600 dark:text-neutral-300">
-          Programa organizado por el <strong className="font-semibold">Gobierno de Venado Tuerto</strong>,{' '}
-          <strong className="font-semibold">COPAIN</strong> y{' '}
-          <strong className="font-semibold">CRICEX</strong>, coordinado por la{' '}
-          <strong className="font-semibold">Dirección de Empleo</strong>. La jornada tiene una
-          duración aproximada de <strong className="font-semibold">3:30 h</strong>.
-        </p>
+        <div className="space-y-3 text-sm text-neutral-600 dark:text-neutral-300">
+          <p>
+            Invitamos a las escuelas secundarias de Venado Tuerto a participar del Programa de
+            Visitas Educativas al Centro de Simuladores, una propuesta del Gobierno local junto a
+            COPAIN y CRICEX, coordinada por la Dirección de Empleo.
+          </p>
+          <p>
+            Este programa está destinado a estudiantes de 5° y 6° año de nivel secundario y tiene
+            como objetivo acercarlos al mundo del trabajo, brindando experiencias concretas de
+            formación a través del uso de simuladores, talleres de orientación vocacional y
+            actividades de desarrollo personal y socioemocional.
+          </p>
+          <div className="space-y-1">
+            <p>🕗 Duración de la jornada: 3:30 h</p>
+            <p>📍 Lugar: Parque Industrial – Centro de Simuladores</p>
+            <p>🚌 Transporte: coordinado por el Gobierno local a través del sistema TUP</p>
+            <p>📅 Fechas: viernes de abril a noviembre 2026 a coordinar con el equipo</p>
+            <p>📞 Consultas: (03462) 15 537643</p>
+          </div>
+          <p>
+            Los cupos son limitados, se asignan por curso/división según orden de inscripción.
+          </p>
+          <p>
+            Completá los datos a continuación para reservar la participación de tu institución.
+          </p>
+        </div>
 
         <div className="mt-4 rounded-xl border border-blue-200 bg-blue-50 p-4 dark:border-blue-800 dark:bg-blue-950">
           <h2 className="text-sm font-semibold text-blue-900 dark:text-blue-100">
@@ -483,31 +480,6 @@ export default function FormularioVisita() {
           </div>
 
           <div>
-            <span className={LABEL_CLASS}>Turno</span>
-            <div className="flex gap-3">
-              {TURNOS.map((turno) => {
-                const activo = form.turno === turno;
-                return (
-                  <button
-                    key={turno}
-                    type="button"
-                    aria-pressed={activo}
-                    onClick={() => actualizar('turno', turno)}
-                    className={
-                      'flex-1 rounded-lg border px-4 py-2 text-sm font-medium transition ' +
-                      (activo
-                        ? 'border-blue-700 bg-blue-700 text-white'
-                        : 'border-neutral-300 bg-white text-neutral-700 hover:border-blue-500 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-300')
-                    }
-                  >
-                    {turno}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          <div>
             <span className={LABEL_CLASS}>Año escolar</span>
             <div className="flex gap-3">
               {ANIOS.map((anio) => {
@@ -540,7 +512,7 @@ export default function FormularioVisita() {
               id="division"
               type="text"
               required
-              placeholder="Ej: 1ra y 2da"
+              placeholder="Ej: 5to soc 1 o 5to nat 3"
               value={form.division}
               onChange={(event) => actualizar('division', event.target.value)}
               className={INPUT_CLASS}
@@ -579,24 +551,16 @@ export default function FormularioVisita() {
 
           <div className="sm:col-span-2">
             <label
-              htmlFor="requiere_tup"
-              className="flex cursor-pointer items-start gap-3 rounded-xl border border-neutral-200 p-4 transition hover:border-blue-400 dark:border-neutral-800"
+              htmlFor="nombre_director"
+              className="mb-1 block text-base font-semibold text-neutral-800 dark:text-neutral-200"
             >
-              <input
-                id="requiere_tup"
-                type="checkbox"
-                checked={form.requiere_tup}
-                onChange={(event) => actualizar('requiere_tup', event.target.checked)}
-                className="mt-0.5 h-4 w-4 shrink-0 rounded border-neutral-300 text-blue-700 focus:ring-blue-500 dark:border-neutral-600"
-              />
-              <span className="text-sm text-neutral-700 dark:text-neutral-300">
-                <span className="font-medium">¿Requieren transporte municipal TUP?</span>
-                <br />
-                <span className="text-neutral-500 dark:text-neutral-400">
-                  Ida 08:00–08:15 hs / Regreso 11:30–11:45 hs.
-                </span>
-              </span>
+              Responsables de la institución y curso inscripto
             </label>
+            <p className="mb-4 text-sm text-slate-400">
+              En esta sección requerimos los datos personales del director/a y del docente a cargo,
+              con el objetivo de establecer comunicación directa para coordinar detalles sobre la
+              visita educativa.
+            </p>
           </div>
 
           <div>
@@ -666,21 +630,6 @@ export default function FormularioVisita() {
               placeholder="institucion@ejemplo.com"
               value={form.email_contacto}
               onChange={(event) => actualizar('email_contacto', event.target.value)}
-              className={INPUT_CLASS}
-            />
-          </div>
-
-          <div className="sm:col-span-2">
-            <label htmlFor="drive_nomina_url" className={LABEL_CLASS}>
-              Enlace a Nómina en Google Drive{' '}
-              <span className="font-normal text-neutral-400">(opcional)</span>
-            </label>
-            <input
-              id="drive_nomina_url"
-              type="url"
-              placeholder="https://drive.google.com/..."
-              value={form.drive_nomina_url}
-              onChange={(event) => actualizar('drive_nomina_url', event.target.value)}
               className={INPUT_CLASS}
             />
           </div>

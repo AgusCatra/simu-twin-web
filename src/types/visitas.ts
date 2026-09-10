@@ -29,18 +29,18 @@ export interface SolicitudVisitaInput {
   id_escuela?: string | null;
   otra_institucion_nombre?: string | null;
   fecha_visita: string;
-  turno: TurnoVisita;
+  turno?: string;
   anio: AnioEscolar;
   division: string;
   /** Cupo máximo permitido: 40 alumnos. */
   cant_alumnos: number;
+  /** Se calcula en el servicio a partir de la escuela seleccionada. */
   requiere_tup: boolean;
   nombre_director: string;
   cel_director: string;
   nombre_docente: string;
   cel_docente: string;
   email_contacto: string;
-  drive_nomina_url?: string;
   acepta_imagenes: boolean;
   acepta_medidas_judiciales: boolean;
   asistentes: AsistenteInput[];
