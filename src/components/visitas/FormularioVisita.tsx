@@ -57,9 +57,22 @@ const FORM_INICIAL: FormState = {
   asistentes: [],
 };
 
-const LABEL_CLASS = 'mb-1 block text-sm font-medium text-neutral-700 dark:text-neutral-300';
+const PANEL_CLASS =
+  'rounded-md border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-950';
+const NOTICE_CLASS =
+  'rounded-md border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-900';
+const LABEL_CLASS = 'mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300';
 const INPUT_CLASS =
-  'w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-900 outline-none transition placeholder:text-neutral-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/40 disabled:cursor-not-allowed disabled:opacity-60 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100';
+  'w-full rounded-sm border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 outline-none transition placeholder:text-zinc-400 focus:border-zinc-900 focus:ring-1 focus:ring-zinc-900 disabled:cursor-not-allowed disabled:opacity-60 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:border-zinc-100 dark:focus:ring-zinc-100';
+const INPUT_MONO_CLASS = INPUT_CLASS + ' font-mono';
+const PRIMARY_BTN_CLASS =
+  'rounded-sm bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white';
+const SECONDARY_BTN_CLASS =
+  'rounded-sm border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-700 transition hover:border-zinc-900 hover:text-zinc-900 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-300 dark:hover:border-zinc-100 dark:hover:text-zinc-100';
+const ALERT_CLASS =
+  'rounded-sm border border-red-600 bg-red-50 px-4 py-3 text-sm font-medium text-red-900 dark:bg-red-950 dark:text-red-200';
+const CHECKBOX_CLASS =
+  'mt-0.5 h-4 w-4 shrink-0 rounded-sm border-zinc-300 text-zinc-900 focus:ring-1 focus:ring-zinc-900 dark:border-zinc-600';
 
 function formatearFecha(iso: string): string {
   const [anio, mes, dia] = iso.split('T')[0].split('-');
@@ -147,6 +160,13 @@ export default function FormularioVisita() {
       return;
     }
 
+    if (form.asistentes.filter((a) => a.apellido_nombre.trim().length > 0).length === 0) {
+      setError(
+        'Debe cargar la nómina de alumnos y acompañantes para confirmar la reserva.'
+      );
+      return;
+    }
+
     if (!form.acepta_imagenes || !form.acepta_medidas_judiciales) {
       setError('Debe aceptar las condiciones legales y de imagen para continuar.');
       return;
@@ -193,23 +213,20 @@ export default function FormularioVisita() {
   if (exito) {
     return (
       <div className="w-full">
-        <div
-          role="status"
-          className="overflow-hidden rounded-2xl border border-green-300 bg-white shadow-sm dark:border-green-800 dark:bg-neutral-900"
-        >
-          <div className="border-b border-green-200 bg-green-50 px-6 py-5 dark:border-green-900 dark:bg-green-950">
+        <div role="status" className={'overflow-hidden ' + PANEL_CLASS}>
+          <div className="border-b border-zinc-200 bg-zinc-50 px-6 py-5 dark:border-zinc-800 dark:bg-zinc-900">
             <div className="flex items-center gap-3">
               <span
                 aria-hidden
-                className="flex h-10 w-10 items-center justify-center rounded-full bg-green-600 text-xl leading-none text-white"
+                className="flex h-9 w-9 items-center justify-center rounded-sm bg-zinc-900 text-lg leading-none text-white dark:bg-zinc-100 dark:text-zinc-900"
               >
                 &#10003;
               </span>
               <div>
-                <h2 className="text-lg font-semibold text-green-900 dark:text-green-100">
-                  ¡Reserva confirmada!
+                <h2 className="text-lg font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
+                  Reserva confirmada
                 </h2>
-                <p className="text-sm text-green-800 dark:text-green-200">
+                <p className="text-sm text-zinc-500 dark:text-zinc-400">
                   Guarde este comprobante como constancia de su solicitud.
                 </p>
               </div>
@@ -217,86 +234,88 @@ export default function FormularioVisita() {
           </div>
 
           <div className="px-6 py-5">
-            <p className="text-sm text-neutral-600 dark:text-neutral-300">Código de reserva</p>
-            <div className="mt-2 inline-block rounded-xl bg-green-100 px-5 py-3 dark:bg-green-900">
-              <span className="text-4xl font-bold tracking-widest text-green-800 dark:text-green-100">
+            <p className="text-xs font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+              Código de reserva
+            </p>
+            <div className="mt-2 inline-block rounded-md bg-zinc-900 px-5 py-3 dark:bg-zinc-100">
+              <span className="font-mono text-4xl font-bold tracking-widest text-white dark:text-zinc-900">
                 {exito.codigo_reserva}
               </span>
             </div>
 
             <dl className="mt-5 grid gap-3 text-sm sm:grid-cols-2">
               <div>
-                <dt className="font-medium text-neutral-500 dark:text-neutral-400">Fecha</dt>
-                <dd className="text-neutral-900 dark:text-neutral-100">
+                <dt className="font-medium text-zinc-500 dark:text-zinc-400">Fecha</dt>
+                <dd className="font-mono text-zinc-900 dark:text-zinc-100">
                   {formatearFecha(exito.fecha_visita)}
                 </dd>
               </div>
               <div>
-                <dt className="font-medium text-neutral-500 dark:text-neutral-400">Curso</dt>
-                <dd className="text-neutral-900 dark:text-neutral-100">
+                <dt className="font-medium text-zinc-500 dark:text-zinc-400">Curso</dt>
+                <dd className="text-zinc-900 dark:text-zinc-100">
                   {exito.anio} — División {exito.division}
                 </dd>
               </div>
               <div>
-                <dt className="font-medium text-neutral-500 dark:text-neutral-400">Alumnos</dt>
-                <dd className="text-neutral-900 dark:text-neutral-100">{exito.cant_alumnos}</dd>
+                <dt className="font-medium text-zinc-500 dark:text-zinc-400">Alumnos</dt>
+                <dd className="font-mono text-zinc-900 dark:text-zinc-100">{exito.cant_alumnos}</dd>
               </div>
               <div>
-                <dt className="font-medium text-neutral-500 dark:text-neutral-400">
-                  Transporte TUP
-                </dt>
-                <dd className="text-neutral-900 dark:text-neutral-100">
+                <dt className="font-medium text-zinc-500 dark:text-zinc-400">Transporte TUP</dt>
+                <dd className="text-zinc-900 dark:text-zinc-100">
                   {exito.requiere_tup ? 'Solicitado' : 'No requerido'}
                 </dd>
               </div>
               <div>
-                <dt className="font-medium text-neutral-500 dark:text-neutral-400">Estado visita</dt>
-                <dd className="text-neutral-900 dark:text-neutral-100">{exito.estado_visita}</dd>
+                <dt className="font-medium text-zinc-500 dark:text-zinc-400">Estado visita</dt>
+                <dd className="text-zinc-900 dark:text-zinc-100">{exito.estado_visita}</dd>
               </div>
               <div>
-                <dt className="font-medium text-neutral-500 dark:text-neutral-400">Póliza</dt>
-                <dd className="text-neutral-900 dark:text-neutral-100">{exito.estado_poliza}</dd>
+                <dt className="font-medium text-zinc-500 dark:text-zinc-400">Póliza</dt>
+                <dd className="text-zinc-900 dark:text-zinc-100">{exito.estado_poliza}</dd>
               </div>
             </dl>
 
-            <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-950">
-              <h3 className="text-sm font-semibold text-amber-900 dark:text-amber-100">
+            <div className={'mt-6 ' + NOTICE_CLASS}>
+              <h3 className="text-sm font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
                 Pautas importantes para la visita
               </h3>
-              <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-amber-900 dark:text-amber-100">
+              <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-zinc-600 dark:text-zinc-300">
                 <li>
-                  <strong className="font-semibold">Calzado cerrado obligatorio</strong> en el predio
-                  industrial (sin ojotas ni crocs).
+                  <strong className="font-semibold text-zinc-900 dark:text-zinc-100">
+                    Calzado cerrado obligatorio
+                  </strong>{' '}
+                  en el predio industrial (sin ojotas ni crocs).
                 </li>
                 <li>
                   Mate y celular permitidos para chicos y docentes, manteniendo los{' '}
-                  <strong className="font-semibold">líquidos alejados de consolas y cabinas</strong>.
+                  <strong className="font-semibold text-zinc-900 dark:text-zinc-100">
+                    líquidos alejados de consolas y cabinas
+                  </strong>
+                  .
                 </li>
                 <li>
-                  El equipo municipal se contactará al WhatsApp del docente (
-                  {exito.cel_docente}) <strong className="font-semibold">7 días antes</strong> de la
-                  visita para coordinar la nómina final y la logística.
+                  El equipo municipal se contactará al WhatsApp del docente ({exito.cel_docente}){' '}
+                  <strong className="font-semibold text-zinc-900 dark:text-zinc-100">
+                    7 días antes
+                  </strong>{' '}
+                  de la visita para coordinar la nómina final y la logística.
                 </li>
                 <li>
                   Ante reprogramaciones o consultas: teléfono de contacto{' '}
-                  <strong className="font-semibold">{WHATSAPP}</strong>.
+                  <strong className="font-mono font-semibold text-zinc-900 dark:text-zinc-100">
+                    {WHATSAPP}
+                  </strong>
+                  .
                 </li>
               </ul>
             </div>
 
             <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-              <button
-                type="button"
-                onClick={() => window.print()}
-                className="rounded-lg bg-green-700 px-4 py-2 text-sm font-medium text-white transition hover:bg-green-800"
-              >
+              <button type="button" onClick={() => window.print()} className={PRIMARY_BTN_CLASS}>
                 Imprimir / Descargar comprobante
               </button>
-              <button
-                type="button"
-                onClick={reiniciar}
-                className="rounded-lg border border-neutral-300 bg-white px-4 py-2 text-sm font-medium text-neutral-700 transition hover:border-blue-500 hover:text-blue-700 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-200"
-              >
+              <button type="button" onClick={reiniciar} className={SECONDARY_BTN_CLASS}>
                 Registrar otra visita
               </button>
             </div>
@@ -308,8 +327,8 @@ export default function FormularioVisita() {
 
   return (
     <div className="w-full space-y-6">
-      <header className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
-        <div className="space-y-3 text-sm text-neutral-600 dark:text-neutral-300">
+      <header className={PANEL_CLASS + ' p-6'}>
+        <div className="space-y-3 text-sm text-zinc-600 dark:text-zinc-300">
           <p>
             Invitamos a las escuelas secundarias de Venado Tuerto a participar del Programa de
             Visitas Educativas al Centro de Simuladores, una propuesta del Gobierno local junto a
@@ -328,45 +347,44 @@ export default function FormularioVisita() {
             <p>📅 Fechas: viernes de abril a noviembre 2026 a coordinar con el equipo</p>
             <p>📞 Consultas: (03462) 15 537643</p>
           </div>
-          <p>
-            Los cupos son limitados, se asignan por curso/división según orden de inscripción.
-          </p>
+          <p>Los cupos son limitados, se asignan por curso/división según orden de inscripción.</p>
           <p>
             Completá los datos a continuación para reservar la participación de tu institución.
           </p>
         </div>
 
-        <div className="mt-4 rounded-xl border border-blue-200 bg-blue-50 p-4 dark:border-blue-800 dark:bg-blue-950">
-          <h2 className="text-sm font-semibold text-blue-900 dark:text-blue-100">
+        <div className={'mt-4 ' + NOTICE_CLASS}>
+          <h2 className="text-sm font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
             Antes de completar el formulario
           </h2>
-          <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-blue-900 dark:text-blue-100">
+          <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-zinc-600 dark:text-zinc-300">
             <li>
               Se pueden anotar varias divisiones en el mismo formulario (ej: 5to 1ra y 2da), siempre
-              que la suma de alumnos no supere los <strong className="font-semibold">40</strong> en
-              total.
+              que la suma de alumnos no supere los{' '}
+              <strong className="font-mono font-semibold text-zinc-900 dark:text-zinc-100">40</strong>{' '}
+              en total.
             </li>
             <li>
-              Cupo máximo estricto: <strong className="font-semibold">40 alumnos</strong> por jornada
-              (los docentes acompañantes no cuentan en este cupo).
+              Cupo máximo estricto:{' '}
+              <strong className="font-mono font-semibold text-zinc-900 dark:text-zinc-100">
+                40 alumnos
+              </strong>{' '}
+              por jornada (los docentes acompañantes no cuentan en este cupo).
             </li>
             <li>
               ¿Dudas con la fecha o el cupo? Escribinos por WhatsApp antes de enviar:{' '}
-              <strong className="font-semibold">{WHATSAPP}</strong>.
+              <strong className="font-mono font-semibold text-zinc-900 dark:text-zinc-100">
+                {WHATSAPP}
+              </strong>
+              .
             </li>
           </ul>
         </div>
       </header>
 
-      <form
-        onSubmit={handleSubmit}
-        className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm dark:border-neutral-800 dark:bg-neutral-900"
-      >
+      <form onSubmit={handleSubmit} className={PANEL_CLASS + ' p-6'}>
         {error && (
-          <div
-            role="alert"
-            className="mb-5 rounded-lg border border-red-300 bg-red-50 px-4 py-3 text-sm font-medium text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-200"
-          >
+          <div role="alert" className={'mb-5 ' + ALERT_CLASS}>
             {error}
           </div>
         )}
@@ -424,16 +442,14 @@ export default function FormularioVisita() {
                   required
                   placeholder="Ej: Instituto Superior N° 20"
                   value={form.otra_institucion_nombre}
-                  onChange={(event) =>
-                    actualizar('otra_institucion_nombre', event.target.value)
-                  }
+                  onChange={(event) => actualizar('otra_institucion_nombre', event.target.value)}
                   className={INPUT_CLASS}
                 />
               </div>
             )}
 
             {cargando && (
-              <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
+              <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
                 Obteniendo instituciones y fechas habilitadas…
               </p>
             )}
@@ -443,7 +459,7 @@ export default function FormularioVisita() {
                 <button
                   type="button"
                   onClick={() => void cargarDatos()}
-                  className="text-xs font-medium text-blue-700 underline hover:text-blue-800 dark:text-blue-400"
+                  className="text-xs font-medium text-zinc-900 underline hover:text-zinc-700 dark:text-zinc-100 dark:hover:text-zinc-300"
                 >
                   Reintentar
                 </button>
@@ -491,10 +507,10 @@ export default function FormularioVisita() {
                     aria-pressed={activo}
                     onClick={() => actualizar('anio', anio)}
                     className={
-                      'flex-1 rounded-lg border px-4 py-2 text-sm font-medium transition ' +
+                      'flex-1 rounded-sm border px-4 py-2 text-sm font-medium transition ' +
                       (activo
-                        ? 'border-blue-700 bg-blue-700 text-white'
-                        : 'border-neutral-300 bg-white text-neutral-700 hover:border-blue-500 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-300')
+                        ? 'border-zinc-900 bg-zinc-900 text-white dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900'
+                        : 'border-zinc-300 bg-white text-zinc-700 hover:border-zinc-900 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-300 dark:hover:border-zinc-100')
                     }
                   >
                     {anio}
@@ -532,17 +548,15 @@ export default function FormularioVisita() {
               value={form.cant_alumnos}
               onChange={(event) => actualizar('cant_alumnos', event.target.value)}
               className={
-                INPUT_CLASS + (cupoExcedido ? ' border-red-500 focus:border-red-500 focus:ring-red-500/40' : '')
+                INPUT_MONO_CLASS +
+                (cupoExcedido ? ' border-red-600 focus:border-red-600 focus:ring-red-600' : '')
               }
             />
           </div>
 
           <div className="sm:col-span-2">
             {cupoExcedido && (
-              <div
-                role="alert"
-                className="rounded-lg border border-red-300 bg-red-50 px-4 py-3 text-sm font-medium text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-200"
-              >
+              <div role="alert" className={ALERT_CLASS}>
                 El cupo máximo por turno es de {CUPO_MAXIMO} alumnos. Por favor reducí la cantidad o
                 dividí el curso en dos fechas. Consultas al {WHATSAPP}.
               </div>
@@ -552,7 +566,7 @@ export default function FormularioVisita() {
           <div className="sm:col-span-2">
             <label
               htmlFor="nombre_director"
-              className="mb-1 block text-base font-semibold text-neutral-800 dark:text-neutral-200"
+              className="mb-1 block text-base font-semibold tracking-tight text-zinc-900 dark:text-zinc-100"
             >
               Responsables de la institución y curso inscripto
             </label>
@@ -642,28 +656,28 @@ export default function FormularioVisita() {
           />
         </div>
 
-        <div className="mt-6 space-y-3 rounded-xl border border-neutral-200 p-4 dark:border-neutral-800">
-          <h3 className="text-sm font-semibold text-neutral-800 dark:text-neutral-200">
+        <div className={'mt-6 space-y-3 ' + NOTICE_CLASS}>
+          <h3 className="text-sm font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
             Conformidad legal (obligatoria)
           </h3>
-          <label className="flex items-start gap-3 text-sm text-neutral-700 dark:text-neutral-300">
+          <label className="flex items-start gap-3 text-sm text-zinc-700 dark:text-zinc-300">
             <input
               type="checkbox"
               checked={form.acepta_imagenes}
               onChange={(event) => actualizar('acepta_imagenes', event.target.checked)}
-              className="mt-0.5 h-4 w-4 shrink-0 rounded border-neutral-300 text-blue-700 focus:ring-blue-500 dark:border-neutral-600"
+              className={CHECKBOX_CLASS}
             />
             <span>
               Acepto el uso de imágenes y videos institucionales con fines educativos
               (Recomendaciones UNICEF / Art. 53 CCyC / Ley 11.723).
             </span>
           </label>
-          <label className="flex items-start gap-3 text-sm text-neutral-700 dark:text-neutral-300">
+          <label className="flex items-start gap-3 text-sm text-zinc-700 dark:text-zinc-300">
             <input
               type="checkbox"
               checked={form.acepta_medidas_judiciales}
               onChange={(event) => actualizar('acepta_medidas_judiciales', event.target.checked)}
-              className="mt-0.5 h-4 w-4 shrink-0 rounded border-neutral-300 text-blue-700 focus:ring-blue-500 dark:border-neutral-600"
+              className={CHECKBOX_CLASS}
             />
             <span>
               La institución se compromete a informar si algún alumno posee medidas judiciales que
@@ -676,14 +690,14 @@ export default function FormularioVisita() {
           <button
             type="submit"
             disabled={!puedeEnviar}
-            className="w-full rounded-lg bg-blue-700 px-6 py-3 text-sm font-semibold text-white transition hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+            className={
+              PRIMARY_BTN_CLASS + ' w-full px-6 py-3 font-semibold sm:w-auto'
+            }
           >
             {enviando ? 'Verificando disponibilidad y agendando…' : 'Confirmar reserva'}
           </button>
           {enviando && (
-            <span className="text-sm text-neutral-500 dark:text-neutral-400">
-              No cierre esta ventana.
-            </span>
+            <span className="text-sm text-zinc-500 dark:text-zinc-400">No cierre esta ventana.</span>
           )}
           {cupoExcedido && !enviando && (
             <span className="text-sm font-medium text-red-600 dark:text-red-400">

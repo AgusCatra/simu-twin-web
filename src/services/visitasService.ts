@@ -66,6 +66,12 @@ export async function crearSolicitudVisita(
     throw new Error('El cupo máximo permitido es de 40 alumnos');
   }
 
+  if (!datos.asistentes || datos.asistentes.length === 0) {
+    throw new Error(
+      'Debe cargar la nómina de alumnos y acompañantes para confirmar la reserva.'
+    );
+  }
+
   // Si seleccionó una escuela de la lista oficial, lleva TUP automáticamente.
   // Si es texto libre ("+ Otra institución"), no lleva transporte municipal.
   const requiereTup = !!datos.id_escuela;
