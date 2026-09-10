@@ -1,0 +1,3 @@
+- Absolute imports use the `@/*` path alias that resolves to the `src/` directory as declared in tsconfig.json paths.
+- Tooling configuration files are written in ESM (eslint.config.mjs, postcss.config.mjs) and exported as default modules.
+- Generated or third-party directories (node_modules, .next, out, build, next-env.d.ts) are excluded from linting via ESLint ignores.

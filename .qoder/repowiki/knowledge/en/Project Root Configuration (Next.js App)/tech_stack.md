@@ -1,0 +1,1 @@
+Next.js 15 with React 19, TypeScript 5, Tailwind CSS v4 via @tailwindcss/postcss, Supabase JS client, ESLint 9 flat config, and Turbopack-backed development and build pipeline.
