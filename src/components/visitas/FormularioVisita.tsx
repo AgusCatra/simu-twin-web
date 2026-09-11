@@ -137,7 +137,13 @@ export default function FormularioVisita() {
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    if (cupoExcedido) {
+    const cantAlumnos = parseInt(form.cant_alumnos, 10);
+    if (isNaN(cantAlumnos) || cantAlumnos <= 0) {
+      setError('Debe ingresar una cantidad válida de alumnos (mayor a 0).');
+      return;
+    }
+
+    if (cantAlumnos > CUPO_MAXIMO) {
       setError(
         `El cupo máximo por turno es de ${CUPO_MAXIMO} alumnos. Por favor reducí la cantidad o dividí el curso en dos fechas. Consultas al ${WHATSAPP}.`
       );
@@ -546,7 +552,12 @@ export default function FormularioVisita() {
               max={CUPO_MAXIMO}
               required
               value={form.cant_alumnos}
-              onChange={(event) => actualizar('cant_alumnos', event.target.value)}
+              onChange={(event) => {
+                const valor = event.target.value;
+                if (/^\d*$/.test(valor)) {
+                  actualizar('cant_alumnos', valor);
+                }
+              }}
               className={
                 INPUT_MONO_CLASS +
                 (cupoExcedido ? ' border-red-600 focus:border-red-600 focus:ring-red-600' : '')

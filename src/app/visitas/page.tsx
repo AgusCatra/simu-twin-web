@@ -13,7 +13,7 @@ export default function VisitasPage() {
       <div className="mx-auto w-full max-w-3xl">
         <header className="mb-8 text-center">
           <h1 className="text-2xl font-bold tracking-tight text-neutral-900 dark:text-neutral-50 sm:text-3xl">
-            Centro Municipal de Simulación - Reserva de Visitas Educativas (H4)
+            Centro de simuladores - Reserva de visitas educativas
           </h1>
           <p className="mt-3 text-sm text-neutral-600 dark:text-neutral-400 sm:text-base">
             Complete el formulario para solicitar un turno de visita educativa con su institución.

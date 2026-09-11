@@ -27,6 +27,27 @@ function normalizarRol(valor: string | undefined): RolAsistente {
 }
 
 /**
+ * Normaliza una fecha entrante (DD/MM/YYYY o DD-MM-YYYY) al formato ISO (YYYY-MM-DD)
+ * que espera el input type="date" nativo de HTML y Supabase.
+ */
+function normalizarFecha(rawDate: string): string {
+  const trimmed = rawDate.trim();
+  if (!trimmed) return '';
+  // Ya está en formato ISO
+  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return trimmed;
+  // Intentar parsear DD/MM/YYYY o DD-MM-YYYY
+  const parts = trimmed.split(/[-/]/);
+  if (parts.length === 3 && parts[0].length <= 2) {
+    const dia = parts[0].padStart(2, '0');
+    const mes = parts[1].padStart(2, '0');
+    const anio = parts[2].length === 2 ? `20${parts[2]}` : parts[2];
+    return `${anio}-${mes}-${dia}`;
+  }
+  // Si no se puede parsear, devolver tal cual
+  return trimmed;
+}
+
+/**
  * Parsea texto pegado desde Excel: cada línea es una fila y las columnas
  * vienen separadas por tabulaciones (\t).
  * Columnas esperadas: Apellido y Nombre | DNI | Fecha Nacimiento | Rol.
@@ -41,7 +62,7 @@ function parsearDesdeExcel(texto: string): AsistenteInput[] {
       return {
         apellido_nombre: columnas[0] ?? '',
         dni: columnas[1] ?? '',
-        fecha_nacimiento: columnas[2] ?? '',
+        fecha_nacimiento: normalizarFecha(columnas[2] ?? ''),
         rol: normalizarRol(columnas[3]),
       };
     })
@@ -227,7 +248,7 @@ export default function GridNomina({ asistentes, onChange }: GridNominaProps) {
               value={textoPegado}
               onChange={(event: ChangeEvent<HTMLTextAreaElement>) => setTextoPegado(event.target.value)}
               rows={8}
-              placeholder={'Pérez Juan\t45123456\t2010-05-14\tAlumno'}
+              placeholder={'Pérez Juan\t45123456\t25/08/2008\tAlumno'}
               className="mt-3 w-full rounded-sm border border-zinc-300 bg-white px-3 py-2 font-mono text-sm text-zinc-900 outline-none transition focus:border-zinc-900 focus:ring-1 focus:ring-zinc-900 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:border-zinc-100 dark:focus:ring-zinc-100"
             />
             <div className="mt-4 flex justify-end gap-2">
