@@ -46,6 +46,16 @@ export interface SolicitudVisitaInput {
   asistentes: AsistenteInput[];
 }
 
+/**
+ * Columnas booleanas de seguimiento operativo que se marcan desde el panel
+ * de administración (seguro, transporte, facturas y carga en Drive).
+ */
+export type CampoCheckOperativo =
+  | 'check_poliza'
+  | 'check_tup'
+  | 'check_facturas'
+  | 'check_drive_sum';
+
 export interface VisitaEducativa extends SolicitudVisitaInput {
   id: string;
   codigo_reserva: string;
@@ -56,4 +66,18 @@ export interface VisitaEducativa extends SolicitudVisitaInput {
   tup_horario_vuelta_desde: string;
   tup_horario_vuelta_hasta: string;
   created_at: string;
+  check_poliza?: boolean | null;
+  check_tup?: boolean | null;
+  check_facturas?: boolean | null;
+  check_drive_sum?: boolean | null;
+}
+
+/** Fila de la tabla `visita_asistentes` asociada a una visita educativa. */
+export interface AsistenteVisita {
+  id: string;
+  id_visita: string;
+  apellido_nombre: string;
+  dni: string;
+  fecha_nacimiento: string | null;
+  rol: RolAsistente;
 }
