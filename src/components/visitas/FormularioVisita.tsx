@@ -547,9 +547,9 @@ export default function FormularioVisita() {
             </label>
             <input
               id="cant_alumnos"
-              type="number"
-              min={1}
-              max={CUPO_MAXIMO}
+              type="text"
+              inputMode="numeric"
+              pattern="\\d*"
               required
               value={form.cant_alumnos}
               onChange={(event) => {
