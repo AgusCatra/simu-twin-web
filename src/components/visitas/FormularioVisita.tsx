@@ -2,10 +2,11 @@
 
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
 import {
-  crearSolicitudVisita,
+  CUPO_MAXIMO_ALUMNOS,
   obtenerEscuelas,
   obtenerFechasHabilitadas,
 } from '@/services/visitasService';
+import { crearSolicitudVisitaAction } from '@/app/visitas/actions';
 import GridNomina from '@/components/visitas/GridNomina';
 import type {
   AnioEscolar,
@@ -13,8 +14,20 @@ import type {
   Escuela,
   FechaHabilitada,
   SolicitudVisitaInput,
-  VisitaEducativa,
 } from '@/types/visitas';
+
+/** Datos que muestra la vista de éxito tras confirmar la reserva. */
+interface ComprobanteReserva {
+  codigo_reserva: string;
+  fecha_visita: string;
+  anio: AnioEscolar;
+  division: string;
+  cant_alumnos: number;
+  requiere_tup: boolean;
+  estado_visita: string;
+  estado_poliza: string;
+  cel_docente: string;
+}
 
 interface FormState {
   id_escuela: string;
@@ -35,7 +48,6 @@ interface FormState {
 }
 
 const ANIOS: readonly AnioEscolar[] = ['5°', '6°'];
-const CUPO_MAXIMO = 40;
 const WHATSAPP = '3462-537643';
 const OPCION_OTRA = '__otra__';
 
@@ -88,7 +100,7 @@ export default function FormularioVisita() {
   const [form, setForm] = useState<FormState>(FORM_INICIAL);
   const [enviando, setEnviando] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-  const [exito, setExito] = useState<VisitaEducativa | null>(null);
+  const [exito, setExito] = useState<ComprobanteReserva | null>(null);
 
   const cargarDatos = useCallback(async () => {
     setCargando(true);
@@ -117,7 +129,7 @@ export default function FormularioVisita() {
 
   const cantAlumnosNumero = Number(form.cant_alumnos);
   const cupoExcedido =
-    form.cant_alumnos.trim().length > 0 && cantAlumnosNumero > CUPO_MAXIMO;
+    form.cant_alumnos.trim().length > 0 && cantAlumnosNumero > CUPO_MAXIMO_ALUMNOS;
 
   const puedeEnviar = useMemo(
     () => !enviando && !cargando && !cupoExcedido,
@@ -143,9 +155,9 @@ export default function FormularioVisita() {
       return;
     }
 
-    if (cantAlumnos > CUPO_MAXIMO) {
+    if (cantAlumnos > CUPO_MAXIMO_ALUMNOS) {
       setError(
-        `El cupo máximo por turno es de ${CUPO_MAXIMO} alumnos. Por favor reducí la cantidad o dividí el curso en dos fechas. Consultas al ${WHATSAPP}.`
+        `El cupo máximo permitido es de ${CUPO_MAXIMO_ALUMNOS} alumnos. Por favor reducí la cantidad o dividí el curso en dos fechas. Consultas al ${WHATSAPP}.`
       );
       return;
     }
@@ -193,7 +205,6 @@ export default function FormularioVisita() {
         anio,
         division: form.division,
         cant_alumnos: cantAlumnosNumero,
-        requiere_tup: !!idEscuela,
         nombre_director: form.nombre_director,
         cel_director: form.cel_director,
         nombre_docente: form.nombre_docente,
@@ -204,13 +215,28 @@ export default function FormularioVisita() {
         asistentes: form.asistentes.filter((a) => a.apellido_nombre.trim().length > 0),
       };
 
-      const registro = await crearSolicitudVisita(payload);
-      setExito(registro);
+      const resultado = await crearSolicitudVisitaAction(payload);
+      if (!resultado.ok) {
+        setError(resultado.error);
+        return;
+      }
+
+      setExito({
+        // Valores autoritativos devueltos por el servidor (fuente única de verdad):
+        codigo_reserva: resultado.codigo_reserva,
+        fecha_visita: resultado.fecha_visita,
+        estado_visita: resultado.estado_visita,
+        estado_poliza: resultado.estado_poliza,
+        requiere_tup: resultado.requiere_tup,
+        // Datos de eco del propio formulario (no son autoridad del servidor):
+        anio: payload.anio,
+        division: payload.division,
+        cant_alumnos: payload.cant_alumnos,
+        cel_docente: payload.cel_docente,
+      });
       setForm(FORM_INICIAL);
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : 'Ocurrió un error inesperado. Intente nuevamente.'
-      );
+    } catch {
+      setError('Ocurrió un error inesperado. Intente nuevamente.');
     } finally {
       setEnviando(false);
     }
@@ -543,13 +569,13 @@ export default function FormularioVisita() {
 
           <div>
             <label htmlFor="cant_alumnos" className={LABEL_CLASS}>
-              Cantidad total de alumnos (máx. {CUPO_MAXIMO})
+              Cantidad total de alumnos (máx. {CUPO_MAXIMO_ALUMNOS})
             </label>
             <input
               id="cant_alumnos"
               type="text"
               inputMode="numeric"
-              pattern="\\d*"
+              pattern="[0-9]*"
               required
               value={form.cant_alumnos}
               onChange={(event) => {
@@ -568,8 +594,8 @@ export default function FormularioVisita() {
           <div className="sm:col-span-2">
             {cupoExcedido && (
               <div role="alert" className={ALERT_CLASS}>
-                El cupo máximo por turno es de {CUPO_MAXIMO} alumnos. Por favor reducí la cantidad o
-                dividí el curso en dos fechas. Consultas al {WHATSAPP}.
+                El cupo máximo permitido es de {CUPO_MAXIMO_ALUMNOS} alumnos. Por favor reducí la
+                cantidad o dividí el curso en dos fechas. Consultas al {WHATSAPP}.
               </div>
             )}
           </div>

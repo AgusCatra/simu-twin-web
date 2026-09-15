@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { ChevronRight } from 'lucide-react';
+import { usePathname, useRouter } from 'next/navigation';
+import { ChevronRight, LogOut } from 'lucide-react';
 import { RUTAS_ADMIN, esRutaActiva, obtenerRutaActiva } from '@/components/admin/Sidebar';
+import { createClient } from '@/lib/supabase/client';
 
 function capitalizar(texto: string): string {
   return texto.charAt(0).toUpperCase() + texto.slice(1);
@@ -40,7 +41,7 @@ function RelojEnVivo() {
   return (
     <time
       dateTime={ahora ? ahora.toISOString() : undefined}
-      className="font-mono text-xs tracking-[0.08em] text-zinc-300"
+      className="hidden font-mono text-xs tracking-[0.08em] text-zinc-300 sm:inline"
     >
       {ahora ? formatearReloj(ahora) : '-- --, --:--'}
     </time>
@@ -54,7 +55,21 @@ const ENLACE_MOVIL_INACTIVO = 'text-zinc-500 hover:bg-zinc-900 hover:text-white'
 
 export default function Topbar() {
   const pathname = usePathname();
+  const router = useRouter();
   const seccion = obtenerRutaActiva(pathname)?.label ?? 'Panel';
+  const [cerrandoSesion, setCerrandoSesion] = useState(false);
+
+  async function cerrarSesion() {
+    if (cerrandoSesion) return;
+    setCerrandoSesion(true);
+    try {
+      const supabase = createClient();
+      await supabase.auth.signOut();
+    } finally {
+      router.push('/login');
+      router.refresh();
+    }
+  }
 
   return (
     <header className="sticky top-0 z-10 border-b border-zinc-800 bg-zinc-950">
@@ -75,6 +90,19 @@ export default function Topbar() {
             <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
             SISTEMA OPERATIVO
           </span>
+          <button
+            type="button"
+            onClick={() => void cerrarSesion()}
+            disabled={cerrandoSesion}
+            aria-label="Cerrar sesión"
+            title="Cerrar sesión"
+            className="flex shrink-0 items-center gap-1.5 rounded-sm border border-zinc-800 px-2 py-1 font-mono text-[10px] tracking-[0.12em] text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-zinc-100 disabled:cursor-not-allowed disabled:opacity-60 sm:px-2.5"
+          >
+            <LogOut size={12} strokeWidth={2} aria-hidden />
+            <span className="hidden sm:inline">
+              {cerrandoSesion ? 'CERRANDO…' : 'CERRAR SESIÓN'}
+            </span>
+          </button>
         </div>
       </div>
 

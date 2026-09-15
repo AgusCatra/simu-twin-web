@@ -34,8 +34,11 @@ export interface SolicitudVisitaInput {
   division: string;
   /** Cupo máximo permitido: 40 alumnos. */
   cant_alumnos: number;
-  /** Se calcula en el servicio a partir de la escuela seleccionada. */
-  requiere_tup: boolean;
+  /**
+   * Opcional en la entrada: la calcula el SERVIDOR (Server Action) a partir de
+   * la escuela seleccionada. El cliente no la envía como verdad.
+   */
+  requiere_tup?: boolean;
   nombre_director: string;
   cel_director: string;
   nombre_docente: string;
@@ -58,6 +61,8 @@ export type CampoCheckOperativo =
 
 export interface VisitaEducativa extends SolicitudVisitaInput {
   id: string;
+  /** La fila persistida siempre incluye este campo (lo fija el servidor). */
+  requiere_tup: boolean;
   codigo_reserva: string;
   estado_visita: string;
   estado_poliza: string;

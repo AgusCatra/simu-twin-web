@@ -11,11 +11,12 @@
 
 ## Update Summary
 **Changes Made**
-- Updated SolicitudVisitaInput interface to reflect simplified turno field (changed from required TurnoVisita to optional string)
-- Removed drive_nomina_url field references throughout the documentation
-- Enhanced comments explaining automatic TUP calculation logic in service layer
-- Updated validation rules and business logic descriptions to match current implementation
-- Revised entity relationship diagrams to reflect current data model structure
+- Added new operational check fields (check_poliza, check_tup, check_facturas, check_drive_sum) to VisitaEducativa interface
+- Introduced CampoCheckOperativo union type for controlled operational status management
+- Enhanced service layer with actualizarCheckOperativo function for updating operational checks
+- Added AsistenteVisita interface for database retrieval of attendee information
+- Updated entity relationship diagrams to reflect new operational tracking capabilities
+- Expanded administrative functionality documentation for visit management workflows
 
 ## Table of Contents
 1. [Introduction](#introduction)
@@ -29,10 +30,10 @@
 9. [Conclusion](#conclusion)
 
 ## Introduction
-This document describes the comprehensive data models and type system used in the Simu-Twin-Web project. It focuses on the TypeScript interfaces and types that define entities such as Escuela (schools), VisitaEducativa (educational visits), and supporting types like TurnoVisita (visit shifts), AnioEscolar (school year), AsistenteInput (assistant input), and FechaHabilitada (enabled dates). The system has been enhanced with robust form functionality, assistant management capabilities, and sophisticated validation rules to ensure data integrity across the service layer and UI components. Recent updates have simplified the type definitions by making the turno field optional and removing the drive_nomina_url field, while enhancing the automatic TUP calculation logic in the service layer.
+This document describes the comprehensive data models and type system used in the Simu-Twin-Web project. It focuses on the TypeScript interfaces and types that define entities such as Escuela (schools), VisitaEducativa (educational visits), and supporting types like TurnoVisita (visit shifts), AnioEscolar (school year), AsistenteInput (assistant input), and FechaHabilitada (enabled dates). The system has been enhanced with robust form functionality, assistant management capabilities, sophisticated validation rules, and comprehensive operational tracking for administrative workflows. Recent updates have expanded the type definitions with new operational check fields (check_poliza, check_tup, check_facturas, check_drive_sum) and attendee visitor interfaces to support complete visit lifecycle management from booking through completion.
 
 ## Project Structure
-The data model is centralized under src/types and consumed by the service layer under src/services. The Supabase client is configured in src/lib and used to interact with the database. UI components in src/components utilize these types to ensure consistent data handling throughout the application.
+The data model is centralized under src/types and consumed by the service layer under src/services. The Supabase client is configured in src/lib and used to interact with the database. UI components in src/components utilize these types to ensure consistent data handling throughout the application. The system now includes comprehensive operational tracking capabilities for administrative workflows.
 
 ```mermaid
 graph TB
@@ -43,22 +44,23 @@ A --> E["src/components/visitas/FormularioVisita.tsx"]
 A --> F["src/components/visitas/GridNomina.tsx"]
 E --> G["UI Form Components"]
 F --> H["Assistant Management Grid"]
+B --> I["Administrative Operations<br/>Operational Check Management"]
 ```
 
 **Diagram sources**
-- [visitas.ts:1-60](file://src/types/visitas.ts#L1-L60)
-- [visitasService.ts:1-114](file://src/services/visitasService.ts#L1-L114)
-- [FormularioVisita.tsx:1-698](file://src/components/visitas/FormularioVisita.tsx#L1-L698)
-- [GridNomina.tsx:1-246](file://src/components/visitas/GridNomina.tsx#L1-L246)
+- [visitas.ts:1-84](file://src/types/visitas.ts#L1-L84)
+- [visitasService.ts:1-169](file://src/services/visitasService.ts#L1-L169)
+- [FormularioVisita.tsx:1-723](file://src/components/visitas/FormularioVisita.tsx#L1-L723)
+- [GridNomina.tsx:1-277](file://src/components/visitas/GridNomina.tsx#L1-L277)
 
 **Section sources**
-- [visitas.ts:1-60](file://src/types/visitas.ts#L1-L60)
-- [visitasService.ts:1-114](file://src/services/visitasService.ts#L1-L114)
-- [FormularioVisita.tsx:1-698](file://src/components/visitas/FormularioVisita.tsx#L1-L698)
-- [GridNomina.tsx:1-246](file://src/components/visitas/GridNomina.tsx#L1-L246)
+- [visitas.ts:1-84](file://src/types/visitas.ts#L1-L84)
+- [visitasService.ts:1-169](file://src/services/visitasService.ts#L1-L169)
+- [FormularioVisita.tsx:1-723](file://src/components/visitas/FormularioVisita.tsx#L1-L723)
+- [GridNomina.tsx:1-277](file://src/components/visitas/GridNomina.tsx#L1-L277)
 
 ## Core Components
-This section documents the primary data models and their relationships with enhanced functionality.
+This section documents the primary data models and their relationships with enhanced operational tracking functionality.
 
 ### Core Entity Types
 
@@ -69,19 +71,21 @@ This section documents the primary data models and their relationships with enha
 - **RolAsistente**: Enumerated role type distinguishing between 'Alumno' (student) and 'Docente' (teacher).
 - **AsistenteInput**: Input contract for managing assistants attending educational visits.
 - **SolicitudVisitaInput**: Comprehensive input contract for creating educational visit requests with enhanced validation and simplified turno handling.
-- **VisitaEducativa**: Extended entity representing a created visit record with full lifecycle management.
+- **VisitaEducativa**: Extended entity representing a created visit record with full lifecycle management and operational tracking.
+- **AsistenteVisita**: Database representation of an assistant associated with a specific visit.
 
 Key relationships:
-- VisitaEducativa extends SolicitudVisitaInput, adding persistent identifiers and status fields.
+- VisitaEducativa extends SolicitudVisitaInput, adding persistent identifiers, status fields, and operational tracking flags.
 - Escuela is referenced by SolicitudVisitaInput through id_escuela, establishing logical links between schools and visit requests.
 - AsistenteInput arrays are embedded within SolicitudVisitaInput for comprehensive assistant tracking.
+- AsistenteVisita represents individual attendees linked to visits through id_visita foreign key.
 - FechaHabilitada provides controlled date selection for visit scheduling.
 
 Validation and constraints enforced by types:
-- Union types (TurnoVisita, AnioEscolar, RolAsistente) restrict allowed values at compile time.
-- Optional fields (fecha_nacimiento, observaciones) enable flexible data entry.
+- Union types (TurnoVisita, AnioEscolar, RolAsistente, CampoCheckOperativo) restrict allowed values at compile time.
+- Optional fields (fecha_nacimiento, observaciones, turno, operational checks) enable flexible data entry.
 - Numeric constraints (cant_alumnos ≤ 40) ensure proper resource allocation.
-- Boolean flags (acepta_imagenes, acepta_medidas_judiciales) enforce legal compliance.
+- Boolean flags (acepta_imagenes, acepta_medidas_judiciales, operational checks) enforce legal compliance and workflow progress.
 - Array validation (asistentes[]) ensures structured assistant data collection.
 - Simplified turno field allows for more flexible scheduling scenarios.
 
@@ -89,12 +93,13 @@ Type safety across layers:
 - Services import and use these types to guarantee consistent shapes for API calls and responses.
 - UI components leverage types for form validation and state management.
 - Return types of service functions are explicitly declared, enabling predictable consumption.
+- Operational check types provide compile-time safety for administrative workflows.
 
 **Section sources**
-- [visitas.ts:1-60](file://src/types/visitas.ts#L1-L60)
+- [visitas.ts:1-84](file://src/types/visitas.ts#L1-L84)
 
 ## Architecture Overview
-The type system defines clear boundaries between domain models and service operations with enhanced form processing capabilities. Services validate inputs, perform business checks, manage assistant data, and return typed results. The service layer now includes enhanced automatic TUP calculation logic based on school selection.
+The type system defines clear boundaries between domain models and service operations with enhanced form processing and operational tracking capabilities. Services validate inputs, perform business checks, manage assistant data, track operational status, and return typed results. The service layer includes enhanced automatic TUP calculation logic based on school selection, where transportation requirements are automatically determined when a school is selected from the official list.
 
 ```mermaid
 sequenceDiagram
@@ -103,21 +108,21 @@ participant Grid as "GridNomina.tsx"
 participant Service as "visitasService.ts"
 participant DB as "Supabase"
 UI->>Service : crearSolicitudVisita(SolicitudVisitaInput)
-Service->>Service : Calculate requires_tup automatically
+Service->>Service : Calculate requires_tup automatically based on school selection
 Service->>Service : verificarTurnoDisponible(fecha, turno)
 Service->>DB : Query visitas_educativas by fecha and turno
 DB-->>Service : Results or error
 Service->>Service : Validate capacity and legal agreements
-Service->>DB : Insert visita record with default statuses
-DB-->>Service : Created VisitaEducativa
+Service->>DB : Insert visita record with default statuses and operational checks
+DB-->>Service : Created VisitaEducativa with operational tracking
 Service->>DB : Insert asistentes array if present
 DB-->>Service : Assistant records created
-Service-->>UI : VisitaEducativa with confirmation
+Service-->>UI : VisitaEducativa with confirmation and operational status
 ```
 
 **Diagram sources**
-- [visitasService.ts:56-114](file://src/services/visitasService.ts#L56-L114)
-- [FormularioVisita.tsx:124-191](file://src/components/visitas/FormularioVisita.tsx#L124-L191)
+- [visitasService.ts:56-169](file://src/services/visitasService.ts#L56-L169)
+- [FormularioVisita.tsx:137-211](file://src/components/visitas/FormularioVisita.tsx#L137-L211)
 - [GridNomina.tsx:51-83](file://src/components/visitas/GridNomina.tsx#L51-L83)
 
 ## Detailed Component Analysis
@@ -251,6 +256,54 @@ Validation notes:
 - [visitas.ts:21-26](file://src/types/visitas.ts#L21-L26)
 - [GridNomina.tsx:17-19](file://src/components/visitas/GridNomina.tsx#L17-L19)
 
+### CampoCheckOperativo
+Purpose:
+- Defines the set of operational check fields that can be tracked for each visit in the administrative workflow.
+
+Values:
+- 'check_poliza' — Insurance policy status check
+- 'check_tup' — Transportation (TUP) coordination status
+- 'check_facturas' — Invoice processing status
+- 'check_drive_sum' — Drive upload completion status
+
+Usage examples:
+- Parameter: actualizarCheckOperativo accepts a CampoCheckOperativo argument for type-safe updates.
+- Field: Each VisitaEducativa instance includes optional boolean fields for each operational check.
+
+Validation notes:
+- Union type ensures only valid operational check fields can be updated programmatically.
+- Prevents typos and maintains consistency across administrative operations.
+- Supports progressive workflow tracking from booking through completion.
+
+**Section sources**
+- [visitas.ts:53-57](file://src/types/visitas.ts#L53-L57)
+- [visitasService.ts:142-153](file://src/services/visitasService.ts#L142-L153)
+
+### AsistenteVisita
+Purpose:
+- Represents an attendee record stored in the database, linked to a specific educational visit.
+
+Fields:
+- id: string — unique identifier for the attendee record.
+- id_visita: string — foreign key reference to the associated visita educativa.
+- apellido_nombre: string — full name of the attendee.
+- dni: string — national identification number.
+- fecha_nacimiento: string | null — birth date (nullable for privacy or missing data).
+- rol: RolAsistente — role classification (Alumno or Docente).
+
+Usage examples:
+- Return value: obtenerAsistentesPorVisita returns array of AsistenteVisita records for a specific visit.
+- Display: Administrative interfaces can show complete attendee lists with all details.
+
+Validation notes:
+- Foreign key relationship ensures referential integrity with visita educativa records.
+- Nullable fecha_nacimiento accommodates cases where birth date is not provided.
+- Role constraint ensures consistent attendee classification.
+
+**Section sources**
+- [visitas.ts:75-83](file://src/types/visitas.ts#L75-L83)
+- [visitasService.ts:155-168](file://src/services/visitasService.ts#L155-L168)
+
 ### SolicitudVisitaInput
 Purpose:
 - Comprehensive input contract for creating educational visit requests with enhanced validation and assistant management.
@@ -288,11 +341,13 @@ Validation notes:
 
 **Section sources**
 - [visitas.ts:28-47](file://src/types/visitas.ts#L28-L47)
-- [visitasService.ts:56-73](file://src/services/visitasService.ts#L56-L73)
+- [visitasService.ts:56-78](file://src/services/visitasService.ts#L56-L78)
 
 ### VisitaEducativa
 Purpose:
-- Represents a persisted educational visit record with complete lifecycle management and scheduling information.
+- Represents a persisted educational visit record with complete lifecycle management, scheduling information, and operational tracking.
+
+**Updated** Enhanced with operational check fields for administrative workflow management.
 
 Fields:
 - Inherits all fields from SolicitudVisitaInput.
@@ -305,19 +360,25 @@ Fields:
 - tup_horario_vuelta_desde: string — return transportation departure time.
 - tup_horario_vuelta_hasta: string — return transportation arrival time.
 - created_at: string — timestamp of record creation.
+- check_poliza?: boolean | null — insurance policy processing status.
+- check_tup?: boolean | null — transportation coordination status.
+- check_facturas?: boolean | null — invoice processing status.
+- check_drive_sum?: boolean | null — Drive upload completion status.
 
 Usage examples:
 - Return value: crearSolicitudVisita returns a complete VisitaEducativa instance.
 - Consumption: UI displays confirmation details and manages workflow based on status fields.
+- Administration: Operational checks enable progressive workflow management.
 
 Validation notes:
 - Extends input shape, ensuring all required input fields are present.
 - Adds persistent identifiers and state fields necessary for workflow management.
 - Scheduling fields provide structured transportation coordination.
+- Operational check fields enable comprehensive administrative tracking.
 
 **Section sources**
-- [visitas.ts:49-60](file://src/types/visitas.ts#L49-L60)
-- [visitasService.ts:75-95](file://src/services/visitasService.ts#L75-L95)
+- [visitas.ts:49-73](file://src/types/visitas.ts#L49-L73)
+- [visitasService.ts:82-100](file://src/services/visitasService.ts#L82-L100)
 
 ### Enhanced Entity Relationship Diagram
 ```mermaid
@@ -358,6 +419,10 @@ string tup_horario_ida_hasta
 string tup_horario_vuelta_desde
 string tup_horario_vuelta_hasta
 timestamp created_at
+boolean check_poliza
+boolean check_tup
+boolean check_facturas
+boolean check_drive_sum
 }
 VISITA_ASISTENTES {
 string id_visita FK
@@ -372,10 +437,10 @@ VISITA_EDUCATIVA ||--o{ VISITA_ASISTENTES : "includes"
 ```
 
 **Diagram sources**
-- [visitas.ts:1-60](file://src/types/visitas.ts#L1-L60)
+- [visitas.ts:1-84](file://src/types/visitas.ts#L1-L84)
 
 ## Dependency Analysis
-Types are defined centrally and imported by services and UI components. The service layer depends on these types to ensure consistent data contracts with the database and UI, while components leverage types for form validation and state management.
+Types are defined centrally and imported by services and UI components. The service layer depends on these types to ensure consistent data contracts with the database and UI, while components leverage types for form validation and state management. The system now includes comprehensive operational tracking dependencies for administrative workflows.
 
 ```mermaid
 graph LR
@@ -386,29 +451,33 @@ Supabase["lib/supabase.ts"] --> Service
 Service --> DB["Database Tables"]
 UI --> Service
 Grid --> UI
+Service --> AdminOps["Administrative Operations<br/>Operational Check Management"]
 ```
 
 - Direct dependencies:
-  - visitasService imports Escuela, FechaHabilitada, SolicitudVisitaInput, TurnoVisita, VisitaEducativa from types.
+  - visitasService imports Escuela, FechaHabilitada, SolicitudVisitaInput, TurnoVisita, VisitaEducativa, AsistenteVisita, CampoCheckOperativo from types.
   - FormularioVisita imports all types for form state management and validation.
   - GridNomina imports AsistenteInput and RolAsistente for assistant management.
   - visitasService uses supabase client to query and insert records.
+  - Service layer includes operational check management for administrative workflows.
 - Cohesion:
   - Types encapsulate domain concepts; services encapsulate business logic using those types.
   - UI components maintain type-safe state management aligned with data models.
+  - Operational check types provide cohesive workflow management.
 - Coupling:
   - Services depend on types for compile-time safety; changes to types propagate automatically.
   - Components depend on types for consistent user experience and validation.
+  - Administrative operations depend on operational check types for workflow management.
 
 **Diagram sources**
-- [visitas.ts:1-60](file://src/types/visitas.ts#L1-L60)
-- [visitasService.ts:1-114](file://src/services/visitasService.ts#L1-L114)
-- [FormularioVisita.tsx:1-698](file://src/components/visitas/FormularioVisita.tsx#L1-L698)
-- [GridNomina.tsx:1-246](file://src/components/visitas/GridNomina.tsx#L1-L246)
+- [visitas.ts:1-84](file://src/types/visitas.ts#L1-L84)
+- [visitasService.ts:1-169](file://src/services/visitasService.ts#L1-L169)
+- [FormularioVisita.tsx:1-723](file://src/components/visitas/FormularioVisita.tsx#L1-L723)
+- [GridNomina.tsx:1-277](file://src/components/visitas/GridNomina.tsx#L1-L277)
 
 **Section sources**
-- [visitasService.ts:1-114](file://src/services/visitasService.ts#L1-L114)
-- [visitas.ts:1-60](file://src/types/visitas.ts#L1-L60)
+- [visitasService.ts:1-169](file://src/services/visitasService.ts#L1-L169)
+- [visitas.ts:1-84](file://src/types/visitas.ts#L1-L84)
 
 ## Performance Considerations
 - Minimal overhead: TypeScript types are erased at runtime; they do not impact performance.
@@ -417,12 +486,15 @@ Grid --> UI
 - Batch operations: Assistant data is inserted in batch operations to minimize database round trips.
 - State optimization: React components use useMemo and useCallback for performance optimization.
 - Simplified turno handling: Optional string field reduces validation overhead compared to strict enum checking.
+- Automatic TUP calculation: Eliminates manual transportation assignment logic, reducing computational complexity.
+- Operational check efficiency: Individual boolean fields allow granular updates without full record rewrites.
+- Lazy loading: Attendee data can be loaded on-demand for administrative views to optimize initial page load.
 
 ## Troubleshooting Guide
 Common issues and how types help:
 - Invalid turno or anio values: Compile-time errors prevent passing unsupported strings; UI should provide dropdowns bound to respective types.
 - Missing required fields: TypeScript enforces presence of all required fields in SolicitudVisitaInput; missing properties will cause build-time errors.
-- Optional fields: fecha_nacimiento, observaciones, and turno are optional; omitting them is valid and will not break compilation.
+- Optional fields: fecha_nacimiento, observaciones, turno, and operational checks are optional; omitting them is valid and will not break compilation.
 - Runtime errors: Services throw errors on database failures; callers should handle exceptions appropriately.
 
 Runtime validation patterns:
@@ -432,15 +504,17 @@ Runtime validation patterns:
 - Default statuses: When inserting a new visit, estado_visita and estado_poliza are set to predefined values to maintain consistent state transitions.
 - Assistant processing: Empty assistant names are filtered out before database insertion.
 - Automatic TUP calculation: Service layer automatically determines requires_tup based on school selection - true for official schools, false for custom institutions.
+- Operational check updates: actualizarCheckOperativo provides type-safe updates to operational status fields.
 
 Error handling:
 - If database operations fail, errors are thrown; consumers must catch and handle them.
 - Business rule violations (e.g., exceeded capacity) result in explicit errors with descriptive messages.
 - Form validation provides immediate feedback to users before submission.
+- Operational check updates include proper error handling for database operations.
 
 **Section sources**
-- [visitasService.ts:56-114](file://src/services/visitasService.ts#L56-L114)
-- [FormularioVisita.tsx:124-191](file://src/components/visitas/FormularioVisita.tsx#L124-L191)
+- [visitasService.ts:56-169](file://src/services/visitasService.ts#L56-L169)
+- [FormularioVisita.tsx:137-211](file://src/components/visitas/FormularioVisita.tsx#L137-L211)
 
 ## Conclusion
-The Simu-Twin-Web project employs a comprehensive, type-driven architecture centered around well-defined interfaces and union types. The enhanced type system now includes Escuela, FechaHabilitada, TurnoVisita, AnioEscolar, RolAsistente, AsistenteInput, SolicitudVisitaInput, and VisitaEducativa, forming a cohesive model that ensures type safety across the service layer and UI components. Recent updates have simplified the type definitions by making the turno field optional and removing the drive_nomina_url field, while enhancing the automatic TUP calculation logic in the service layer. Union types constrain controlled values, optional fields enable flexible data entry, and service-level validations complement compile-time guarantees. The addition of assistant management capabilities through AsistenteInput and the sophisticated date management system via FechaHabilitada demonstrates the evolution toward a more robust and feature-rich educational visit booking system. This approach improves reliability, maintainability, and developer experience while keeping runtime overhead minimal. The simplified turno handling and enhanced automatic TUP calculation make the system more flexible and user-friendly while maintaining data integrity.
+The Simu-Twin-Web project employs a comprehensive, type-driven architecture centered around well-defined interfaces and union types. The enhanced type system now includes Escuela, FechaHabilitada, TurnoVisita, AnioEscolar, RolAsistente, AsistenteInput, SolicitudVisitaInput, VisitaEducativa, AsistenteVisita, and CampoCheckOperativo, forming a cohesive model that ensures type safety across the service layer and UI components. Recent updates have significantly expanded the system's capabilities with new operational check fields (check_poliza, check_tup, check_facturas, check_drive_sum) and attendee visitor interfaces to support complete visit lifecycle management from booking through completion. The addition of CampoCheckOperativo union type and AsistenteVisita interface demonstrates the evolution toward a more robust and feature-rich educational visit booking system with comprehensive administrative capabilities. Union types constrain controlled values, optional fields enable flexible data entry, and service-level validations complement compile-time guarantees. The simplified turno handling, enhanced automatic TUP calculation, and comprehensive operational tracking make the system more flexible and user-friendly while maintaining data integrity. This approach improves reliability, maintainability, and developer experience while keeping runtime overhead minimal and providing powerful administrative tools for visit management workflows.
