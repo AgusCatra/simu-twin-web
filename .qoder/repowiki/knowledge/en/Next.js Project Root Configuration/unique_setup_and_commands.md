@@ -1,0 +1,1 @@
+Run `npm run dev` to start the development server on localhost:3000; `npm run build` triggers a Turbopack production build; `npm run lint` runs ESLint against the flat config.

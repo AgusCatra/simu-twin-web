@@ -2,99 +2,117 @@
 
 <cite>
 **Referenced Files in This Document**
+- [actions.ts](file://src/app/visitas/actions.ts)
 - [visitasService.ts](file://src/services/visitasService.ts)
 - [visitas.ts](file://src/types/visitas.ts)
-- [supabase.ts](file://src/lib/supabase.ts)
+- [server.ts](file://src/lib/supabase/server.ts)
+- [client.ts](file://src/lib/supabase/client.ts)
 - [FormularioVisita.tsx](file://src/components/visitas/FormularioVisita.tsx)
 - [GridNomina.tsx](file://src/components/visitas/GridNomina.tsx)
 - [page.tsx](file://src/app/visitas/page.tsx)
+- [TablaVisitasAdmin.tsx](file://src/components/admin/visitas/TablaVisitasAdmin.tsx)
 </cite>
 
 ## Update Summary
 **Changes Made**
-- Added comprehensive documentation for new administrative API services including retrieving all educational visits, updating operational check statuses, and fetching attendee lists
-- Enhanced core functions section to include the three new administrative operations
-- Updated architecture diagrams to reflect the expanded service capabilities
-- Added detailed examples for administrative operations and operational workflow management
-- Expanded error handling documentation to cover administrative operation scenarios
-- Updated business rules to include operational status tracking and administrative workflows
+- **Major Architecture Shift**: Replaced client-side service calls with Server Actions for secure data processing and improved validation
+- **Enhanced Security**: Implemented server-side request handling with strict input validation and sanitization
+- **Improved Error Handling**: Added comprehensive error handling with PII-safe logging and user-friendly error messages
+- **Atomic Operations**: Ensured database operations are atomic with pre-validation to prevent orphaned records
+- **Type Safety**: Maintained strong TypeScript typing throughout the new Server Action architecture
+- **Performance Optimization**: Optimized data loading with parallel requests and efficient queries
 
 ## Table of Contents
 1. [Introduction](#introduction)
 2. [Project Structure](#project-structure)
 3. [Core Components](#core-components)
 4. [Architecture Overview](#architecture-overview)
-5. [Detailed Component Analysis](#detailed-component-analysis)
-6. [Administrative Operations](#administrative-operations)
-7. [Dependency Analysis](#dependency-analysis)
-8. [Performance Considerations](#performance-considerations)
-9. [Troubleshooting Guide](#troubleshooting-guide)
-10. [Conclusion](#conclusion)
-11. [Appendices](#appendices)
+5. [Server Actions Implementation](#server-actions-implementation)
+6. [Detailed Component Analysis](#detailed-component-analysis)
+7. [Administrative Operations](#administrative-operations)
+8. [Dependency Analysis](#dependency-analysis)
+9. [Performance Considerations](#performance-considerations)
+10. [Troubleshooting Guide](#troubleshooting-guide)
+11. [Conclusion](#conclusion)
+12. [Appendices](#appendices)
 
 ## Introduction
-This document explains the Visit Management Service that encapsulates all educational visit business logic for a streamlined booking system with comprehensive administrative capabilities. The service provides core functions for educational visit scheduling plus powerful administrative operations:
+This document explains the Visit Management Service that encapsulates all educational visit business logic for a streamlined booking system with comprehensive administrative capabilities. The service has been significantly enhanced with **Server Actions** for secure data processing, replacing previous client-side service calls with server-side request handling for improved security and validation.
 
 **Core Functions:**
-- obtenerEscuelas(): fetches school data from the database
-- verificarTurnoDisponible(): checks time slot availability with conflict prevention
-- crearSolicitudVisita(): creates a new visit request with automatic status assignment, automated transportation logistics, and mandatory roster validation
+- obtenerEscuelas(): fetches school data from the database (client-side service)
+- verificarTurnoDisponible(): checks time slot availability with conflict prevention (client-side service)
+- crearSolicitudVisitaAction(): creates new visit requests with automatic status assignment through Server Actions
 
 **Administrative Operations:**
 - obtenerVisitasAdmin(): retrieves all educational visits for administrative panel display
 - actualizarCheckOperativo(): updates operational check statuses (insurance, TUP, invoices, Drive upload)
 - obtenerAsistentesPorVisita(): fetches attendee lists for specific visits
 
-The service follows a clear separation of concerns pattern, isolating business logic from UI components and centralizing Supabase integration for type-safe operations. The system includes automated TUP calculation based on school selection, simplified form interface with improved validation, mandatory roster requirement before reservation confirmation, and comprehensive administrative workflow management.
+The service follows a hybrid architecture pattern that separates concerns between client-side data fetching and server-side critical operations, centralizing Supabase integration for type-safe operations while maintaining security through Server Actions.
 
 ## Project Structure
-The project is organized into focused modules:
-- Services layer: contains business logic for visits and administrative operations (visitasService.ts).
-- Types layer: defines TypeScript interfaces for strong typing (visitas.ts).
-- Data access layer: configures the Supabase client (supabase.ts).
-- UI components: implements the user interface with integrated service calls (FormularioVisita.tsx, GridNomina.tsx).
-- Application pages: routes and page composition (page.tsx).
+The project is organized into focused modules with enhanced Server Action support:
+- **Server Actions layer**: contains secure business logic for visit creation and data processing (actions.ts).
+- **Services layer**: contains client-side business logic for read operations (visitasService.ts).
+- **Types layer**: defines TypeScript interfaces for strong typing (visitas.ts).
+- **Data access layer**: configures both client and server Supabase clients (server.ts, client.ts).
+- **UI components**: implements the user interface with integrated service and action calls (FormularioVisita.tsx, GridNomina.tsx).
+- **Application pages**: routes and page composition (page.tsx).
 
 ```mermaid
 graph TB
-subgraph "Services"
+subgraph "Server Actions"
+A["actions.ts"]
+end
+subgraph "Client Services"
 S["visitasService.ts"]
 end
 subgraph "Types"
 T["visitas.ts"]
 end
 subgraph "Data Access"
-D["supabase.ts"]
+D["server.ts"]
+C["client.ts"]
 end
 subgraph "UI Components"
 U["FormularioVisita.tsx"]
 G["GridNomina.tsx"]
+A2["TablaVisitasAdmin.tsx"]
 end
 subgraph "Application"
 P["page.tsx"]
 end
-S --> T
-S --> D
+U --> A
 U --> S
-G --> U
-P --> U
+A2 --> S
+A --> D
+S --> C
+U --> T
+A2 --> T
 ```
 
 **Diagram sources**
-- [visitasService.ts:1-169](file://src/services/visitasService.ts#L1-L169)
-- [visitas.ts:1-84](file://src/types/visitas.ts#L1-L84)
-- [supabase.ts:1-7](file://src/lib/supabase.ts#L1-L7)
-- [FormularioVisita.tsx:1-723](file://src/components/visitas/FormularioVisita.tsx#L1-L723)
+- [actions.ts:1-322](file://src/app/visitas/actions.ts#L1-L322)
+- [visitasService.ts:1-105](file://src/services/visitasService.ts#L1-L105)
+- [visitas.ts:1-89](file://src/types/visitas.ts#L1-L89)
+- [server.ts:1-41](file://src/lib/supabase/server.ts#L1-L41)
+- [client.ts:1-34](file://src/lib/supabase/client.ts#L1-L34)
+- [FormularioVisita.tsx:1-749](file://src/components/visitas/FormularioVisita.tsx#L1-L749)
 - [GridNomina.tsx:1-277](file://src/components/visitas/GridNomina.tsx#L1-L277)
 - [page.tsx:1-28](file://src/app/visitas/page.tsx#L1-L28)
+- [TablaVisitasAdmin.tsx:1-324](file://src/components/admin/visitas/TablaVisitasAdmin.tsx#L1-L324)
 
 **Section sources**
-- [visitasService.ts:1-169](file://src/services/visitasService.ts#L1-L169)
-- [visitas.ts:1-84](file://src/types/visitas.ts#L1-L84)
-- [supabase.ts:1-7](file://src/lib/supabase.ts#L1-L7)
-- [FormularioVisita.tsx:1-723](file://src/components/visitas/FormularioVisita.tsx#L1-L723)
+- [actions.ts:1-322](file://src/app/visitas/actions.ts#L1-L322)
+- [visitasService.ts:1-105](file://src/services/visitasService.ts#L1-L105)
+- [visitas.ts:1-89](file://src/types/visitas.ts#L1-L89)
+- [server.ts:1-41](file://src/lib/supabase/server.ts#L1-L41)
+- [client.ts:1-34](file://src/lib/supabase/client.ts#L1-L34)
+- [FormularioVisita.tsx:1-749](file://src/components/visitas/FormularioVisita.tsx#L1-L749)
 - [GridNomina.tsx:1-277](file://src/components/visitas/GridNomina.tsx#L1-L277)
 - [page.tsx:1-28](file://src/app/visitas/page.tsx#L1-L28)
+- [TablaVisitasAdmin.tsx:1-324](file://src/components/admin/visitas/TablaVisitasAdmin.tsx#L1-L324)
 
 ## Core Components
 - Escuela: represents a school record with identifiers and contact details.
@@ -111,12 +129,13 @@ P --> U
 These types ensure compile-time safety across the service and any UI components that consume it.
 
 **Section sources**
-- [visitas.ts:1-84](file://src/types/visitas.ts#L1-L84)
+- [visitas.ts:1-89](file://src/types/visitas.ts#L1-L89)
 
 ## Architecture Overview
-The service uses a layered architecture with comprehensive administrative capabilities:
-- UI components call service functions for schools, availability checks, and administrative operations.
-- The service enforces business rules including mandatory roster validation and delegates persistence to Supabase via a centralized client.
+The service uses a **hybrid architecture** combining client-side services for read operations and Server Actions for write operations:
+- **Client-side services** handle data retrieval (schools, dates, availability checks) for better performance and user experience.
+- **Server Actions** handle critical write operations (visit creation) with enhanced security, validation, and atomicity.
+- The service enforces business rules including mandatory roster validation and delegates persistence to Supabase via centralized clients.
 - Errors are thrown consistently so callers can handle them uniformly.
 - Transportation logistics (TUP) are automatically calculated based on school selection rather than manual configuration.
 - Form validation ensures all required fields including attendee lists are complete before submission.
@@ -127,11 +146,19 @@ sequenceDiagram
 participant UI as "FormularioVisita.tsx"
 participant ADMIN as "Admin Panel"
 participant SVC as "visitasService.ts"
+participant ACTION as "actions.ts"
 participant DB as "Supabase Client"
 UI->>SVC : llamar obtenerEscuelas()
 SVC->>DB : SELECT escuelas ORDER BY nombre_institucion
 DB-->>SVC : Escuela[] or error
 SVC-->>UI : Escuela[] or throw error
+UI->>ACTION : llamar crearSolicitudVisitaAction(datos)
+ACTION->>ACTION : Validar y sanitizar datos
+ACTION->>DB : INSERT visitas_educativas (atomic)
+DB-->>ACTION : success or error
+ACTION->>DB : INSERT asistentes (if valid)
+DB-->>ACTION : success or error
+ACTION-->>UI : ResultadoSolicitud or error
 ADMIN->>SVC : llamar obtenerVisitasAdmin()
 SVC->>DB : SELECT * FROM visitas_educativas ORDER BY fecha_visita DESC
 DB-->>SVC : VisitaEducativa[] or error
@@ -140,16 +167,68 @@ ADMIN->>SVC : llamar actualizarCheckOperativo(id, campo, valor)
 SVC->>DB : UPDATE visitas_educativas SET campo = valor
 DB-->>SVC : success or error
 SVC-->>ADMIN : void or throw error
-ADMIN->>SVC : llamar obtenerAsistentesPorVisita(idVisita)
-SVC->>DB : SELECT asistentes WHERE id_visita = id
-DB-->>SVC : AsistenteVisita[] or error
-SVC-->>ADMIN : Attendee list or throw error
 ```
 
 **Diagram sources**
-- [visitasService.ts:12-169](file://src/services/visitasService.ts#L12-L169)
-- [FormularioVisita.tsx:93-116](file://src/components/visitas/FormularioVisita.tsx#L93-L116)
-- [supabase.ts:1-7](file://src/lib/supabase.ts#L1-L7)
+- [actions.ts:170-321](file://src/app/visitas/actions.ts#L170-L321)
+- [visitasService.ts:11-104](file://src/services/visitasService.ts#L11-L104)
+- [FormularioVisita.tsx:197-242](file://src/components/visitas/FormularioVisita.tsx#L197-L242)
+- [server.ts:11-40](file://src/lib/supabase/server.ts#L11-L40)
+- [client.ts:26-33](file://src/lib/supabase/client.ts#L26-L33)
+
+## Server Actions Implementation
+
+### Function: crearSolicitudVisitaAction()
+Purpose:
+- Create a new educational visit request with comprehensive validation, security, and atomic database operations through Server Actions.
+
+**Security Enhancements:**
+- **PII-safe logging**: Logs only non-sensitive error information (code, message) without exposing personal data.
+- **Strict input validation**: Validates all input data before any database operations.
+- **Atomic operations**: Ensures database consistency by validating all data before insertion.
+- **White-listed columns**: Only allows specific columns to be inserted, preventing malicious data injection.
+
+Business rules:
+- Prevents double booking by checking database constraints.
+- Automatically sets initial statuses:
+  - Visit status: confirmed
+  - Insurance policy status: pending
+- Enforces maximum student capacity of 40 students per session.
+- Requires legal consent acceptance before submission.
+- **Requires mandatory attendee roster**: At least one attendee must be provided before reservation confirmation.
+- **Automatically calculates TUP (public transportation) requirements based on school selection**: schools from the official list receive municipal transportation, while custom institutions do not.
+
+Validation and sanitization:
+- **Date validation**: Validates ISO format and calendar validity before database insertion.
+- **Attendee validation**: Sanitizes and validates all attendee data including birth dates.
+- **Capacity validation**: Ensures student count doesn't exceed maximum limits.
+- **Legal consent validation**: Verifies both image usage and judicial measures consent.
+
+Workflow:
+- Validate legal consent acceptance and student capacity limits.
+- **Validate mandatory attendee roster**: Ensure at least one attendee is provided.
+- Determine TUP requirement: `requiere_tup = !!datos.id_escuela` (true if selecting from official school list).
+- Generate unique reservation code.
+- Execute atomic insert operation with all validated data.
+- Insert associated attendees if provided.
+- Return created VisitaEducativa object with server-authoritative values.
+
+Error handling:
+- Throws structured errors with user-friendly Spanish messages.
+- Handles database constraint violations (duplicate bookings) specifically.
+- Provides fallback generic error messages for unexpected failures.
+- Uses PII-safe logging to protect sensitive data in logs.
+
+Type safety:
+- Input conforms to SolicitudVisitaInput.
+- Output conforms to ResultadoSolicitud union type.
+- All intermediate data structures are strongly typed.
+
+**Updated** Enhanced with comprehensive Server Action implementation featuring PII-safe logging, atomic operations, and robust validation.
+
+**Section sources**
+- [actions.ts:170-321](file://src/app/visitas/actions.ts#L170-L321)
+- [visitas.ts:28-73](file://src/types/visitas.ts#L28-L73)
 
 ## Detailed Component Analysis
 
@@ -176,7 +255,7 @@ Type safety:
 - Returns Escuela[], typed by the interface.
 
 **Section sources**
-- [visitasService.ts:12-21](file://src/services/visitasService.ts#L12-L21)
+- [visitasService.ts:11-21](file://src/services/visitasService.ts#L11-L21)
 - [visitas.ts:1-6](file://src/types/visitas.ts#L1-L6)
 
 ### Function: obtenerFechasHabilitadas()
@@ -204,7 +283,7 @@ Type safety:
 - Returns FechaHabilitada[], typed by the interface.
 
 **Section sources**
-- [visitasService.ts:23-33](file://src/services/visitasService.ts#L23-L33)
+- [visitasService.ts:23-34](file://src/services/visitasService.ts#L23-L34)
 - [visitas.ts:8-13](file://src/types/visitas.ts#L8-L13)
 
 ### Function: verificarTurnoDisponible()
@@ -231,52 +310,8 @@ Type safety:
 - Uses TurnoVisita union to restrict allowed values.
 
 **Section sources**
-- [visitasService.ts:35-49](file://src/services/visitasService.ts#L35-L49)
+- [visitasService.ts:36-51](file://src/services/visitasService.ts#L36-L51)
 - [visitas.ts:15-15](file://src/types/visitas.ts#L15-L15)
-
-### Function: crearSolicitudVisita()
-Purpose:
-- Create a new educational visit request with automatic status assignment, conflict prevention, automated transportation logistics, and mandatory roster validation.
-
-Business rules:
-- Prevents double booking by calling verificarTurnoDisponible before insertion.
-- Automatically sets initial statuses:
-  - Visit status: confirmed
-  - Insurance policy status: pending
-- Enforces maximum student capacity of 40 students per session.
-- Requires legal consent acceptance before submission.
-- **Requires mandatory attendee roster**: At least one attendee must be provided before reservation confirmation.
-- **Automatically calculates TUP (public transportation) requirements based on school selection**: schools from the official list receive municipal transportation, while custom institutions do not.
-
-Workflow:
-- Validate legal consent acceptance and student capacity limits.
-- **Validate mandatory attendee roster**: Ensure at least one attendee is provided.
-- Determine TUP requirement: `requiere_tup = !!datos.id_escuela` (true if selecting from official school list).
-- Validate availability for the requested date and shift.
-- Generate unique reservation code.
-- Insert the visit record with required fields plus default statuses and automatically calculated TUP time slots.
-- Insert associated attendees if provided.
-- Return the created VisitaEducativa object.
-
-Error handling:
-- Throws if legal consent is not accepted.
-- Throws if student capacity exceeds maximum limit.
-- **Throws if attendee roster is missing or empty**.
-- Throws if the slot is already occupied.
-- Throws on database errors during insert.
-
-Type safety:
-- Input conforms to SolicitudVisitaInput.
-- Output conforms to VisitaEducativa, which extends input with system-managed fields.
-
-Practical usage example (conceptual):
-- On form submission, call this function and handle success or error states in the UI.
-
-**Updated** Enhanced with automated TUP calculation based on school selection, mandatory roster validation, and streamlined form processing.
-
-**Section sources**
-- [visitasService.ts:58-121](file://src/services/visitasService.ts#L58-L121)
-- [visitas.ts:28-73](file://src/types/visitas.ts#L28-L73)
 
 ## Administrative Operations
 
@@ -306,8 +341,8 @@ Type safety:
 - Returns VisitaEducativa[], providing complete visit information including operational status fields.
 
 **Section sources**
-- [visitasService.ts:127-136](file://src/services/visitasService.ts#L127-L136)
-- [visitas.ts:59-73](file://src/types/visitas.ts#L59-L73)
+- [visitasService.ts:60-70](file://src/services/visitasService.ts#L60-L70)
+- [visitas.ts:62-78](file://src/types/visitas.ts#L62-L78)
 
 ### Function: actualizarCheckOperativo()
 Purpose:
@@ -339,8 +374,8 @@ Type safety:
 - Boolean value ensures consistent status representation.
 
 **Section sources**
-- [visitasService.ts:142-153](file://src/services/visitasService.ts#L142-L153)
-- [visitas.ts:53-57](file://src/types/visitas.ts#L53-L57)
+- [visitasService.ts:76-88](file://src/services/visitasService.ts#L76-L88)
+- [visitas.ts:56-60](file://src/types/visitas.ts#L56-L60)
 
 ### Function: obtenerAsistentesPorVisita()
 Purpose:
@@ -369,8 +404,8 @@ Type safety:
 - Returns AsistenteVisita[], providing structured attendee information.
 
 **Section sources**
-- [visitasService.ts:156-168](file://src/services/visitasService.ts#L156-L168)
-- [visitas.ts:76-83](file://src/types/visitas.ts#L76-L83)
+- [visitasService.ts:91-104](file://src/services/visitasService.ts#L91-L104)
+- [visitas.ts:81-88](file://src/types/visitas.ts#L81-L88)
 
 ### Data Model Relationships
 ```mermaid
@@ -434,68 +469,81 @@ Notes:
 [No sources needed since this diagram shows conceptual model mapping]
 
 ## Dependency Analysis
-- visitasService.ts depends on:
-  - supabase client for data access.
+- **Server Actions** depend on:
+  - Server Supabase client for secure database operations.
+  - Shared constants and types for consistency.
+- **Client Services** depend on:
+  - Client Supabase client for browser-based operations.
   - TypeScript interfaces for type safety.
-- supabase.ts depends on environment variables for URL and anonymous key.
-- FormularioVisita.tsx depends on service functions for data loading and form submission.
-- GridNomina.tsx depends on TypeScript interfaces for attendee management.
-- page.tsx serves as the main route component for the visits feature.
+- **Supabase clients** depend on environment variables for URL and anonymous key.
+- **UI components** depend on both server actions and client services for complete functionality.
+- **Admin components** depend on client services for administrative operations.
 
 ```mermaid
 graph LR
 PAGE["page.tsx"] --> FORM["FormularioVisita.tsx"]
 FORM --> GRID["GridNomina.tsx"]
+FORM --> ACTION["actions.ts"]
 FORM --> SVC["visitasService.ts"]
+ACTION --> SERVER_SUP["server.ts"]
+SVC --> CLIENT_SUP["client.ts"]
+GRID --> SVC
+ADMIN["TablaVisitasAdmin.tsx"] --> SVC
 SVC --> TYPES["visitas.ts"]
-SVC --> SUP["supabase.ts"]
-SUP --> ENV["Environment Variables"]
+SERVER_SUP --> ENV["Environment Variables"]
+CLIENT_SUP --> ENV
 ```
 
 **Diagram sources**
-- [visitasService.ts:1-10](file://src/services/visitasService.ts#L1-L10)
+- [actions.ts:1-6](file://src/app/visitas/actions.ts#L1-L6)
+- [visitasService.ts:1-9](file://src/services/visitasService.ts#L1-L9)
 - [FormularioVisita.tsx:3-17](file://src/components/visitas/FormularioVisita.tsx#L3-L17)
 - [GridNomina.tsx:3-4](file://src/components/visitas/GridNomina.tsx#L3-L4)
-- [supabase.ts:1-7](file://src/lib/supabase.ts#L1-L7)
+- [server.ts:1-41](file://src/lib/supabase/server.ts#L1-L41)
+- [client.ts:1-34](file://src/lib/supabase/client.ts#L1-L34)
 - [page.tsx:1-8](file://src/app/visitas/page.tsx#L1-L8)
+- [TablaVisitasAdmin.tsx:3-11](file://src/components/admin/visitas/TablaVisitasAdmin.tsx#L3-L11)
 
 **Section sources**
-- [visitasService.ts:1-10](file://src/services/visitasService.ts#L1-L10)
+- [actions.ts:1-6](file://src/app/visitas/actions.ts#L1-L6)
+- [visitasService.ts:1-9](file://src/services/visitasService.ts#L1-L9)
 - [FormularioVisita.tsx:3-17](file://src/components/visitas/FormularioVisita.tsx#L3-L17)
 - [GridNomina.tsx:3-4](file://src/components/visitas/GridNomina.tsx#L3-L4)
-- [supabase.ts:1-7](file://src/lib/supabase.ts#L1-L7)
+- [server.ts:1-41](file://src/lib/supabase/server.ts#L1-L41)
+- [client.ts:1-34](file://src/lib/supabase/client.ts#L1-L34)
 - [page.tsx:1-8](file://src/app/visitas/page.tsx#L1-L8)
+- [TablaVisitasAdmin.tsx:3-11](file://src/components/admin/visitas/TablaVisitasAdmin.tsx#L3-L11)
 
 ## Performance Considerations
-- Minimize payload size by selecting only needed columns in obtenerEscuelas().
-- Ensure indexes on visitas_educativas(fecha_visita, turno) to speed up availability checks.
-- Avoid redundant calls by caching school lists in UI state when appropriate.
-- Batch operations are not used here; consider future enhancements if volume increases.
-- The simplified form reduces client-side validation complexity and improves user experience.
-- Parallel data loading using Promise.all() for schools and dates improves initial load performance.
-- Administrative operations use efficient queries with proper filtering and ordering.
-- Attendee retrieval is optimized by selecting only necessary fields and sorting alphabetically.
+- **Parallel data loading**: Using Promise.all() for schools and dates improves initial load performance.
+- **Optimized queries**: Minimize payload size by selecting only needed columns in client services.
+- **Efficient admin operations**: Administrative operations use efficient queries with proper filtering and ordering.
+- **Atomic operations**: Server Actions perform atomic database operations to prevent race conditions.
+- **Client-side caching**: School lists can be cached in UI state when appropriate to reduce redundant calls.
+- **Batch operations**: Consider future enhancements for batch operations if volume increases.
+- **Index optimization**: Ensure indexes on visitas_educativas(fecha_visita, turno) to speed up availability checks.
+- **PII-safe logging**: Reduced log verbosity protects sensitive data while maintaining debugging capability.
 
 [No sources needed since this section provides general guidance]
 
 ## Troubleshooting Guide
 Common issues and resolutions:
-- Slot already booked:
+- **Slot already booked**:
   - Occurs when creating a visit for a date and shift that has a non-cancelled visit.
   - Resolution: choose another date or shift; verify existing bookings.
-- Database errors:
+- **Database errors**:
   - Network, authentication, or permission errors will be thrown by Supabase.
   - Resolution: check environment configuration, RLS policies, and connection settings.
-- Type mismatches:
+- **Type mismatches**:
   - Passing invalid shift values will cause TypeScript errors at compile time.
   - Resolution: use the provided TurnoVisita type to constrain inputs.
-- Capacity exceeded:
+- **Capacity exceeded**:
   - Occurs when student count exceeds the 40-student maximum limit.
   - Resolution: reduce student count or split into multiple sessions.
-- Legal consent not accepted:
+- **Legal consent not accepted**:
   - Occurs when users don't accept required legal conditions before submission.
   - Resolution: ensure both image usage and judicial measures checkboxes are checked.
-- Invalid school selection:
+- **Invalid school selection**:
   - Occurs when neither an official school nor a custom institution name is provided.
   - Resolution: select from the official school list or provide a custom institution name.
 - **Missing attendee roster**:
@@ -510,31 +558,55 @@ Common issues and resolutions:
 - **Attendee retrieval errors**:
   - Occurs when querying attendees for visits without associated attendee records.
   - Resolution: handle empty arrays gracefully in administrative interfaces.
+- **Server Action validation errors**:
+  - Occurs when input data fails validation in Server Actions.
+  - Resolution: check form data completeness and validate user inputs before submission.
+- **PII-safe logging issues**:
+  - Occurs when sensitive data appears in logs despite protection measures.
+  - Resolution: review logging functions to ensure they only capture non-sensitive error information.
 
 Error propagation:
 - All service functions throw errors on failure; callers should wrap calls in try/catch blocks and present user-friendly messages.
+- Server Actions return structured ResultadoSolicitud objects with clear success/failure states.
 
-**Updated** Added troubleshooting guidance for administrative operations, operational status management, and attendee retrieval scenarios.
+**Updated** Added troubleshooting guidance for Server Action validation, PII-safe logging, and enhanced error handling scenarios.
 
 **Section sources**
-- [visitasService.ts:16-17](file://src/services/visitasService.ts#L16-L17)
-- [visitasService.ts:44-45](file://src/services/visitasService.ts#L44-L45)
-- [visitasService.ts:59-73](file://src/services/visitasService.ts#L59-L73)
-- [visitasService.ts:98-99](file://src/services/visitasService.ts#L98-L99)
-- [visitasService.ts:133-134](file://src/services/visitasService.ts#L133-L134)
-- [visitasService.ts:152-153](file://src/services/visitasService.ts#L152-L153)
-- [visitasService.ts:165-166](file://src/services/visitasService.ts#L165-L166)
-- [FormularioVisita.tsx:140-173](file://src/components/visitas/FormularioVisita.tsx#L140-L173)
+- [actions.ts:174-224](file://src/app/visitas/actions.ts#L174-L224)
+- [actions.ts:272-284](file://src/app/visitas/actions.ts#L272-L284)
+- [visitasService.ts:18-19](file://src/services/visitasService.ts#L18-L19)
+- [visitasService.ts:48-49](file://src/services/visitasService.ts#L48-L49)
+- [visitasService.ts:67-68](file://src/services/visitasService.ts#L67-L68)
+- [visitasService.ts:87-88](file://src/services/visitasService.ts#L87-L88)
+- [visitasService.ts:101-102](file://src/services/visitasService.ts#L101-L102)
+- [FormularioVisita.tsx:152-191](file://src/components/visitas/FormularioVisita.tsx#L152-L191)
 
 ## Conclusion
-The Visit Management Service centralizes educational visit business logic with clear separation from UI layers and comprehensive administrative capabilities. The system has been successfully enhanced with automated transportation logistics based on school selection, simplified form interface with improved validation, mandatory roster requirement before reservation confirmation, and powerful administrative operations for complete workflow management. The streamlined form interface provides a better user experience while maintaining robust validation, preventing double bookings, managing capacity limits, and integrating cleanly with Supabase using strongly-typed interfaces. The new administrative operations enable complete visibility and control over the visit management lifecycle, from initial booking through operational completion. By following the patterns described here, you can reliably schedule visits, manage school data, maintain operational workflows, and scale the system effectively.
+The Visit Management Service has been successfully enhanced with **Server Actions** for secure data processing, replacing previous client-side service calls with server-side request handling for improved security and validation. The hybrid architecture maintains optimal performance for read operations while ensuring data integrity and security for critical write operations.
+
+Key improvements include:
+- **Enhanced Security**: Server Actions provide secure data processing with PII-safe logging and strict input validation.
+- **Atomic Operations**: Database operations are now atomic, preventing orphaned records and ensuring data consistency.
+- **Improved Validation**: Comprehensive server-side validation catches errors before database operations.
+- **Better User Experience**: Client-side services maintain fast response times for read operations.
+- **Type Safety**: Strong TypeScript typing throughout the entire application stack.
+- **Administrative Capabilities**: Complete visibility and control over the visit management lifecycle.
+
+The system now provides a robust foundation for educational visit scheduling with enhanced security, reliability, and maintainability. By following the patterns described here, you can reliably schedule visits, manage school data, maintain operational workflows, and scale the system effectively while maintaining high security standards.
 
 [No sources needed since this section summarizes without analyzing specific files]
 
 ## Appendices
 
 ### API Reference Summary
-**Core Functions:**
+**Server Actions:**
+- crearSolicitudVisitaAction(datos):
+  - Purpose: Create a visit request with comprehensive validation, security, and atomic database operations.
+  - Parameters: SolicitudVisitaInput with all required fields.
+  - Returns: ResultadoSolicitud union type with success data or error message.
+  - Errors: Returns structured error responses for validation failures and database conflicts.
+
+**Client Services:**
 - obtenerEscuelas():
   - Purpose: Fetch schools sorted by institution name.
   - Returns: Array of Escuela.
@@ -550,12 +622,6 @@ The Visit Management Service centralizes educational visit business logic with c
   - Returns: Boolean indicating availability.
   - Errors: Throws on database errors.
 
-- crearSolicitudVisita(datos):
-  - Purpose: Create a visit request with automatic statuses, conflict prevention, automated TUP calculation, and mandatory roster validation.
-  - Returns: Created VisitaEducativa.
-  - Errors: Throws if slot is occupied, capacity exceeded, legal consent missing, attendee roster missing, or on database errors.
-
-**Administrative Operations:**
 - obtenerVisitasAdmin():
   - Purpose: Retrieve all educational visits for administrative panel display.
   - Returns: Array of VisitaEducativa ordered by most recent first.
@@ -572,14 +638,22 @@ The Visit Management Service centralizes educational visit business logic with c
   - Returns: Array of AsistenteVisita ordered alphabetically.
   - Errors: Throws on database errors.
 
-**Updated** Comprehensive API reference including both core booking functions and new administrative operations for complete visit management workflow.
+**Updated** Comprehensive API reference including both Server Actions and client services for complete visit management workflow.
 
 **Section sources**
-- [visitasService.ts:12-169](file://src/services/visitasService.ts#L12-L169)
-- [visitas.ts:1-84](file://src/types/visitas.ts#L1-L84)
+- [actions.ts:170-321](file://src/app/visitas/actions.ts#L170-L321)
+- [visitasService.ts:11-104](file://src/services/visitasService.ts#L11-L104)
+- [visitas.ts:1-89](file://src/types/visitas.ts#L1-L89)
 
 ### Practical Usage Examples (Conceptual)
-**Core Booking Workflow:**
+**Server Action Workflow:**
+- Creating a visit through Server Action:
+  - Call crearSolicitudVisitaAction(formData) with complete visitor information.
+  - Handle ResultadoSolicitud response with success or error states.
+  - On success, display confirmation with server-authoritative values.
+  - On error, show user-friendly error messages based on validation results.
+
+**Client Service Workflow:**
 - Loading schools and dates:
   - Call obtenerEscuelas() and obtenerFechasHabilitadas() when initializing the form.
   - Populate dropdowns for institution and date selection.
@@ -588,13 +662,6 @@ The Visit Management Service centralizes educational visit business logic with c
 - Checking availability:
   - Before enabling submit, call verificarTurnoDisponible(date, shift).
   - If false, inform the user to select another slot.
-
-- Creating a visit:
-  - On form submit, validate all required fields including attendee roster.
-  - Call crearSolicitudVisita(formData) with complete attendee information.
-  - The service automatically determines TUP requirements based on school selection.
-  - On success, navigate or show confirmation with reservation details.
-  - On error, display a user-friendly message based on the error type.
 
 **Administrative Workflow:**
 - Loading administrative dashboard:
@@ -613,7 +680,7 @@ The Visit Management Service centralizes educational visit business logic with c
   - Present attendee information for insurance verification and safety planning.
   - Enable export functionality for attendee lists.
 
-**Updated** Comprehensive examples covering both core booking operations and administrative workflow management.
+**Updated** Comprehensive examples covering both Server Action and client service workflows for complete visit management.
 
 [No sources needed since this section provides conceptual examples]
 
@@ -628,12 +695,18 @@ The Visit Management Service centralizes educational visit business logic with c
 - **Mandatory Roster**: At least one attendee must be provided before reservation confirmation.
 - **Attendee Validation**: Complete attendee information required for insurance and safety purposes.
 
+**Server Action Security Rules:**
+- **PII Protection**: Logging functions only capture non-sensitive error information.
+- **Input Validation**: All input data is validated and sanitized before database operations.
+- **Atomic Operations**: Database operations are atomic to prevent inconsistent states.
+- **White-listed Columns**: Only specific columns can be inserted, preventing data injection attacks.
+
 **Administrative Rules:**
 - **Operational Status Tracking**: Four distinct operational phases (insurance, TUP, invoices, Drive upload) can be independently tracked.
 - **Visit Visibility**: All visits are accessible through administrative operations regardless of their current status.
 - **Attendee Management**: Complete attendee information is retrievable for each visit for administrative purposes.
 - **Data Integrity**: Operational updates are atomic and validated to prevent inconsistent states.
 
-**Updated** Business rules reflect the comprehensive visit management system with both core booking operations and administrative workflow management capabilities.
+**Updated** Business rules reflect the enhanced security and validation provided by Server Actions while maintaining core booking and administrative functionality.
 
 [No sources needed since this section provides conceptual information]

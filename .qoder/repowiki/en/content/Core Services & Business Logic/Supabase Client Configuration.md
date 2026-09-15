@@ -2,13 +2,22 @@
 
 <cite>
 **Referenced Files in This Document**
-- [supabase.ts](file://src/lib/supabase.ts)
+- [client.ts](file://src/lib/supabase/client.ts)
+- [server.ts](file://src/lib/supabase/server.ts)
 - [visitasService.ts](file://src/services/visitasService.ts)
+- [actions.ts](file://src/app/visitas/actions.ts)
+- [middleware.ts](file://src/middleware.ts)
 - [visitas.ts](file://src/types/visitas.ts)
 - [package.json](file://package.json)
-- [.env.local](file://.env.local)
-- [next-env.d.ts](file://next-env.d.ts)
 </cite>
+
+## Update Summary
+**Changes Made**
+- Updated architecture overview to reflect separation of client and server implementations
+- Added detailed sections for browser client and server client components
+- Enhanced security considerations with environment variable validation
+- Updated usage patterns to show proper client selection based on execution context
+- Added middleware integration details for session management
 
 ## Table of Contents
 1. [Introduction](#introduction)
@@ -18,27 +27,34 @@
 5. [Detailed Component Analysis](#detailed-component-analysis)
 6. [Dependency Analysis](#dependency-analysis)
 7. [Performance Considerations](#performance-considerations)
-8. [Troubleshooting Guide](#troubleshooting-guide)
-9. [Conclusion](#conclusion)
+8. [Security and Environment Management](#security-and-environment-management)
+9. [Troubleshooting Guide](#troubleshooting-guide)
+10. [Conclusion](#conclusion)
 
 ## Introduction
-This document explains the Supabase client configuration that acts as the database connection layer for this Next.js application. It covers how a single shared client instance is created, how environment variables provide credentials, and how services import and use the client to perform database operations. It also includes best practices for environment variable management, security considerations, and troubleshooting common connection issues.
+This document explains the Supabase client configuration that acts as the database connection layer for this Next.js application. The architecture has been refactored to provide separate client implementations for browser and server contexts, enhancing security through proper environment variable validation and session management. It covers how each client instance is created, validated, and used within their appropriate execution contexts, along with best practices for secure database operations.
 
 ## Project Structure
-The Supabase integration is organized into focused modules:
-- A centralized client module that creates and exports a singleton Supabase client.
-- A service module that uses the client to interact with Supabase tables.
-- Type definitions that describe data shapes used by the service.
-- Environment configuration that supplies the Supabase URL and anonymous key.
+The Supabase integration is organized into focused modules with clear separation between browser and server contexts:
+- **Browser Client**: Specialized client for client-side components using `@supabase/ssr` for session sharing
+- **Server Client**: Specialized client for Server Components, Server Actions, and Route Handlers with cookie synchronization
+- **Service Layer**: Business logic functions that use the appropriate client based on execution context
+- **Middleware**: Session management and authentication routing
+- **Type Definitions**: Shared TypeScript interfaces ensuring type safety across the application
 
 ```mermaid
 graph TB
 subgraph "Next.js App"
 Layout["Root Layout"]
 Page["Page Component"]
+Actions["Server Actions"]
 end
-subgraph "Data Layer"
-Client["Supabase Client<br/>src/lib/supabase.ts"]
+subgraph "Supabase Clients"
+BrowserClient["Browser Client<br/>src/lib/supabase/client.ts"]
+ServerClient["Server Client<br/>src/lib/supabase/server.ts"]
+Middleware["Session Middleware<br/>src/middleware.ts"]
+end
+subgraph "Business Logic"
 Service["Visitas Service<br/>src/services/visitasService.ts"]
 Types["Type Definitions<br/>src/types/visitas.ts"]
 end
@@ -46,212 +62,292 @@ subgraph "Environment"
 Env[".env.local"]
 end
 Layout --> Page
-Page --> Service
-Service --> Client
-Service --> Types
-Client --> Env
+Page --> BrowserClient
+Actions --> ServerClient
+Service --> BrowserClient
+Service --> ServerClient
+Middleware --> ServerClient
+BrowserClient --> Env
+ServerClient --> Env
 ```
 
 **Diagram sources**
-- [supabase.ts:1-7](file://src/lib/supabase.ts#L1-L7)
-- [visitasService.ts:1-59](file://src/services/visitasService.ts#L1-L59)
-- [visitas.ts:1-28](file://src/types/visitas.ts#L1-L28)
-- [.env.local:1-2](file://.env.local#L1-L2)
+- [client.ts:1-34](file://src/lib/supabase/client.ts#L1-L34)
+- [server.ts:1-41](file://src/lib/supabase/server.ts#L1-L41)
+- [visitasService.ts:1-105](file://src/services/visitasService.ts#L1-L105)
+- [actions.ts:1-322](file://src/app/visitas/actions.ts#L1-L322)
+- [middleware.ts:1-100](file://src/middleware.ts#L1-L100)
 
 **Section sources**
-- [supabase.ts:1-7](file://src/lib/supabase.ts#L1-L7)
-- [visitasService.ts:1-59](file://src/services/visitasService.ts#L1-L59)
-- [visitas.ts:1-28](file://src/types/visitas.ts#L1-L28)
-- [.env.local:1-2](file://.env.local#L1-L2)
+- [client.ts:1-34](file://src/lib/supabase/client.ts#L1-L34)
+- [server.ts:1-41](file://src/lib/supabase/server.ts#L1-L41)
+- [visitasService.ts:1-105](file://src/services/visitasService.ts#L1-L105)
+- [actions.ts:1-322](file://src/app/visitas/actions.ts#L1-L322)
+- [middleware.ts:1-100](file://src/middleware.ts#L1-L100)
 
 ## Core Components
-- Supabase client singleton: The client is created once at module load time and exported for reuse across the app. This ensures a single connection manager per process and avoids redundant initialization.
-- Service layer: Business logic functions encapsulate database operations (queries, inserts) and error handling, using the shared client.
-- Types: Shared TypeScript interfaces define request/response shapes and ensure type safety between service and consumers.
-- Environment variables: The Supabase URL and anonymous key are loaded from environment variables configured in the project’s environment file.
+The architecture now provides two specialized client implementations:
+
+### Browser Client (`createBrowserClient`)
+- Purpose: Provides a singleton Supabase client for browser components with session sharing via `@supabase/ssr`
+- Features: Environment variable validation, singleton pattern, browser-specific optimizations
+- Usage: Imported by client components, services running in browser context, and UI interactions
+
+### Server Client (`createServerClient`)
+- Purpose: Provides a Supabase client for Server Components, Server Actions, and Route Handlers with cookie synchronization
+- Features: Async initialization, cookie store integration, enhanced error handling
+- Usage: Imported by Server Actions, server-side service functions, and middleware
+
+### Service Layer Integration
+- Context-aware client selection: Services import the appropriate client based on execution context
+- Type-safe operations: All database operations maintain TypeScript integrity
+- Error propagation: Consistent error handling across both client types
 
 Key implementation references:
-- Client creation and export: [supabase.ts:1-7](file://src/lib/supabase.ts#L1-L7)
-- Service usage of the client: [visitasService.ts:1-59](file://src/services/visitasService.ts#L1-L59)
-- Type definitions used by the service: [visitas.ts:1-28](file://src/types/visitas.ts#L1-L28)
-- Environment variables providing credentials: [.env.local:1-2](file://.env.local#L1-L2)
+- Browser client creation and validation: [client.ts:1-34](file://src/lib/supabase/client.ts#L1-L34)
+- Server client with cookie synchronization: [server.ts:1-41](file://src/lib/supabase/server.ts#L1-L41)
+- Service layer using browser client: [visitasService.ts:1-105](file://src/services/visitasService.ts#L1-L105)
+- Server actions using server client: [actions.ts:1-322](file://src/app/visitas/actions.ts#L1-L322)
 
 **Section sources**
-- [supabase.ts:1-7](file://src/lib/supabase.ts#L1-L7)
-- [visitasService.ts:1-59](file://src/services/visitasService.ts#L1-L59)
-- [visitas.ts:1-28](file://src/types/visitas.ts#L1-L28)
-- [.env.local:1-2](file://.env.local#L1-L2)
+- [client.ts:1-34](file://src/lib/supabase/client.ts#L1-L34)
+- [server.ts:1-41](file://src/lib/supabase/server.ts#L1-L41)
+- [visitasService.ts:1-105](file://src/services/visitasService.ts#L1-L105)
+- [actions.ts:1-322](file://src/app/visitas/actions.ts#L1-L322)
 
 ## Architecture Overview
-The application follows a layered architecture:
-- Presentation layer (Next.js pages/layouts) calls service functions.
-- Service layer performs business logic and invokes the Supabase client.
-- Supabase client handles HTTP requests to the Supabase REST API using the provided URL and anonymous key.
-- Environment variables supply runtime configuration without hardcoding secrets.
+The application follows a context-aware architecture with separate client implementations:
 
 ```mermaid
 sequenceDiagram
-participant UI as "Next.js UI"
-participant Svc as "Visitas Service"
-participant SB as "Supabase Client"
-participant ENV as "Environment (.env.local)"
-UI->>Svc : Call service function
-Svc->>ENV : Read NEXT_PUBLIC_SUPABASE_*
-Svc->>SB : Execute query/insert via client
-SB-->>Svc : Return data or error
-Svc-->>UI : Resolve promise with typed result
+participant UI as "Next.js UI Components"
+participant SA as "Server Actions"
+participant MW as "Middleware"
+participant BC as "Browser Client"
+participant SC as "Server Client"
+participant ENV as "Environment Variables"
+UI->>BC : Import createClient()
+SA->>SC : Import createClient()
+MW->>SC : Create server client
+BC->>ENV : Validate NEXT_PUBLIC_* vars
+SC->>ENV : Validate NEXT_PUBLIC_* vars
+BC-->>UI : Return browser client instance
+SC-->>SA : Return server client instance
+SC-->>MW : Synchronize cookies
 ```
 
 **Diagram sources**
-- [visitasService.ts:9-58](file://src/services/visitasService.ts#L9-L58)
-- [supabase.ts:1-7](file://src/lib/supabase.ts#L1-L7)
-- [.env.local:1-2](file://.env.local#L1-L2)
+- [client.ts:26-33](file://src/lib/supabase/client.ts#L26-L33)
+- [server.ts:11-40](file://src/lib/supabase/server.ts#L11-L40)
+- [middleware.ts:14-85](file://src/middleware.ts#L14-L85)
+
+The architecture ensures:
+- **Context Separation**: Browser and server clients are never mixed
+- **Enhanced Security**: Environment variables are validated before client creation
+- **Session Management**: Middleware handles authentication state across requests
+- **Type Safety**: Both clients maintain full TypeScript support
 
 ## Detailed Component Analysis
 
-### Supabase Client Singleton
-- Purpose: Provide a single, reusable Supabase client instance for all database operations.
-- Implementation highlights:
-  - Imports the client factory from the Supabase SDK.
-  - Creates the client using environment variables for URL and anonymous key.
-  - Exports the instance so other modules can import it directly.
-- Benefits:
-  - Avoids repeated initialization overhead.
-  - Centralizes configuration in one place.
-  - Simplifies testing and mocking by replacing the imported instance.
+### Browser Client Implementation
+The browser client provides a singleton instance optimized for client-side operations:
 
-References:
-- Client creation and export: [supabase.ts:1-7](file://src/lib/supabase.ts#L1-L7)
+**Key Features:**
+- Singleton pattern prevents multiple client instances
+- Environment variable validation with descriptive Spanish error messages
+- Integration with `@supabase/ssr` for session sharing with middleware
+- Lazy initialization to avoid unnecessary setup overhead
 
-**Section sources**
-- [supabase.ts:1-7](file://src/lib/supabase.ts#L1-L7)
+**Implementation Details:**
+- Uses `createBrowserClient` from `@supabase/ssr`
+- Validates `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- Returns cached instance after first creation
+- Throws descriptive errors if environment variables are missing
 
-### Environment Variables and Configuration
-- Variables used:
-  - NEXT_PUBLIC_SUPABASE_URL: Base URL for Supabase REST API.
-  - NEXT_PUBLIC_SUPABASE_ANON_KEY: Anonymous key for authenticated requests.
-- Location:
-  - Defined in the local environment file for development.
-- Next.js typing:
-  - Next.js auto-generates types for environment variables; ensure your IDE recognizes them via the generated declaration file.
+**Usage Pattern:**
+```typescript
+// In client components or browser-context services
+import { createClient } from '@/lib/supabase/client';
 
-References:
-- Environment values: [.env.local:1-2](file://.env.local#L1-L2)
-- Next.js environment types reference: [next-env.d.ts:1-7](file://next-env.d.ts#L1-L7)
-
-Security notes:
-- Use NEXT_PUBLIC_ variables only when the value must be available in the browser. For server-only secrets, prefer non-prefixed variables and access them only in server-side code.
-- Never commit secrets to version control. Keep .env files out of repositories and configure them in your deployment platform’s secret store.
-
-**Section sources**
-- [.env.local:1-2](file://.env.local#L1-L2)
-- [next-env.d.ts:1-7](file://next-env.d.ts#L1-L7)
-
-### Service Integration and Usage Patterns
-- The service imports the shared client and exposes typed functions for:
-  - Fetching schools with ordering.
-  - Checking slot availability for visits.
-  - Creating visit requests with validation and insertion.
-- Error handling:
-  - Each operation checks for errors returned by the client and throws to propagate failures to callers.
-- Data shaping:
-  - Uses TypeScript interfaces to ensure consistent data contracts between service and consumers.
-
-References:
-- Importing the client and performing operations: [visitasService.ts:1-59](file://src/services/visitasService.ts#L1-L59)
-- Type definitions used by the service: [visitas.ts:1-28](file://src/types/visitas.ts#L1-L28)
-
-Example call flow for creating a visit request:
-```mermaid
-sequenceDiagram
-participant Caller as "Caller"
-participant Svc as "Visitas Service"
-participant SB as "Supabase Client"
-Caller->>Svc : crearSolicitudVisita(datos)
-Svc->>Svc : verificarTurnoDisponible(fecha, turno)
-Svc->>SB : Query availability
-SB-->>Svc : Availability result
-alt Slot not available
-Svc-->>Caller : Throw error
-else Slot available
-Svc->>SB : Insert visit record
-SB-->>Svc : Created record
-Svc-->>Caller : Return VisitaEducativa
-end
+const supabase = createClient();
 ```
 
-**Diagram sources**
-- [visitasService.ts:20-58](file://src/services/visitasService.ts#L20-L58)
+**Section sources**
+- [client.ts:1-34](file://src/lib/supabase/client.ts#L1-L34)
+
+### Server Client Implementation
+The server client provides enhanced functionality for server-side operations:
+
+**Key Features:**
+- Asynchronous client creation to handle Next.js 15's async cookie API
+- Cookie store synchronization for session persistence
+- Robust error handling for server component contexts
+- Integration with Next.js middleware for authentication flow
+
+**Implementation Details:**
+- Uses `createServerClient` from `@supabase/ssr`
+- Implements custom cookie store with `getAll()` and `setAll()` methods
+- Handles errors gracefully when called from Server Components
+- Validates environment variables with Spanish error messages
+
+**Usage Pattern:**
+```typescript
+// In Server Actions or Server Components
+import { createClient } from '@/lib/supabase/server';
+
+const supabase = await createClient();
+```
 
 **Section sources**
-- [visitasService.ts:1-59](file://src/services/visitasService.ts#L1-L59)
-- [visitas.ts:1-28](file://src/types/visitas.ts#L1-L28)
+- [server.ts:1-41](file://src/lib/supabase/server.ts#L1-L41)
 
-### Connection Setup Best Practices
-- Use a single client instance per module scope to avoid duplicate connections.
-- Load credentials from environment variables; never hardcode secrets.
-- Validate environment variables at startup if needed (e.g., assert presence).
-- Prefer server-side operations for sensitive logic; expose minimal APIs to the client.
-- Leverage TypeScript interfaces to enforce correct payloads and responses.
+### Middleware Integration
+The middleware manages authentication state and session refresh:
 
-[No sources needed since this section provides general guidance]
+**Key Features:**
+- Selective route protection for `/admin/*` and `/login` paths
+- Public route optimization for `/visitas` (read-only session check)
+- Graceful fallback when environment variables are missing
+- Automatic redirect logic for authenticated/unauthenticated users
+
+**Authentication Flow:**
+- Protected routes: Full user validation with network round-trip
+- Public routes: Lightweight session refresh without network calls
+- Fallback behavior: Redirects unauthenticated users to login
+
+**Section sources**
+- [middleware.ts:1-100](file://src/middleware.ts#L1-L100)
+
+### Service Layer Usage Patterns
+Services demonstrate proper client selection based on execution context:
+
+**Browser Context Services:**
+- Use browser client for read operations and UI interactions
+- Leverage singleton pattern for performance
+- Maintain type safety with shared interfaces
+
+**Server Context Operations:**
+- Use server client for data mutations and sensitive operations
+- Implement comprehensive validation before database operations
+- Handle errors with user-friendly Spanish messages
+
+**Example Service Functions:**
+- `obtenerEscuelas()`: Fetches school data with ordering
+- `verificarTurnoDisponible()`: Checks availability with business logic
+- `crearSolicitudVisitaAction()`: Complex server action with validation
+
+**Section sources**
+- [visitasService.ts:1-105](file://src/services/visitasService.ts#L1-L105)
+- [actions.ts:1-322](file://src/app/visitas/actions.ts#L1-L322)
 
 ## Dependency Analysis
-The Supabase client depends on the SDK and environment variables. Services depend on the client and shared types.
+The Supabase client system depends on several key packages and follows a layered dependency structure:
 
 ```mermaid
 graph LR
-Env[".env.local"] --> Client["Supabase Client"]
-Client --> Service["Visitas Service"]
-Types["Type Definitions"] --> Service
+Package["@supabase/ssr"] --> Client["Browser & Server Clients"]
 Package["@supabase/supabase-js"] --> Client
+NextJS["Next.js Framework"] --> Middleware
+Env[".env.local"] --> Client
+Types["TypeScript Interfaces"] --> Services
+Services["Service Layer"] --> Client
 ```
 
-**Diagram sources**
-- [package.json:11-15](file://package.json#L11-L15)
-- [supabase.ts:1-7](file://src/lib/supabase.ts#L1-L7)
-- [visitasService.ts:1-59](file://src/services/visitasService.ts#L1-L59)
-- [visitas.ts:1-28](file://src/types/visitas.ts#L1-L28)
-- [.env.local:1-2](file://.env.local#L1-L2)
+**Key Dependencies:**
+- `@supabase/ssr`: Provides both browser and server client factories
+- `@supabase/supabase-js`: Core Supabase JavaScript client
+- Next.js framework features: Cookies API, Server Components, Middleware
+- TypeScript: Full type safety across all client operations
 
 **Section sources**
-- [package.json:11-15](file://package.json#L11-L15)
-- [supabase.ts:1-7](file://src/lib/supabase.ts#L1-L7)
-- [visitasService.ts:1-59](file://src/services/visitasService.ts#L1-L59)
-- [visitas.ts:1-28](file://src/types/visitas.ts#L1-L28)
-- [.env.local:1-2](file://.env.local#L1-L2)
+- [package.json:11-18](file://package.json#L11-L18)
+- [client.ts:1-34](file://src/lib/supabase/client.ts#L1-L34)
+- [server.ts:1-41](file://src/lib/supabase/server.ts#L1-L41)
 
 ## Performance Considerations
-- Singleton client reduces connection overhead and reuses internal resources.
-- Batch operations where possible to minimize network round trips.
-- Select only required fields to reduce payload size.
-- Cache read-heavy results at the application level when appropriate.
-- Monitor latency and adjust timeouts or retry strategies based on environment.
+The dual-client architecture provides several performance benefits:
 
-[No sources needed since this section provides general guidance]
+**Singleton Optimization:**
+- Browser client uses singleton pattern to prevent redundant initialization
+- Server client leverages Next.js caching mechanisms for optimal performance
+- Reduced memory footprint through shared client instances
 
-## Troubleshooting Guide
-Common issues and resolutions:
-- Missing or invalid environment variables:
-  - Ensure NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY are set in your environment file and loaded by Next.js.
-  - Verify the URL points to the correct Supabase project and includes the REST endpoint path.
-- Network or CORS errors:
-  - Confirm the Supabase project allows requests from your domain and that the anonymous key has appropriate permissions.
-- Authentication errors:
-  - If using anonymous auth, verify the key is valid and has necessary Row Level Security policies.
-- Type errors in development:
-  - Ensure Next.js environment types are recognized by your editor; regenerate types if necessary.
+**Context-Aware Operations:**
+- Browser client optimized for client-side operations and UI responsiveness
+- Server client optimized for server-side processing and data mutations
+- Middleware minimizes network calls for public routes
 
-Operational tips:
-- Log errors thrown by service functions to capture detailed messages from Supabase.
-- Test connectivity by executing a simple query through the service during development.
-- Rotate keys if compromised and update environment variables accordingly.
+**Best Practices:**
+- Use browser client for read operations in client components
+- Use server client for write operations and sensitive data handling
+- Leverage middleware for efficient session management
+- Implement proper error boundaries for graceful degradation
+
+## Security and Environment Management
+The refactored architecture implements enhanced security measures:
+
+**Environment Variable Validation:**
+- Both clients validate required environment variables before initialization
+- Descriptive Spanish error messages guide developers to fix configuration issues
+- Fail-fast approach prevents silent failures in production
+
+**Context-Specific Security:**
+- Browser client only exposes public variables (`NEXT_PUBLIC_*`)
+- Server client handles sensitive operations with proper isolation
+- Middleware provides centralized authentication and authorization
+
+**Security Best Practices:**
+- Never mix browser and server clients inappropriately
+- Always validate environment variables at startup
+- Use middleware for consistent authentication checks
+- Implement proper error handling without exposing sensitive information
+
+**Environment Configuration:**
+Required environment variables:
+- `NEXT_PUBLIC_SUPABASE_URL`: Base URL for Supabase REST API
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`: Anonymous key for authenticated requests
 
 **Section sources**
-- [.env.local:1-2](file://.env.local#L1-L2)
-- [visitasService.ts:9-58](file://src/services/visitasService.ts#L9-L58)
+- [client.ts:7-18](file://src/lib/supabase/client.ts#L7-L18)
+- [server.ts:11-19](file://src/lib/supabase/server.ts#L11-L19)
+- [middleware.ts:20-32](file://src/middleware.ts#L20-L32)
+
+## Troubleshooting Guide
+Common issues and solutions for the dual-client architecture:
+
+**Environment Variable Issues:**
+- **Missing Variables**: Check that `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` are set
+- **Invalid URLs**: Verify the Supabase project URL includes the correct REST endpoint
+- **CORS Errors**: Ensure your domain is whitelisted in Supabase settings
+
+**Client Selection Problems:**
+- **Wrong Client Usage**: Ensure browser client is used in client components, server client in Server Actions
+- **Import Path Errors**: Verify correct imports from `@/lib/supabase/client` vs `@/lib/supabase/server`
+- **Async/Sync Conflicts**: Remember server client requires `await`, browser client does not
+
+**Session and Authentication Issues:**
+- **Middleware Not Running**: Check route matcher configuration in middleware
+- **Cookie Synchronization**: Verify cookie handling in server client implementation
+- **Redirect Loops**: Review authentication logic in middleware for protected routes
+
+**Development Tips:**
+- Use Next.js development server for proper environment variable loading
+- Check browser console for client-side errors
+- Monitor server logs for server-side operation failures
+- Test both browser and server contexts during development
+
+**Section sources**
+- [client.ts:11-15](file://src/lib/supabase/client.ts#L11-L15)
+- [server.ts:15-19](file://src/lib/supabase/server.ts#L15-L19)
+- [middleware.ts:23-32](file://src/middleware.ts#L23-L32)
 
 ## Conclusion
-This project implements a clean, maintainable Supabase client configuration using a singleton pattern, environment-based credentials, and a service layer that encapsulates database operations. By centralizing client setup, enforcing type safety, and following secure environment practices, the application achieves reliable and scalable database access. Adopting the recommended best practices will help prevent common pitfalls and improve maintainability as the application grows.
+The refactored Supabase client architecture provides a robust, secure, and maintainable foundation for database operations in this Next.js application. By separating browser and server concerns, implementing comprehensive environment validation, and integrating with Next.js middleware, the application achieves:
 
-[No sources needed since this section summarizes without analyzing specific files]
+- **Enhanced Security**: Proper isolation of client and server contexts with validated credentials
+- **Improved Performance**: Optimized client instances for their specific execution environments  
+- **Better Maintainability**: Clear separation of concerns and standardized usage patterns
+- **Type Safety**: Full TypeScript support across all database operations
+- **Developer Experience**: Descriptive error messages and consistent APIs
+
+The dual-client approach ensures that each execution context receives the most appropriate client implementation while maintaining consistency in the developer experience. This architecture scales well as the application grows and provides a solid foundation for future enhancements.

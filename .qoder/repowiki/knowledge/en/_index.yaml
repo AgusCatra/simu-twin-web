@@ -3,11 +3,11 @@ schema_version: 1
 locale: en-US
 branch: main
 nodes_managed: true
-exported_at: "2026-09-11T20:45:48Z"
+exported_at: "2026-09-15T20:17:43Z"
 modules:
     "":
-        dir_name: Project Root Configuration (Next.js App)
-        title: Project Root Configuration (Next.js App)
+        dir_name: Next.js Project Root Configuration
+        title: Next.js Project Root Configuration
         scope:
             - README.md
             - .gitignore
