@@ -678,7 +678,11 @@ export async function sincronizarParticipantesAction(
       // FIX 4: Rollback — restaurar la nómina anterior respaldada.
       if (nominaAnterior && nominaAnterior.length > 0) {
         await supabase.from('actividad_participantes').insert(
-          nominaAnterior.map(({ id: _id, ...resto }) => resto)
+          nominaAnterior.map((fila) => {
+            const copia: Record<string, unknown> = { ...fila };
+            delete copia.id;
+            return copia;
+          })
         );
       }
       return {
