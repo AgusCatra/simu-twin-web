@@ -28,7 +28,7 @@ export const RUTAS_ADMIN: readonly RutaAdmin[] = [
   { href: '/admin/visitas-educativas', label: 'Visitas Educativas (H4)', icono: BookOpen },
   { href: '/admin/registro-actividades', label: 'Registro de Actividades', icono: ClipboardList },
   { href: '/admin/telemetria', label: 'Telemetría (Titán)', icono: Cpu },
-  { href: '/admin/flota', label: 'Control de Flota', icono: Truck },
+  { href: '/admin/flota', label: 'Logística TUP', icono: Truck },
 ];
 
 /** Determina si una ruta del menú corresponde al pathname actual. */

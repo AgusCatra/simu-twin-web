@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { Download, MessageCircle, RefreshCw } from 'lucide-react';
+import { Download, MessageCircle, Pencil, RefreshCw } from 'lucide-react';
 import {
   actualizarCheckOperativo,
   obtenerAsistentesPorVisita,
@@ -9,6 +9,12 @@ import {
   obtenerVisitasAdmin,
 } from '@/services/visitasService';
 import type { CampoCheckOperativo, Escuela, VisitaEducativa } from '@/types/visitas';
+import dynamic from 'next/dynamic';
+
+const ModalEditarVisita = dynamic(
+  () => import('@/components/admin/visitas/ModalEditarVisita'),
+  { ssr: false, loading: () => null }
+);
 
 const CHECKS: readonly { campo: CampoCheckOperativo; etiqueta: string }[] = [
   { campo: 'check_poliza', etiqueta: 'SEGURO' },
@@ -73,6 +79,7 @@ export default function TablaVisitasAdmin() {
   const [error, setError] = useState<string | null>(null);
   const [guardando, setGuardando] = useState<Record<string, boolean>>({});
   const [exportandoId, setExportandoId] = useState<string | null>(null);
+  const [visitaAEditar, setVisitaAEditar] = useState<VisitaEducativa | null>(null);
 
   const cargar = useCallback(async () => {
     setCargando(true);
@@ -301,15 +308,26 @@ export default function TablaVisitasAdmin() {
                     </td>
 
                     <td className={`${TD_CLASS} whitespace-nowrap`}>
-                      <button
-                        type="button"
-                        onClick={() => void exportarExcel(visita)}
-                        disabled={exportando}
-                        className={BTN_CLASS}
-                      >
-                        <Download size={13} strokeWidth={1.75} />
-                        {exportando ? 'EXPORTANDO…' : 'EXCEL SEGURO'}
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setVisitaAEditar(visita)}
+                          className={BTN_CLASS}
+                          title="Editar reserva"
+                        >
+                          <Pencil size={13} strokeWidth={1.75} />
+                          EDITAR
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => void exportarExcel(visita)}
+                          disabled={exportando}
+                          className={BTN_CLASS}
+                        >
+                          <Download size={13} strokeWidth={1.75} />
+                          {exportando ? 'EXPORTANDO…' : 'EXCEL SEGURO'}
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 );
@@ -318,6 +336,13 @@ export default function TablaVisitasAdmin() {
           </table>
         </div>
       </div>
+
+      <ModalEditarVisita
+        abierto={visitaAEditar !== null}
+        visita={visitaAEditar}
+        onCerrar={() => setVisitaAEditar(null)}
+        onGuardado={() => void cargar()}
+      />
     </div>
   );
 }

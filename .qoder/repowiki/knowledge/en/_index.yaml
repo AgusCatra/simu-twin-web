@@ -3,7 +3,7 @@ schema_version: 1
 locale: en-US
 branch: main
 nodes_managed: true
-exported_at: "2026-09-15T20:17:43Z"
+exported_at: "2026-09-15T21:45:51Z"
 modules:
     "":
         dir_name: Next.js Project Root Configuration

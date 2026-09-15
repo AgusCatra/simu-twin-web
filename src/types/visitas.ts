@@ -86,3 +86,42 @@ export interface AsistenteVisita {
   fecha_nacimiento: string | null;
   rol: RolAsistente;
 }
+
+/** Proyección enriquecida de fechas_habilitadas para el selector de edición. */
+export interface FechaDisponibleItem {
+  id: string;
+  fecha: string;
+  habilitada: boolean;
+  observaciones?: string | null;
+  /** True si otra reserva activa ocupa esta fecha. */
+  ocupada: boolean;
+  /** Código de la reserva que la ocupa (para mostrar en UI). */
+  ocupada_por_codigo?: string | null;
+}
+
+/** DTO de entrada para la Server Action de edición de visitas. */
+export interface EditarVisitaInput {
+  id: string;
+  fecha_visita: string;
+  turno?: 'Mañana' | 'Tarde' | null;
+  division?: string | null;
+  cant_alumnos: number;
+  nombre_director?: string | null;
+  cel_director?: string | null;
+  nombre_docente?: string | null;
+  cel_docente?: string | null;
+  email_contacto?: string | null;
+  requiere_tup: boolean;
+  tup_horario_ida_desde?: string | null;
+  tup_horario_ida_hasta?: string | null;
+  tup_horario_vuelta_desde?: string | null;
+  tup_horario_vuelta_hasta?: string | null;
+  tup_chofer_nombre?: string | null;
+  estado_visita: 'Confirmada' | 'Reprogramada' | 'Cancelada' | 'Completada' | 'Pendiente';
+  observaciones_docente?: string | null;
+}
+
+/** Resultado tipado de la acción de actualización. */
+export type ResultadoEdicionVisita =
+  | { ok: true }
+  | { ok: false; error: string };
