@@ -1,4 +1,4 @@
-Based on my analysis of the codebase, I can now update the documentation to reflect the comprehensive activity registration and live session management system that has been added. Here's the updated documentation:
+# Administrative Panel
 
 <cite>
 **Referenced Files in This Document**
@@ -10,6 +10,8 @@ Based on my analysis of the codebase, I can now update the documentation to refl
 - [src/app/visitas/page.tsx](file://src/app/visitas/page.tsx)
 - [src/app/admin/layout.tsx](file://src/app/admin/layout.tsx)
 - [src/app/admin/page.tsx](file://src/app/admin/page.tsx)
+- [src/app/admin/visitas-educativas/page.tsx](file://src/app/admin/visitas-educativas/page.tsx)
+- [src/app/admin/visitas-educativas/actions.ts](file://src/app/admin/visitas-educativas/actions.ts)
 - [src/app/admin/registro-actividades/page.tsx](file://src/app/admin/registro-actividades/page.tsx)
 - [src/app/admin/registro-actividades/actions.ts](file://src/app/admin/registro-actividades/actions.ts)
 - [src/app/login/page.tsx](file://src/app/login/page.tsx)
@@ -22,6 +24,8 @@ Based on my analysis of the codebase, I can now update the documentation to refl
 - [src/components/admin/actividades/PanelSesionEnVivo.tsx](file://src/components/admin/actividades/PanelSesionEnVivo.tsx)
 - [src/components/admin/actividades/FormularioActividadModal.tsx](file://src/components/admin/actividades/FormularioActividadModal.tsx)
 - [src/components/admin/actividades/TablaActividades.tsx](file://src/components/admin/actividades/TablaActividades.tsx)
+- [src/components/admin/visitas/ModalEditarVisita.tsx](file://src/components/admin/visitas/ModalEditarVisita.tsx)
+- [src/components/admin/visitas/TablaVisitasAdmin.tsx](file://src/components/admin/visitas/TablaVisitasAdmin.tsx)
 - [src/services/visitasService.ts](file://src/services/visitasService.ts)
 - [src/types/visitas.ts](file://src/types/visitas.ts)
 - [src/types/actividades.ts](file://src/types/actividades.ts)
@@ -31,12 +35,12 @@ Based on my analysis of the codebase, I can now update the documentation to refl
 
 ## Update Summary
 **Changes Made**
-- Added comprehensive activity registration and live session management system
-- Implemented server actions for complete activity lifecycle management
-- Created real-time simulator rack interface with SCADA-style controls
-- Built live session controls with dual viewing modes (list/tablet)
-- Integrated activity dashboard with comprehensive participant management
-- Enhanced admin panel with new "Registro de Actividades" navigation section
+- Added comprehensive educational visit management system with dedicated admin interface
+- Implemented server actions for date availability checking with conflict detection
+- Created advanced visit editing functionality with validation and rollback capabilities
+- Enhanced payroll processing with improved rollback operations for participant synchronization
+- Integrated real-time date conflict resolution and occupancy tracking
+- Added sophisticated error handling with PII-safe logging and user-friendly messages
 
 ## Table of Contents
 1. [Introduction](#introduction)
@@ -44,18 +48,21 @@ Based on my analysis of the codebase, I can now update the documentation to refl
 3. [Core Components](#core-components)
 4. [Architecture Overview](#architecture-overview)
 5. [Authentication System](#authentication-system)
-6. [Activity Registration System](#activity-registration-system)
-7. [Live Session Management](#live-session-management)
-8. [Detailed Component Analysis](#detailed-component-analysis)
-9. [Dependency Analysis](#dependency-analysis)
-10. [Performance Considerations](#performance-considerations)
-11. [Troubleshooting Guide](#troubleshooting-guide)
-12. [Conclusion](#conclusion)
+6. [Educational Visit Management System](#educational-visit-management-system)
+7. [Date Availability Checking](#date-availability-checking)
+8. [Visit Editing System](#visit-editing-system)
+9. [Enhanced Payroll Processing](#enhanced-payroll-processing)
+10. [Live Session Management](#live-session-management)
+11. [Detailed Component Analysis](#detailed-component-analysis)
+12. [Dependency Analysis](#dependency-analysis)
+13. [Performance Considerations](#performance-considerations)
+14. [Troubleshooting Guide](#troubleshooting-guide)
+15. [Conclusion](#conclusion)
 
 ## Introduction
 This project is a Next.js application that provides an administrative panel for managing educational visits to a simulation center. It enables institutions to request visit slots, manage attendee rosters, and supports operational checks (insurance, transport, invoices, and file storage). The system integrates with Supabase for data persistence and exposes service functions used by the UI components.
 
-The application now includes a complete authentication system with secure admin panel access, featuring role-based routing, session management, and responsive design patterns. **Additionally, it features a comprehensive activity registration and live session management system** that allows operators to register presential activities, manage real-time sessions, control simulator racks, and track participant attendance with full audit trails.
+The application now includes a complete authentication system with secure admin panel access, featuring role-based routing, session management, and responsive design patterns. **Additionally, it features a comprehensive educational visit management system with advanced server actions for date availability checking, visit editing with rollback capabilities, and enhanced payroll processing with improved error recovery mechanisms.**
 
 It uses Tailwind CSS for styling, Google fonts via Next.js font loader, and includes utilities for Excel-style roster import and client-side validation before submission.
 
@@ -63,6 +70,7 @@ It uses Tailwind CSS for styling, Google fonts via Next.js font loader, and incl
 The codebase follows a feature-oriented layout under src:
 - app: Next.js App Router pages and global styles with protected routes
 - components/admin: Admin panel components including Topbar, Sidebar, and dashboard
+- components/admin/visitas: Educational visit management components with editing capabilities
 - components/admin/actividades: Activity registration and live session management components
 - components/auth: Authentication components for login functionality
 - components/visitas: UI components for the visit form and attendee grid
@@ -79,24 +87,31 @@ A --> D["Visitas Page<br/>app/visitas/page.tsx"]
 A --> E["Admin Layout<br/>app/admin/layout.tsx"]
 E --> F["Admin Dashboard<br/>app/admin/page.tsx"]
 E --> G["Login Page<br/>app/login/page.tsx"]
-E --> H["Activity Registration<br/>app/admin/registro-actividades/page.tsx"]
-D --> I["FormularioVisita<br/>components/visitas/FormularioVisita.tsx"]
-I --> J["GridNomina<br/>components/visitas/GridNomina.tsx"]
-E --> K["Topbar<br/>components/admin/Topbar.tsx"]
-E --> L["Sidebar<br/>components/admin/Sidebar.tsx"]
-G --> M["FormularioLogin<br/>components/auth/FormularioLogin.tsx"]
-H --> N["RackSimuladores<br/>components/admin/actividades/RackSimuladores.tsx"]
-H --> O["PanelSesionEnVivo<br/>components/admin/actividades/PanelSesionEnVivo.tsx"]
-H --> P["FormularioActividadModal<br/>components/admin/actividades/FormularioActividadModal.tsx"]
-H --> Q["TablaActividades<br/>components/admin/actividades/TablaActividades.tsx"]
-K --> R["Supabase Client<br/>lib/supabase/client.ts"]
-M --> R
-N --> R
-O --> R
-P --> R
-Q --> R
-S["Middleware<br/>middleware.ts"] --> E
-S --> G
+E --> H["Educational Visits<br/>app/admin/visitas-educativas/page.tsx"]
+E --> I["Activity Registration<br/>app/admin/registro-actividades/page.tsx"]
+H --> J["Visit Edit Modal<br/>components/admin/visitas/ModalEditarVisita.tsx"]
+H --> K["Visit Admin Table<br/>components/admin/visitas/TablaVisitasAdmin.tsx"]
+I --> L["RackSimuladores<br/>components/admin/actividades/RackSimuladores.tsx"]
+I --> M["PanelSesionEnVivo<br/>components/admin/actividades/PanelSesionEnVivo.tsx"]
+I --> N["FormularioActividadModal<br/>components/admin/actividades/FormularioActividadModal.tsx"]
+I --> O["TablaActividades<br/>components/admin/actividades/TablaActividades.tsx"]
+D --> P["FormularioVisita<br/>components/visitas/FormularioVisita.tsx"]
+P --> Q["GridNomina<br/>components/visitas/GridNomina.tsx"]
+E --> R["Topbar<br/>components/admin/Topbar.tsx"]
+E --> S["Sidebar<br/>components/admin/Sidebar.tsx"]
+G --> T["FormularioLogin<br/>components/auth/FormularioLogin.tsx"]
+K --> U["Server Actions<br/>app/admin/visitas-educativas/actions.ts"]
+J --> U
+L --> V["Activity Actions<br/>app/admin/registro-actividades/actions.ts"]
+M --> V
+N --> V
+O --> V
+R --> W["Supabase Client<br/>lib/supabase/client.ts"]
+T --> W
+U --> W
+V --> W
+X["Middleware<br/>middleware.ts"] --> E
+X --> G
 ```
 
 **Diagram sources**
@@ -105,11 +120,14 @@ S --> G
 - [src/app/visitas/page.tsx:1-28](file://src/app/visitas/page.tsx#L1-L28)
 - [src/app/admin/layout.tsx:1-26](file://src/app/admin/layout.tsx#L1-L26)
 - [src/app/admin/page.tsx:1-38](file://src/app/admin/page.tsx#L1-L38)
+- [src/app/admin/visitas-educativas/page.tsx:1-26](file://src/app/admin/visitas-educativas/page.tsx#L1-L26)
 - [src/app/admin/registro-actividades/page.tsx:1-261](file://src/app/admin/registro-actividades/page.tsx#L1-L261)
 - [src/app/login/page.tsx:1-31](file://src/app/login/page.tsx#L1-L31)
 - [src/components/admin/Topbar.tsx:1-132](file://src/components/admin/Topbar.tsx#L1-L132)
 - [src/components/admin/Sidebar.tsx:1-113](file://src/components/admin/Sidebar.tsx#L1-L113)
 - [src/components/auth/FormularioLogin.tsx:1-107](file://src/components/auth/FormularioLogin.tsx#L1-L107)
+- [src/components/admin/visitas/ModalEditarVisita.tsx:1-625](file://src/components/admin/visitas/ModalEditarVisita.tsx#L1-L625)
+- [src/components/admin/visitas/TablaVisitasAdmin.tsx:1-349](file://src/components/admin/visitas/TablaVisitasAdmin.tsx#L1-L349)
 - [src/components/admin/actividades/RackSimuladores.tsx:1-153](file://src/components/admin/actividades/RackSimuladores.tsx#L1-L153)
 - [src/components/admin/actividades/PanelSesionEnVivo.tsx:1-866](file://src/components/admin/actividades/PanelSesionEnVivo.tsx#L1-L866)
 - [src/components/admin/actividades/FormularioActividadModal.tsx:1-606](file://src/components/admin/actividades/FormularioActividadModal.tsx#L1-L606)
@@ -126,7 +144,9 @@ S --> G
 ## Core Components
 - **Visitas page**: Renders the public-facing form for scheduling educational visits and sets metadata for SEO.
 - **Admin Dashboard**: Protected admin interface with live status monitoring and placeholder for digital twin integration.
-- **Activity Registration System**: Comprehensive module for registering presential activities with participant management and simulator allocation.
+- **Educational Visit Management**: Comprehensive system for managing confirmed visits with editing capabilities and date conflict resolution.
+- **Visit Editing Interface**: Advanced modal interface for modifying visit details with real-time date availability checking.
+- **Activity Registration System**: Module for registering presential activities with participant management and simulator allocation.
 - **Live Session Management**: Real-time session controls with dual viewing modes (list/tablet) for active session monitoring.
 - **Real-time Simulator Rack**: SCADA-style interface for direct simulator state control with optimistic updates.
 - **Authentication System**: Complete login/logout functionality with Supabase integration and middleware-based route protection.
@@ -141,6 +161,9 @@ Key responsibilities:
 - Data fetching for dropdowns (schools and available dates)
 - Client-side validation (capacity limits, required fields, legal consent)
 - Submission flow to create a visit record and associated attendees
+- **Educational visit management with server-side date conflict detection and validation**
+- **Advanced visit editing with rollback capabilities and comprehensive error handling**
+- **Enhanced payroll processing with improved rollback operations for participant synchronization**
 - Activity lifecycle management from planning to completion
 - Real-time session tracking with participant synchronization
 - Simulator rack control with concurrent session management
@@ -150,6 +173,9 @@ Key responsibilities:
 **Section sources**
 - [src/app/visitas/page.tsx:1-28](file://src/app/visitas/page.tsx#L1-L28)
 - [src/app/admin/page.tsx:1-38](file://src/app/admin/page.tsx#L1-L38)
+- [src/app/admin/visitas-educativas/page.tsx:1-26](file://src/app/admin/visitas-educativas/page.tsx#L1-L26)
+- [src/components/admin/visitas/ModalEditarVisita.tsx:1-625](file://src/components/admin/visitas/ModalEditarVisita.tsx#L1-L625)
+- [src/components/admin/visitas/TablaVisitasAdmin.tsx:1-349](file://src/components/admin/visitas/TablaVisitasAdmin.tsx#L1-L349)
 - [src/app/admin/registro-actividades/page.tsx:1-261](file://src/app/admin/registro-actividades/page.tsx#L1-L261)
 - [src/components/admin/Topbar.tsx:1-132](file://src/components/admin/Topbar.tsx#L1-L132)
 - [src/components/auth/FormularioLogin.tsx:1-107](file://src/components/auth/FormularioLogin.tsx#L1-L107)
@@ -160,11 +186,11 @@ Key responsibilities:
 - [src/components/admin/actividades/FormularioActividadModal.tsx:1-606](file://src/components/admin/actividades/FormularioActividadModal.tsx#L1-L606)
 - [src/components/admin/actividades/TablaActividades.tsx:1-434](file://src/components/admin/actividades/TablaActividades.tsx#L1-L434)
 - [src/services/visitasService.ts:1-169](file://src/services/visitasService.ts#L1-L169)
-- [src/types/visitas.ts:1-84](file://src/types/visitas.ts#L1-L84)
+- [src/types/visitas.ts:1-128](file://src/types/visitas.ts#L1-L128)
 - [src/types/actividades.ts:1-177](file://src/types/actividades.ts#L1-L177)
 
 ## Architecture Overview
-The application is a client-rendered Next.js app using the App Router with comprehensive authentication. The Visitas page composes the FormularioVisita component, which orchestrates user interactions and delegates data operations to visitasService. The admin panel is protected by middleware that validates sessions and redirects unauthenticated users. **The activity registration system uses Server Actions for all database operations, providing type-safe, validated mutations with optimistic UI updates.** The service interacts with Supabase to read/write data. Types ensure consistent contracts across layers.
+The application is a client-rendered Next.js app using the App Router with comprehensive authentication. The Visitas page composes the FormularioVisita component, which orchestrates user interactions and delegates data operations to visitasService. The admin panel is protected by middleware that validates sessions and redirects unauthenticated users. **The educational visit management system uses Server Actions for all database operations, providing type-safe, validated mutations with optimistic UI updates and robust rollback capabilities.** The service interacts with Supabase to read/write data. Types ensure consistent contracts across layers.
 
 ```mermaid
 sequenceDiagram
@@ -172,12 +198,11 @@ participant User as "User"
 participant Middleware as "Next.js Middleware"
 participant Login as "LoginPage"
 participant Admin as "AdminPanel"
-participant ActivityPage as "ActivityRegistration"
-participant Rack as "RackSimuladores"
-participant Panel as "PanelSesionEnVivo"
+participant VisitPage as "Educational Visits"
+participant EditModal as "Edit Modal"
 participant Actions as "Server Actions"
 participant DB as "Supabase"
-User->>Middleware : Navigate to /admin/registro-actividades
+User->>Middleware : Navigate to /admin/visitas-educativas
 Middleware->>DB : Check session
 DB-->>Middleware : User session status
 alt Unauthenticated
@@ -185,22 +210,24 @@ Middleware-->>User : Redirect to /login
 User->>Login : Access login page
 Login->>DB : Authenticate credentials
 DB-->>Login : Auth result
-Login-->>User : Redirect to /admin/registro-actividades
+Login-->>User : Redirect to /admin/visitas-educativas
 else Authenticated
-Middleware-->>User : Allow access to /admin/registro-actividades
-User->>ActivityPage : View activity registration
-ActivityPage->>Rack : Load simulator rack
-ActivityPage->>Panel : Load active sessions
-User->>Rack : Toggle simulator state
-Rack->>Actions : conmutarEstadoSimuladorAction
-Actions->>DB : Update simulator state
-DB-->>Actions : Success
-Actions-->>Rack : Revalidate path
-User->>Panel : Start live session
-Panel->>Actions : iniciarSesionEnVivoAction
-Actions->>DB : Create activity + allocate simulators
-DB-->>Actions : Session created
-Actions-->>Panel : Session ID
+Middleware-->>User : Allow access to /admin/visitas-educativas
+User->>VisitPage : View educational visits
+VisitPage->>Actions : Load available dates
+Actions->>DB : Check date conflicts
+DB-->>Actions : Available dates with occupancy
+Actions-->>VisitPage : Dates with conflict info
+User->>EditModal : Open edit modal
+EditModal->>Actions : Get available dates
+Actions->>DB : Query dates and conflicts
+DB-->>Actions : Date availability data
+Actions-->>EditModal : Available dates
+User->>EditModal : Submit changes
+EditModal->>Actions : Update visit
+Actions->>DB : Validate and update
+DB-->>Actions : Success or conflict
+Actions-->>EditModal : Result with rollback support
 end
 ```
 
@@ -208,11 +235,10 @@ end
 - [src/middleware.ts:14-85](file://src/middleware.ts#L14-L85)
 - [src/app/login/page.tsx:1-31](file://src/app/login/page.tsx#L1-L31)
 - [src/app/admin/layout.tsx:11-25](file://src/app/admin/layout.tsx#L11-L25)
-- [src/app/admin/registro-actividades/page.tsx:151-188](file://src/app/admin/registro-actividades/page.tsx#L151-L188)
-- [src/components/admin/actividades/RackSimuladores.tsx:45-54](file://src/components/admin/actividades/RackSimuladores.tsx#L45-L54)
-- [src/components/admin/actividades/PanelSesionEnVivo.tsx:251-297](file://src/components/admin/actividades/PanelSesionEnVivo.tsx#L251-L297)
-- [src/app/admin/registro-actividades/actions.ts:87-135](file://src/app/admin/registro-actividades/actions.ts#L87-L135)
-- [src/app/admin/registro-actividades/actions.ts:370-577](file://src/app/admin/registro-actividades/actions.ts#L370-L577)
+- [src/app/admin/visitas-educativas/page.tsx:10-25](file://src/app/admin/visitas-educativas/page.tsx#L10-L25)
+- [src/components/admin/visitas/ModalEditarVisita.tsx:133-153](file://src/components/admin/visitas/ModalEditarVisita.tsx#L133-L153)
+- [src/app/admin/visitas-educativas/actions.ts:114-176](file://src/app/admin/visitas-educativas/actions.ts#L114-L176)
+- [src/app/admin/visitas-educativas/actions.ts:200-332](file://src/app/admin/visitas-educativas/actions.ts#L200-L332)
 
 ## Authentication System
 The application implements a robust authentication system using Supabase with Next.js middleware for route protection.
@@ -235,35 +261,123 @@ The application implements a robust authentication system using Supabase with Ne
 - [src/components/auth/FormularioLogin.tsx:21-51](file://src/components/auth/FormularioLogin.tsx#L21-L51)
 - [src/components/admin/Topbar.tsx:62-72](file://src/components/admin/Topbar.tsx#L62-L72)
 
-## Activity Registration System
-**New Feature** - A comprehensive activity registration system that manages the complete lifecycle of presential activities at the simulation center.
+## Educational Visit Management System
+**New Feature** - A comprehensive educational visit management system that handles the complete lifecycle of confirmed educational visits with advanced editing capabilities.
 
 ### Core Capabilities:
-- **Activity Creation**: Register new activities with entity details, contact information, scheduling, and participant rosters
-- **Simulator Allocation**: Link specific simulators to activities with usage time tracking
-- **Participant Management**: Dynamic participant roster with gender categorization and role assignment
-- **Status Tracking**: Activities progress through planned → in-progress → completed states
-- **Audit Trail**: Complete history of all activities with detailed participant and equipment usage records
+- **Visit Administration**: Dedicated interface for managing confirmed educational visits with full CRUD operations
+- **Date Conflict Resolution**: Real-time detection of date conflicts with other reservations
+- **Advanced Validation**: Server-side validation with comprehensive error handling and rollback support
+- **Operational Tracking**: Integration with existing operational check system (insurance, transport, invoices, Drive)
+- **Export Capabilities**: Excel export functionality for attendee rosters and visit information
 
-### Data Model:
-- **Activities**: Main entity storing activity metadata, scheduling, and status
-- **Participants**: Individual attendees linked to activities with personal details
-- **Simulator Links**: Many-to-many relationship between activities and simulators
-- **Usage Tracking**: Minutes of simulator usage per activity for resource accounting
+### Data Model Enhancements:
+- **FechaDisponibleItem**: Extended date model with occupancy status and conflict information
+- **EditarVisitaInput**: Specialized input type for visit editing with enhanced validation
+- **ResultadoEdicionVisita**: Typed response format for edit operations with error handling
+- **Enhanced VisitaEducativa**: Extended visit model with additional operational fields
 
 ### Validation & Safety:
-- Server-side validation prevents invalid data entry
-- Concurrent session protection prevents double-booking of simulators
-- Transactional operations ensure data consistency
-- Rollback mechanisms handle partial failures gracefully
+- **PII-Safe Logging**: Error logging that excludes sensitive personal information
+- **Concurrent Access Protection**: Database-level unique constraints prevent double-booking
+- **Transaction Support**: Rollback mechanisms handle partial failures gracefully
+- **Type Safety**: Full TypeScript integration ensures compile-time validation
 
 **Section sources**
-- [src/app/admin/registro-actividades/actions.ts:184-344](file://src/app/admin/registro-actividades/actions.ts#L184-L344)
-- [src/types/actividades.ts:59-104](file://src/types/actividades.ts#L59-L104)
-- [src/components/admin/actividades/FormularioActividadModal.tsx:147-203](file://src/components/admin/actividades/FormularioActividadModal.tsx#L147-L203)
+- [src/app/admin/visitas-educativas/actions.ts:114-176](file://src/app/admin/visitas-educativas/actions.ts#L114-L176)
+- [src/app/admin/visitas-educativas/actions.ts:200-332](file://src/app/admin/visitas-educativas/actions.ts#L200-L332)
+- [src/types/visitas.ts:91-128](file://src/types/visitas.ts#L91-L128)
+- [src/components/admin/visitas/ModalEditarVisita.tsx:178-225](file://src/components/admin/visitas/ModalEditarVisita.tsx#L178-L225)
+
+## Date Availability Checking
+**New Feature** - Sophisticated date availability checking system that provides real-time conflict detection and occupancy status for educational visits.
+
+### Key Features:
+- **Real-time Conflict Detection**: Identifies dates occupied by other active reservations
+- **Occupancy Status**: Shows which institution occupies each date with their reservation code
+- **Current Visit Exemption**: Allows keeping the current visit's date even if marked as occupied
+- **Parallel Data Loading**: Efficiently loads enabled dates and occupancy data simultaneously
+- **Error Handling**: Comprehensive error handling with user-friendly messages
+
+### Technical Implementation:
+- **Server Action**: `obtenerFechasDisponiblesAction` provides date availability with conflict information
+- **Database Queries**: Parallel queries for enabled dates and active reservations
+- **Conflict Mapping**: Efficient mapping of occupied dates to their occupying institutions
+- **State Management**: React hooks manage loading states and error conditions
+
+```mermaid
+flowchart TD
+Start(["Request Available Dates"]) --> LoadEnabled["Load enabled dates from today onwards"]
+LoadEnabled --> LoadOccupied["Load active reservations"]
+LoadOccupied --> CreateMap["Create occupancy map"]
+CreateMap --> ProcessDates["Process each enabled date"]
+ProcessDates --> CheckConflict{"Date occupied?"}
+CheckConflict --> |Yes| MarkOccupied["Mark as occupied with institution code"]
+CheckConflict --> |No| MarkAvailable["Mark as available"]
+MarkOccupied --> NextDate["Next date"]
+MarkAvailable --> NextDate
+NextDate --> HasMore{"More dates?"}
+HasMore --> |Yes| ProcessDates
+HasMore --> |No| ReturnDates["Return dates with occupancy info"]
+```
+
+**Diagram sources**
+- [src/app/admin/visitas-educativas/actions.ts:114-176](file://src/app/admin/visitas-educativas/actions.ts#L114-L176)
+
+**Section sources**
+- [src/app/admin/visitas-educativas/actions.ts:114-176](file://src/app/admin/visitas-educativas/actions.ts#L114-L176)
+- [src/components/admin/visitas/ModalEditarVisita.tsx:133-153](file://src/components/admin/visitas/ModalEditarVisita.tsx#L133-L153)
+- [src/types/visitas.ts:91-100](file://src/types/visitas.ts#L91-L100)
+
+## Visit Editing System
+**New Feature** - Advanced visit editing system with comprehensive validation, rollback capabilities, and user-friendly error handling.
+
+### Core Capabilities:
+- **Comprehensive Validation**: Server-side validation for dates, times, capacity limits, and state transitions
+- **Rollback Support**: Automatic rollback mechanisms handle database errors gracefully
+- **Capacity Management**: Different capacity limits for editing (45) vs. creation (40)
+- **State Transition Logic**: Intelligent state management for date changes and confirmations
+- **Transportation Logistics**: Enhanced TUP (transport) field validation and management
+
+### Validation Rules:
+- **Date Validation**: ISO format validation with calendar validity checks
+- **Time Format Validation**: HH:MM or HH:MM:SS format enforcement for transportation schedules
+- **Capacity Limits**: Maximum 45 students for editing operations
+- **State Validation**: Only allowed states can be set (Confirmed, Rescheduled, Cancelled, Completed, Pending)
+- **Transportation Validation**: Required time fields when TUP is enabled
+
+### Error Handling:
+- **PII-Safe Logging**: Error logs exclude sensitive personal information
+- **User-Friendly Messages**: Clear error messages without exposing internal database details
+- **Rollback Mechanisms**: Automatic restoration of previous data on failed operations
+- **Conflict Detection**: Early detection of date conflicts before database operations
+
+**Section sources**
+- [src/app/admin/visitas-educativas/actions.ts:200-332](file://src/app/admin/visitas-educativas/actions.ts#L200-L332)
+- [src/components/admin/visitas/ModalEditarVisita.tsx:178-225](file://src/components/admin/visitas/ModalEditarVisita.tsx#L178-L225)
+- [src/types/visitas.ts:102-128](file://src/types/visitas.ts#L102-L128)
+
+## Enhanced Payroll Processing
+**Enhanced Feature** - Improved payroll processing system with enhanced rollback operations and better error handling for participant synchronization.
+
+### Key Improvements:
+- **Enhanced Rollback Operations**: Improved rollback mechanisms for participant synchronization failures
+- **Better Error Recovery**: More robust error handling during participant data synchronization
+- **Data Integrity**: Enhanced validation and consistency checks for participant data
+- **Performance Optimization**: Optimized batch operations for large participant lists
+
+### Technical Enhancements:
+- **Improved Sync Logic**: Better handling of participant list synchronization with rollback support
+- **Enhanced Validation**: More comprehensive validation of participant data before insertion
+- **Error Isolation**: Better isolation of errors to prevent cascading failures
+- **Logging Improvements**: Enhanced logging for debugging payroll processing issues
+
+**Section sources**
+- [src/app/admin/registro-actividades/actions.ts:650-699](file://src/app/admin/registro-actividades/actions.ts#L650-L699)
+- [src/components/admin/actividades/PanelSesionEnVivo.tsx:625-654](file://src/components/admin/actividades/PanelSesionEnVivo.tsx#L625-L654)
 
 ## Live Session Management
-**New Feature** - Real-time session management system for conducting live training sessions or demonstrations.
+**Existing Feature** - Real-time session management system for conducting live training sessions or demonstrations.
 
 ### Key Features:
 - **Session Lifecycle**: Start, monitor, and end live sessions with full audit trail
@@ -293,7 +407,7 @@ CreateActivity --> AllocateSimulators["Allocate simulators to session"]
 AllocateSimulators --> LoadParticipants["Load initial participant roster"]
 LoadParticipants --> MonitorSession["Monitor session with timer"]
 MonitorSession --> EditParticipants["Edit participants during session"]
-EditParticipants --> SyncParticipants["Sync participant changes"]
+EditParticipants --> SyncParticipants["Sync participant changes with rollback"]
 SyncParticipants --> MonitorSession
 MonitorSession --> EndSession["End session when complete"]
 EndSession --> CalculateDuration["Calculate actual duration"]
@@ -315,17 +429,24 @@ FreeSimulators --> Complete(["Session Complete"])
 
 ## Detailed Component Analysis
 
-### Admin Layout and Pages
-- **Admin Layout**: Provides the shell structure for all admin pages with sidebar and topbar integration
-- **Dashboard Page**: Placeholder for future digital twin integration with live status indicators
-- **Login Page**: Dedicated authentication interface with form validation and error handling
-- **Activity Registration Page**: Server component that loads simulator fleet and activity history in parallel
+### Educational Visit Management Pages
+- **Educational Visits Page**: Dedicated admin interface for managing confirmed educational visits with comprehensive operational tracking
+- **Visit Admin Table**: Interactive table displaying all educational visits with filtering, editing, and export capabilities
+- **Visit Edit Modal**: Advanced modal interface for editing visit details with real-time date availability checking
 
 **Section sources**
-- [src/app/admin/layout.tsx:11-25](file://src/app/admin/layout.tsx#L11-L25)
-- [src/app/admin/page.tsx:5-37](file://src/app/admin/page.tsx#L5-L37)
-- [src/app/login/page.tsx:9-30](file://src/app/login/page.tsx#L9-L30)
-- [src/app/admin/registro-actividades/page.tsx:151-188](file://src/app/admin/registro-actividades/page.tsx#L151-L188)
+- [src/app/admin/visitas-educativas/page.tsx:10-25](file://src/app/admin/visitas-educativas/page.tsx#L10-L25)
+- [src/components/admin/visitas/TablaVisitasAdmin.tsx:75-349](file://src/components/admin/visitas/TablaVisitasAdmin.tsx#L75-L349)
+- [src/components/admin/visitas/ModalEditarVisita.tsx:59-625](file://src/components/admin/visitas/ModalEditarVisita.tsx#L59-L625)
+
+### Enhanced Server Actions
+- **Date Availability Action**: Provides real-time date availability with conflict detection and occupancy information
+- **Visit Update Action**: Handles comprehensive visit editing with validation, rollback support, and error handling
+- **Enhanced Error Handling**: PII-safe logging and user-friendly error messages throughout the system
+
+**Section sources**
+- [src/app/admin/visitas-educativas/actions.ts:114-176](file://src/app/admin/visitas-educativas/actions.ts#L114-L176)
+- [src/app/admin/visitas-educativas/actions.ts:200-332](file://src/app/admin/visitas-educativas/actions.ts#L200-L332)
 
 ### Enhanced Topbar Component
 - **Logout Functionality**: Implements secure session termination with Supabase auth.signOut()
@@ -356,7 +477,7 @@ Refresh --> End
 - **Active State Detection**: Smart highlighting of current section
 - **Mobile Integration**: Responsive navigation that works alongside topbar on smaller screens
 - **External Links**: Integration with public visit portal
-- **Activity Registration**: New navigation item for the activity management module
+- **Educational Visits**: New navigation item for the educational visit management module
 
 **Section sources**
 - [src/components/admin/Sidebar.tsx:1-113](file://src/components/admin/Sidebar.tsx#L1-L113)
@@ -429,7 +550,7 @@ Append --> Close["Close modal"]
 - [src/components/visitas/GridNomina.tsx:1-277](file://src/components/visitas/GridNomina.tsx#L1-L277)
 
 ### Real-time Simulator Rack
-**New Component** - SCADA-style interface for direct simulator control with industrial aesthetics.
+**Existing Component** - SCADA-style interface for direct simulator control with industrial aesthetics.
 
 - **Visual Status Indicators**: LED-style indicators showing simulator states (free, operating, maintenance)
 - **Direct State Control**: One-click switching between free and operating states
@@ -441,7 +562,7 @@ Append --> Close["Close modal"]
 - [src/components/admin/actividades/RackSimuladores.tsx:1-153](file://src/components/admin/actividades/RackSimuladores.tsx#L1-L153)
 
 ### Live Session Panel
-**New Component** - Comprehensive session management interface with dual-phase workflow.
+**Existing Component** - Comprehensive session management interface with dual-phase workflow.
 
 - **Phase A (Setup)**: Entity details, simulator selection, and initial participant roster
 - **Phase B (Monitoring)**: Active session with timer, participant editing, and session termination
@@ -453,7 +574,7 @@ Append --> Close["Close modal"]
 - [src/components/admin/actividades/PanelSesionEnVivo.tsx:1-866](file://src/components/admin/actividades/PanelSesionEnVivo.tsx#L1-L866)
 
 ### Activity Form Modal
-**New Component** - Industrial-styled form for registering new activities with comprehensive validation.
+**Existing Component** - Industrial-styled form for registering new activities with comprehensive validation.
 
 - **Auto-calculated Duration**: Automatically computes duration from start/end times when provided
 - **Dynamic Participant Grid**: Add/remove participants with inline editing
@@ -465,7 +586,7 @@ Append --> Close["Close modal"]
 - [src/components/admin/actividades/FormularioActividadModal.tsx:1-606](file://src/components/admin/actividades/FormularioActividadModal.tsx#L1-L606)
 
 ### Activity History Table
-**New Component** - Comprehensive activity history with dual viewing modes.
+**Existing Component** - Comprehensive activity history with dual viewing modes.
 
 - **List Mode**: Traditional table view with sorting and filtering capabilities
 - **Tablet Mode**: Simplified interface optimized for touch devices and active session management
@@ -476,16 +597,17 @@ Append --> Close["Close modal"]
 **Section sources**
 - [src/components/admin/actividades/TablaActividades.tsx:1-434](file://src/components/admin/actividades/TablaActividades.tsx#L1-L434)
 
-### Server Actions
-**New Module** - Comprehensive server-side logic for activity and session management.
+### Enhanced Server Actions
+**Enhanced Module** - Comprehensive server-side logic for educational visit management and activity/session management.
 
-- **Activity Lifecycle**: Complete CRUD operations for activities with validation
-- **Session Management**: Start, sync, and end live sessions with concurrency control
-- **Simulator Control**: Direct state management with TOCTOU protection
-- **Data Integrity**: Transactional operations with rollback capabilities
-- **Error Handling**: Comprehensive error logging and user-friendly error messages
+- **Educational Visit Management**: Complete CRUD operations for educational visits with enhanced validation
+- **Date Availability Checking**: Real-time conflict detection and occupancy status for dates
+- **Enhanced Rollback Support**: Improved rollback mechanisms for participant synchronization
+- **PII-Safe Logging**: Error logging that excludes sensitive personal information
+- **Type Safety**: Full TypeScript integration with comprehensive error handling
 
 **Section sources**
+- [src/app/admin/visitas-educativas/actions.ts:1-333](file://src/app/admin/visitas-educativas/actions.ts#L1-L333)
 - [src/app/admin/registro-actividades/actions.ts:1-909](file://src/app/admin/registro-actividades/actions.ts#L1-L909)
 
 ### visitasService
@@ -538,8 +660,9 @@ Servicios --> Tipos : "uses"
 - Pages compose components and set metadata
 - Middleware protects routes and manages authentication flow
 - Authentication components integrate with Supabase for credential validation
-- **Server Actions provide type-safe database operations for the activity system**
-- **Activity components depend on shared types for consistent data structures**
+- **Server Actions provide type-safe database operations for both educational visit management and activity systems**
+- **Enhanced error handling and rollback mechanisms improve system reliability**
+- **Educational visit components depend on specialized server actions for date availability and editing**
 
 ```mermaid
 graph LR
@@ -554,6 +677,10 @@ Topbar --> Supabase
 LoginForm["components/auth/FormularioLogin.tsx"] --> Supabase
 Middleware["middleware.ts"] --> AdminLayout
 Middleware --> LoginForm
+VisitPage["app/admin/visitas-educativas/page.tsx"] --> VisitTable["components/admin/visitas/TablaVisitasAdmin.tsx"]
+VisitTable --> VisitModal["components/admin/visitas/ModalEditarVisita.tsx"]
+VisitModal --> VisitActions["app/admin/visitas-educativas/actions.ts"]
+VisitActions --> Supabase
 ActivityPage["app/admin/registro-actividades/page.tsx"] --> Rack["components/admin/actividades/RackSimuladores.tsx"]
 ActivityPage --> Panel["components/admin/actividades/PanelSesionEnVivo.tsx"]
 ActivityPage --> FormModal["components/admin/actividades/FormularioActividadModal.tsx"]
@@ -571,13 +698,17 @@ Actions --> Types
 - [src/components/visitas/FormularioVisita.tsx:1-723](file://src/components/visitas/FormularioVisita.tsx#L1-L723)
 - [src/components/visitas/GridNomina.tsx:1-277](file://src/components/visitas/GridNomina.tsx#L1-L277)
 - [src/services/visitasService.ts:1-169](file://src/services/visitasService.ts#L1-L169)
-- [src/types/visitas.ts:1-84](file://src/types/visitas.ts#L1-L84)
+- [src/types/visitas.ts:1-128](file://src/types/visitas.ts#L1-L128)
 - [src/lib/supabase/client.ts:1-34](file://src/lib/supabase/client.ts#L1-L34)
 - [src/app/admin/layout.tsx:1-26](file://src/app/admin/layout.tsx#L1-L26)
 - [src/components/admin/Topbar.tsx:1-132](file://src/components/admin/Topbar.tsx#L1-L132)
 - [src/components/admin/Sidebar.tsx:1-113](file://src/components/admin/Sidebar.tsx#L1-L113)
 - [src/components/auth/FormularioLogin.tsx:1-107](file://src/components/auth/FormularioLogin.tsx#L1-L107)
 - [src/middleware.ts:1-100](file://src/middleware.ts#L1-L100)
+- [src/app/admin/visitas-educativas/page.tsx:1-26](file://src/app/admin/visitas-educativas/page.tsx#L1-L26)
+- [src/components/admin/visitas/TablaVisitasAdmin.tsx:1-349](file://src/components/admin/visitas/TablaVisitasAdmin.tsx#L1-L349)
+- [src/components/admin/visitas/ModalEditarVisita.tsx:1-625](file://src/components/admin/visitas/ModalEditarVisita.tsx#L1-L625)
+- [src/app/admin/visitas-educativas/actions.ts:1-333](file://src/app/admin/visitas-educativas/actions.ts#L1-L333)
 - [src/app/admin/registro-actividades/page.tsx:1-261](file://src/app/admin/registro-actividades/page.tsx#L1-L261)
 - [src/components/admin/actividades/RackSimuladores.tsx:1-153](file://src/components/admin/actividades/RackSimuladores.tsx#L1-L153)
 - [src/components/admin/actividades/PanelSesionEnVivo.tsx:1-866](file://src/components/admin/actividades/PanelSesionEnVivo.tsx#L1-L866)
@@ -590,13 +721,17 @@ Actions --> Types
 - [src/components/visitas/FormularioVisita.tsx:1-723](file://src/components/visitas/FormularioVisita.tsx#L1-L723)
 - [src/components/visitas/GridNomina.tsx:1-277](file://src/components/visitas/GridNomina.tsx#L1-L277)
 - [src/services/visitasService.ts:1-169](file://src/services/visitasService.ts#L1-L169)
-- [src/types/visitas.ts:1-84](file://src/types/visitas.ts#L1-L84)
+- [src/types/visitas.ts:1-128](file://src/types/visitas.ts#L1-L128)
 - [src/lib/supabase/client.ts:1-34](file://src/lib/supabase/client.ts#L1-L34)
 - [src/app/admin/layout.tsx:1-26](file://src/app/admin/layout.tsx#L1-L26)
 - [src/components/admin/Topbar.tsx:1-132](file://src/components/admin/Topbar.tsx#L1-L132)
 - [src/components/admin/Sidebar.tsx:1-113](file://src/components/admin/Sidebar.tsx#L1-L113)
 - [src/components/auth/FormularioLogin.tsx:1-107](file://src/components/auth/FormularioLogin.tsx#L1-L107)
 - [src/middleware.ts:1-100](file://src/middleware.ts#L1-L100)
+- [src/app/admin/visitas-educativas/page.tsx:1-26](file://src/app/admin/visitas-educativas/page.tsx#L1-L26)
+- [src/components/admin/visitas/TablaVisitasAdmin.tsx:1-349](file://src/components/admin/visitas/TablaVisitasAdmin.tsx#L1-L349)
+- [src/components/admin/visitas/ModalEditarVisita.tsx:1-625](file://src/components/admin/visitas/ModalEditarVisita.tsx#L1-L625)
+- [src/app/admin/visitas-educativas/actions.ts:1-333](file://src/app/admin/visitas-educativas/actions.ts#L1-L333)
 - [src/app/admin/registro-actividades/page.tsx:1-261](file://src/app/admin/registro-actividades/page.tsx#L1-L261)
 - [src/components/admin/actividades/RackSimuladores.tsx:1-153](file://src/components/admin/actividades/RackSimuladores.tsx#L1-L153)
 - [src/components/admin/actividades/PanelSesionEnVivo.tsx:1-866](file://src/components/admin/actividades/PanelSesionEnVivo.tsx#L1-L866)
@@ -615,6 +750,8 @@ Actions --> Types
 - **Memoized Calculations**: Activity history uses useMemo for expensive computations like gender summaries
 - **Isolated Sub-components**: Timer component is memoized to prevent parent re-renders
 - **Optimistic Updates**: Server actions use revalidatePath for efficient UI updates without full page reloads
+- **Enhanced Performance**: Educational visit management uses parallel queries for date availability and occupancy data
+- **Efficient Conflict Detection**: Map-based conflict detection minimizes computational overhead
 
 ## Troubleshooting Guide
 Common issues and resolutions:
@@ -650,6 +787,23 @@ Common issues and resolutions:
   - Confirm state transitions follow allowed patterns (free ↔ operating)
   - Verify maintenance mode cannot be toggled directly from the rack
   - Check that activity references are properly cleaned up when freeing simulators
+- **Educational visit management issues**:
+  - Check date availability conflicts before attempting to save changes
+  - Verify TUP transportation schedules are in correct format (HH:MM or HH:MM:SS)
+  - Ensure capacity limits are respected (45 students maximum for editing)
+  - Check that state transitions are valid (only allowed states can be set)
+- **Date availability problems**:
+  - Verify enabled dates are properly configured in the database
+  - Check that conflict detection is working correctly for active reservations
+  - Ensure current visit dates are exempt from conflict detection
+- **Visit editing failures**:
+  - Review server-side validation errors for specific field issues
+  - Check database constraints for unique date requirements
+  - Verify rollback mechanisms are functioning correctly on failed operations
+- **Payroll processing issues**:
+  - Check enhanced rollback operations for participant synchronization
+  - Verify data integrity during batch participant operations
+  - Review improved error handling for participant data validation
 
 **Section sources**
 - [src/components/auth/FormularioLogin.tsx:21-51](file://src/components/auth/FormularioLogin.tsx#L21-L51)
@@ -659,15 +813,17 @@ Common issues and resolutions:
 - [src/components/visitas/FormularioVisita.tsx:137-217](file://src/components/visitas/FormularioVisita.tsx#L137-L217)
 - [src/components/visitas/GridNomina.tsx:55-70](file://src/components/visitas/GridNomina.tsx#L55-L70)
 - [src/services/visitasService.ts:12-33](file://src/services/visitasService.ts#L12-L33)
-- [src/app/admin/registro-actividades/actions.ts:87-135](file://src/app/admin/registro-actividades/actions.ts#L87-L135)
-- [src/app/admin/registro-actividades/actions.ts:370-577](file://src/app/admin/registro-actividades/actions.ts#L370-L577)
-- [src/app/admin/registro-actividades/actions.ts:714-800](file://src/app/admin/registro-actividades/actions.ts#L714-L800)
+- [src/app/admin/visitas-educativas/actions.ts:82-88](file://src/app/admin/visitas-educativas/actions.ts#L82-L88)
+- [src/app/admin/visitas-educativas/actions.ts:200-332](file://src/app/admin/visitas-educativas/actions.ts#L200-L332)
+- [src/app/admin/registro-actividades/actions.ts:650-699](file://src/app/admin/registro-actividades/actions.ts#L650-L699)
 
 ## Conclusion
-The Administrative Panel now provides a comprehensive, secure, and user-friendly interface for scheduling educational visits, managing attendee rosters, and supporting operational workflows through Supabase integration. **The addition of a complete activity registration and live session management system significantly enhances the platform's capabilities**, enabling operators to conduct real-time training sessions, manage simulator resources effectively, and maintain detailed audit trails of all activities.
+The Administrative Panel now provides a comprehensive, secure, and user-friendly interface for scheduling educational visits, managing attendee rosters, and supporting operational workflows through Supabase integration. **The addition of a complete educational visit management system with advanced server actions for date availability checking, visit editing with rollback capabilities, and enhanced payroll processing significantly enhances the platform's capabilities**, enabling administrators to effectively manage confirmed educational visits with sophisticated conflict resolution and error handling.
 
 The enhanced authentication system with middleware-based route protection ensures only authorized users can access admin functionality. Its modular architecture separates concerns between UI, services, types, and authentication, enabling maintainability and scalability. With clear validation, error handling, performance-conscious patterns, and responsive design improvements, it offers a solid foundation for further enhancements such as advanced reporting, expanded admin capabilities, and additional security features.
 
-**The new activity system demonstrates sophisticated software engineering practices**, including transactional operations, concurrent session management, optimistic UI updates, and comprehensive error handling. The dual-view interface (desktop list vs. tablet mode) showcases thoughtful UX design that adapts to different operational contexts. The SCADA-style simulator rack provides an intuitive industrial interface that mirrors real-world control systems, making it familiar to operators accustomed to similar environments.
+**The new educational visit management system demonstrates sophisticated software engineering practices**, including transactional operations, concurrent access protection, optimistic UI updates, comprehensive error handling, and PII-safe logging. The enhanced rollback mechanisms for payroll processing showcase robust error recovery strategies that maintain data integrity even during partial failures. The sophisticated date conflict detection system provides real-time feedback to users while maintaining database consistency.
 
-The addition of logout functionality with proper session cleanup demonstrates the system's commitment to security best practices, while the responsive design improvements ensure accessibility across different device sizes and screen orientations. **The comprehensive activity management system represents a significant evolution from simple visit scheduling to full-scale simulation center operations management**, positioning the platform as a complete solution for simulation center administration.
+The addition of logout functionality with proper session cleanup demonstrates the system's commitment to security best practices, while the responsive design improvements ensure accessibility across different device sizes and screen orientations. **The comprehensive educational visit management system represents a significant evolution from simple visit scheduling to full-scale educational institution administration**, positioning the platform as a complete solution for simulation center operations management with advanced administrative capabilities.
+
+**The enhanced payroll processing with improved rollback operations ensures data integrity and reliability** during complex participant synchronization operations, making the system more robust and user-friendly for administrative staff managing large groups of educational visitors.

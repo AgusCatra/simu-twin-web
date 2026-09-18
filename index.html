@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Simulador Etech — Puesto Central</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { overflow:hidden; background:#111; font-family:'Segoe UI', Arial, sans-serif; }
+  #ui {
+    position:absolute; top:12px; left:12px; z-index:100;
+    background:rgba(15,15,18,.88); color:#eee; padding:12px 16px;
+    border-radius:8px; border:1px solid #333; font-size:13px; line-height:1.6;
+    backdrop-filter: blur(4px);
+  }
+  #ui h3 { font-size:14px; margin-bottom:6px; color:#ffd75e; }
+  #ui button {
+    margin:4px 6px 4px 0; padding:6px 14px; cursor:pointer;
+    background:#2a2a30; color:#eee; border:1px solid #555; border-radius:5px;
+    font-size:12px;
+  }
+  #ui button:hover { background:#3a3a44; }
+  #ui button.activo { border-color:#ffd75e; color:#ffd75e; }
+  #ui label { display:inline-flex; align-items:center; gap:5px; margin-right:12px; font-size:12px; color:#bbb; }
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+</head>
+<body>
+<div id="ui">
+  <h3>Simulador Etech — Puesto Central</h3>
+  <div>
+    <button id="btnCamion">🚛 Modo Volante</button>
+    <button id="btnExcavadora">🚜 Modo Excavadora</button>
+  </div>
+  <div>
+    <label><input type="checkbox" id="chkGirar"> Rotar vista</label>
+    <label><input type="checkbox" id="chkRejilla"> Rejilla</label>
+  </div>
+  <div style="color:#888">Arrastrar: orbitar · Rueda: zoom · Clic derecho: mover · Teclas 1/2: modo</div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════
+// 1. CONSTANTES DE COTAS (SCADA) Y MATERIALES COMPARTIDOS
+// ═══════════════════════════════════════════════════════════════════
+const COTA = {
+  SUELO:      0.000,   // Piso base del galpón
+  REJILLA:    0.003,   // GridHelper (+3 mm sobre el piso)
+  LINEA:      0.005,   // Demarcación vial amarilla (+5 mm)
+  LINEA_Z:    3.400,   // Posición de la línea vial
+  CHAPA:      0.540,   // Tapa superior del chasis metálico
+  ALFOMBRA:   0.543,   // Alfombra antideslizante (+3 mm sobre la chapa)
+  COJIN:      0.850,   // Cara superior del cojín de la butaca
+  BUTACA_Z:   0.220,   // Centro de butaca y pods en Z
+  COL_Z:     -0.300,   // Base de la columna de volante en Z
+  PEDAL_Z:   -0.500,   // Pedalera al frente (clearance ≥10 mm del mástil)
+  POD_X:      0.360,   // Pods de joystick simétricos en X = ±0.360
+  MON_Y:      1.300,   // Altura de centros de monitores (nivel de ojos)
+  MON_CZ:    -1.500,   // Monitor central en Z
+  MON_LX:     0.980,   // Monitores laterales en X = ±0.980
+  MON_LZ:    -1.350,   // Monitores laterales en Z
+  MON_ROTY:   0.550,   // Rotación Y de monitores laterales (±)
+  DISPLAY_Z:  0.027,   // Display: ≥ +0.004 por delante del bisel frontal
+  MESA_X:     0.950,   // Mesa auxiliar teclado/mouse (lado derecho)
+  MESA_Z:     0.350,
+  MESA_ROTY: -0.250,   // Giro suave de la mesa hacia el puesto
+  PC_X:      -1.050,   // Gabinete PC (lado izquierdo)
+  PC_Z:       0.450,
+  DELTA:      0.003    // Tolerancia mínima anti Z-fighting (3 mm)
+};
+
+const M = {
+  metalClaro: new THREE.MeshStandardMaterial({color:0xb8bcc2, metalness:0.75, roughness:0.35}),
+  metalMedio: new THREE.MeshStandardMaterial({color:0x8a8f96, metalness:0.7,  roughness:0.4}),
+  metalOscuro:new THREE.MeshStandardMaterial({color:0x3c3f45, metalness:0.6,  roughness:0.5}),
+  negro:      new THREE.MeshStandardMaterial({color:0x141416, roughness:0.9}),
+  asiento:    new THREE.MeshStandardMaterial({color:0x1d1d20, roughness:0.85}),
+  plastico:   new THREE.MeshStandardMaterial({color:0x2a2a2e, roughness:0.6}),
+  pantalla:   new THREE.MeshStandardMaterial({color:0x061410, emissive:0x0b3d2e, emissiveIntensity:0.7, roughness:0.2}),
+  goma:       new THREE.MeshStandardMaterial({color:0x0c0c0c, roughness:1.0}),
+  rojo:       new THREE.MeshStandardMaterial({color:0xb02020, roughness:0.5}),
+  amarillo:   new THREE.MeshStandardMaterial({color:0xffc21c, roughness:0.45}),
+  estop:      new THREE.MeshStandardMaterial({color:0xef4444, roughness:0.4}),   // E-stop hongo rojo
+  alfombra:   new THREE.MeshStandardMaterial({color:0x1a1a1c, roughness:1.0}),
+  piso:       new THREE.MeshStandardMaterial({color:0x55565a, roughness:0.9}),
+  vial:       new THREE.MeshStandardMaterial({color:0xd8a012, roughness:0.8})
+};
+
+// ═══════════════════════════════════════════════════════════════════
+// 2. ESCENA, CÁMARA, RENDERER Y CONTROLES ORBITALES
+// ═══════════════════════════════════════════════════════════════════
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x191a1e);
+scene.fog = new THREE.Fog(0x191a1e, 18, 45);
+
+const camera = new THREE.PerspectiveCamera(45, innerWidth/innerHeight, 0.1, 200);
+camera.position.set(3.8, 2.7, 4.6);
+
+const renderer = new THREE.WebGLRenderer({antialias:true});
+renderer.setSize(innerWidth, innerHeight);
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+document.body.appendChild(renderer.domElement);
+
+const controls = new THREE.OrbitControls(camera, renderer.domElement);
+controls.target.set(0, 1.0, 0);
+controls.enableDamping = true;
+controls.maxPolarAngle = Math.PI/2 - 0.02;
+
+// ═══════════════════════════════════════════════════════════════════
+// 3. ILUMINACIÓN (Ambient + Key con sombras + Fill + PointLight interactivo)
+// ═══════════════════════════════════════════════════════════════════
+scene.add(new THREE.AmbientLight(0x9aa5b5, 0.5));
+
+const key = new THREE.DirectionalLight(0xffffff, 1.1);
+key.position.set(6, 9, 5);
+key.castShadow = true;
+key.shadow.mapSize.set(2048, 2048);
+key.shadow.camera.left = -8; key.shadow.camera.right = 8;
+key.shadow.camera.top = 8;   key.shadow.camera.bottom = -8;
+key.shadow.bias = -0.0004;
+scene.add(key);
+
+const fill = new THREE.DirectionalLight(0x8899bb, 0.35);
+fill.position.set(-6, 4, -4);
+scene.add(fill);
+
+// PointLight interactivo sobre el puesto: cálido en Volante, frío en Excavadora
+const luzPuesto = new THREE.PointLight(0xffc98a, 0.55, 12);
+luzPuesto.position.set(0.6, 2.3, 0.5);
+scene.add(luzPuesto);
+
+// ═══════════════════════════════════════════════════════════════════
+// 4. HELPERS GEOMÉTRICOS: mesh / box / cyl / hinge (patrón bisagra)
+// ═══════════════════════════════════════════════════════════════════
+function mesh(geo, mat, x=0, y=0, z=0, cast=true, recv=true){
+  const m = new THREE.Mesh(geo, mat);
+  m.position.set(x,y,z);
+  m.castShadow = cast; m.receiveShadow = recv;
+  return m;
+}
+function box(w,h,d,mat,x,y,z){ return mesh(new THREE.BoxGeometry(w,h,d), mat, x,y,z); }
+function cyl(rt,rb,h,mat,x,y,z,seg=24){ return mesh(new THREE.CylinderGeometry(rt,rb,h,seg), mat, x,y,z); }
+
+// PATRÓN BISAGRA (SPEC §2): grupo contenedor exactamente en el punto de
+// giro (fulcro); la malla interna se desplaza h/2 para apoyar su base en Y local = 0.
+function hinge(px, py, pz, rotX){
+  const g = new THREE.Group();
+  g.position.set(px, py, pz);
+  g.rotation.x = rotX;
+  return g;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// 5. RAÍZ sim Y GRUPOS MAESTROS StaticRig / DynamicCockpit
+// ═══════════════════════════════════════════════════════════════════
+const sim = new THREE.Group();
+sim.name = 'sim';
+sim.position.set(0, 0, 0);
+scene.add(sim);
+
+const StaticRig = new THREE.Group();       // Objetos fijados al piso: NUNCA se mueve
+StaticRig.name = 'StaticRig';
+sim.add(StaticRig);
+
+const DynamicCockpit = new THREE.Group();  // Plataforma móvil: ÚNICA rama que vibra
+DynamicCockpit.name = 'DynamicCockpit';
+DynamicCockpit.position.set(0, 0, 0);
+sim.add(DynamicCockpit);
+
+// Exposición para inspección en consola del navegador
+window.sim = sim;
+window.StaticRig = StaticRig;
+window.DynamicCockpit = DynamicCockpit;
+
+// ═══════════════════════════════════════════════════════════════════
+// 6. STATICRIG — PISO, REJILLA, DEMARCACIÓN VIAL, MONITORES Y PERIFÉRICOS
+// ═══════════════════════════════════════════════════════════════════
+// Piso del galpón (superficie base Y = 0.000)
+const piso = mesh(new THREE.PlaneGeometry(40, 40), M.piso, 0, COTA.SUELO, 0, false, true);
+piso.rotation.x = -Math.PI/2;
+StaticRig.add(piso);
+
+// Rejilla técnica (Y = 0.003, inicialmente oculta)
+const grid = new THREE.GridHelper(40, 40, 0x777777, 0x3a3a3d);
+grid.position.y = COTA.REJILLA;
+grid.visible = false;
+StaticRig.add(grid);
+
+// Demarcación vial amarilla (Y = 0.005)
+const linea = mesh(new THREE.PlaneGeometry(12, 0.12), M.vial, 0, COTA.LINEA, COTA.LINEA_Z, false, true);
+linea.rotation.x = -Math.PI/2;
+StaticRig.add(linea);
+
+// — Helper de monitor: display emisivo ≥ +0.004 por delante del bisel —
+function monitor(w, h){
+  const g = new THREE.Group();
+  g.add(box(w, h, 0.045, M.negro));                                  // Marco: cara frontal en z = +0.0225
+  const scr = box(w - 0.06, h - 0.06, 0.01, M.pantalla);
+  scr.position.z = COTA.DISPLAY_Z;                                   // 0.027 → cara frontal +0.0095 del bisel
+  g.add(scr);
+  g.add(box(0.10, 0.015, 0.005, M.metalOscuro, 0, -h/2 + 0.015, 0.028)); // Logo inferior: íntegro en la banda del bisel bajo la pantalla
+  return g;
+}
+
+// Torre central robusta: monitor en (0, 1.300, -1.500) sin rotación Y
+const torreCentral = new THREE.Group();
+torreCentral.position.set(0, 0, COTA.MON_CZ);
+StaticRig.add(torreCentral);
+torreCentral.add(box(0.50, 0.04, 0.40, M.negro, 0, 0.02, 0));                    // Placa base en Y = 0
+torreCentral.add(cyl(0.035, 0.035, 0.98, M.negro, 0, 0.53, 0));                  // Caño hasta el monitor
+const monC = monitor(0.96, 0.56);
+monC.position.set(0, COTA.MON_Y, 0);
+monC.rotation.x = -0.04;
+torreCentral.add(monC);
+
+// Pedestal izquierdo: (-0.980, 1.300, -1.350), rotación Y = +0.55
+const pedIzq = new THREE.Group();
+pedIzq.position.set(-COTA.MON_LX, 0, COTA.MON_LZ);
+pedIzq.rotation.y = COTA.MON_ROTY;
+pedIzq.visible = false;
+StaticRig.add(pedIzq);
+pedIzq.add(box(0.45, 0.04, 0.40, M.negro, 0, 0.02, 0));
+pedIzq.add(cyl(0.028, 0.028, 0.98, M.negro, 0, 0.53, 0));
+const monI = monitor(0.96, 0.56);
+monI.position.set(0, COTA.MON_Y, 0);
+monI.rotation.x = -0.04;
+pedIzq.add(monI);
+
+// Pedestal derecho: (+0.980, 1.300, -1.350), rotación Y = -0.55
+const pedDer = new THREE.Group();
+pedDer.position.set(COTA.MON_LX, 0, COTA.MON_LZ);
+pedDer.rotation.y = -COTA.MON_ROTY;
+pedDer.visible = false;
+StaticRig.add(pedDer);
+pedDer.add(box(0.45, 0.04, 0.40, M.negro, 0, 0.02, 0));
+pedDer.add(cyl(0.028, 0.028, 0.98, M.negro, 0, 0.53, 0));
+const monD = monitor(0.96, 0.56);
+monD.position.set(0, COTA.MON_Y, 0);
+monD.rotation.x = -0.04;
+pedDer.add(monD);
+
+// Mesa auxiliar de teclado/mouse (lado derecho, girada hacia el puesto)
+const mesaTeclado = new THREE.Group();
+mesaTeclado.position.set(COTA.MESA_X, 0, COTA.MESA_Z);
+mesaTeclado.rotation.y = COTA.MESA_ROTY;
+StaticRig.add(mesaTeclado);
+mesaTeclado.add(box(0.35, 0.03, 0.35, M.negro, 0, 0.015, 0));
+mesaTeclado.add(cyl(0.02, 0.02, 0.85, M.negro, 0, 0.44, 0));
+const mesa = box(0.48, 0.03, 0.32, M.negro, 0, 0.86, 0.05);
+mesa.rotation.x = 0.1;
+mesaTeclado.add(mesa);
+const teclado = box(0.38, 0.02, 0.14, M.plastico, 0, 0.88, 0.05);
+teclado.rotation.x = 0.1;
+mesaTeclado.add(teclado);
+
+// Mouse óptico + cable: hijos de la mesa → heredan su inclinación y quedan a contacto exacto
+const mouse = box(0.06, 0.03, 0.10, M.plastico, 0.17, 0.03, 0.12);
+mouse.rotation.y = Math.PI/2;                                                       // Orientado con el frente hacia el operario
+mesa.add(mouse);
+const cableMouse = cyl(0.004, 0.004, 0.10, M.goma, 0.22, 0.019, 0.04, 8);
+cableMouse.rotation.x = Math.PI/2;                                                  // Tendido sobre la mesa, hacia el borde derecho
+mesa.add(cableMouse);
+
+// Gabinete de procesamiento PC (lado izquierdo)
+const gabinetePC = new THREE.Group();
+gabinetePC.position.set(COTA.PC_X, 0, COTA.PC_Z);
+StaticRig.add(gabinetePC);
+gabinetePC.add(box(0.24, 0.52, 0.55, M.metalOscuro, 0, 0.26, 0));
+gabinetePC.add(box(0.02, 0.38, 0.45, M.negro, 0.125, 0.28, 0));                    // Panel lateral negro
+gabinetePC.add(box(0.14, 0.09, 0.006, M.plastico, 0, 0.30, 0.281));                // Logo frontal +3 mm (z=0.275 → 0.281)
+
+// ═══════════════════════════════════════════════════════════════════
+// 7. DYNAMICCOCKPIT — CHASIS (GABINETE INFERIOR PLATEADO) + ALFOMBRA
+// ═══════════════════════════════════════════════════════════════════
+const chasis = new THREE.Group();
+DynamicCockpit.add(chasis);
+
+chasis.add(box(1.50, 0.38, 1.40, M.metalClaro, 0, 0.31, 0));                        // Cuerpo (0.12 → 0.50)
+chasis.add(box(1.58, 0.04, 1.48, M.metalMedio,  0, 0.52, 0));                       // Chapa: tapa superior Y = 0.540
+chasis.add(box(1.42, 0.10, 1.32, M.metalOscuro, 0, 0.07, 0));                       // Zócalo
+[[-0.65, 0.60], [0.65, 0.60], [-0.65, -0.60], [0.65, -0.60]].forEach(([x, z]) => {
+  chasis.add(cyl(0.045, 0.045, 0.12, M.metalOscuro, x, 0.06, z));                   // Amortiguadores
+  chasis.add(cyl(0.060, 0.060, 0.02, M.goma,        x, 0.01, z));                   // Apoyos de goma
+});
+// Panel frontal con logo: +3 mm respecto del frente del chasis (z = 0.70 → 0.706)
+chasis.add(box(0.42, 0.09, 0.006, M.plastico, 0, 0.32, 0.706));
+
+// Alfombra antideslizante: centro en 0.5415 → cara inferior 0.540 (chapa) y cara superior EXACTA 0.543
+DynamicCockpit.add(box(1.30, 0.003, 1.20, M.alfombra, 0, COTA.ALFOMBRA - COTA.DELTA/2, 0));
+
+// ═══════════════════════════════════════════════════════════════════
+// 8. DYNAMICCOCKPIT — PUESTO DE CONDUCCIÓN (BUTACA SOBRE FUELLE)
+//    Centro en X = 0.000, Z = +0.220 · Cojín a Y = 0.850
+// ═══════════════════════════════════════════════════════════════════
+const butaca = new THREE.Group();
+butaca.position.set(0, 0, COTA.BUTACA_Z);
+DynamicCockpit.add(butaca);
+
+// Suspensión: base → fuelle → placa → cojín (0.543 → 0.850)
+butaca.add(box(0.42, 0.04, 0.42, M.metalOscuro, 0, 0.563, 0));                      // Placa base sobre la alfombra
+for(let i = 0; i < 4; i++){
+  butaca.add(cyl(0.17 - i*0.012, 0.18 - i*0.012, 0.04, M.goma, 0, 0.602 + i*0.038, 0, 20)); // Fuelle
+}
+butaca.add(box(0.40, 0.03, 0.45, M.metalOscuro, 0, 0.751, 0));                      // Placa superior del fuelle
+butaca.add(box(0.48, 0.084, 0.48, M.asiento, 0, 0.808, 0));                         // Cojín: cara superior Y = 0.850
+
+// Respaldo — PATRÓN BISAGRA (c): fulcro en el vértice posterior del cojín
+const bisagraRespaldo = hinge(0, 0.845, 0.240, 0.12);                               // Vértice (Y≈cojín, borde trasero Z=+0.24)
+butaca.add(bisagraRespaldo);
+bisagraRespaldo.add(box(0.46, 0.62, 0.10, M.asiento, 0, 0.31, 0));                  // Base de la malla en Y local = 0
+bisagraRespaldo.add(box(0.40, 0.18, 0.09, M.asiento, 0, 0.70, 0.01));               // Headrest
+
+// Cinturón estático (5 mm por delante de la cara frontal del respaldo)
+const cinturon = box(0.05, 0.64, 0.01, M.negro, -0.10, 0.33, -0.055);
+cinturon.rotation.z = 0.32;
+bisagraRespaldo.add(cinturon);
+
+// Casco amarillo colgado del headrest (lado derecho)
+const casco = new THREE.Group();
+casco.position.set(0.14, 0.58, -0.09);
+casco.rotation.set(0.15, 0.5, 0.1);
+bisagraRespaldo.add(casco);
+casco.add(mesh(new THREE.SphereGeometry(0.11, 24, 16, 0, Math.PI*2, 0, Math.PI/2), M.amarillo));
+casco.add(box(0.20, 0.015, 0.10, M.amarillo, 0, -0.005, 0.10));                     // Visera
+
+// ═══════════════════════════════════════════════════════════════════
+// 9. DYNAMICCOCKPIT — PEDALERA — PATRÓN BISAGRA (a)
+//    Marco en Z = -0.500 sobre la chapa (Y = 0.540)
+// ═══════════════════════════════════════════════════════════════════
+const pedalera = new THREE.Group();
+pedalera.position.set(0, 0, COTA.PEDAL_Z);
+DynamicCockpit.add(pedalera);
+
+pedalera.add(box(0.42, 0.04, 0.22, M.metalOscuro, 0, 0.560, 0));                    // Marco base (0.540 → 0.580)
+
+[-0.13, 0, 0.13].forEach((x) => {
+  // Fulcro en el borde inferior trasero de cada pedal (Y = 0.580, Z local +0.08)
+  const bisagraPedal = hinge(x, 0.580, 0.08, -0.35);
+  pedalera.add(bisagraPedal);
+  bisagraPedal.add(box(0.07, 0.15, 0.012, M.metalClaro, 0, 0.075, 0));              // Base de la malla en Y local = 0
+  pedalera.add(box(0.03, 0.05, 0.02, M.metalOscuro, x, 0.60, 0.10));               // Soporte trasero
+});
+
+// ═══════════════════════════════════════════════════════════════════
+// 10. DYNAMICCOCKPIT — MÓDULO VOLANTE — PATRÓN BISAGRA (b)
+//     Base en X = 0.000, Z = -0.300 · Fulcro en Y = 0.540 (chapa superior)
+// ═══════════════════════════════════════════════════════════════════
+const moduloVolante = new THREE.Group();
+moduloVolante.position.set(0, 0, COTA.COL_Z);
+DynamicCockpit.add(moduloVolante);
+
+// Bisagra del mástil: fulcro sobre la chapa superior, inclinación +X hacia el conductor
+const bisagraCol = hinge(0, COTA.CHAPA, 0, 0.24);
+moduloVolante.add(bisagraCol);
+
+bisagraCol.add(box(0.24, 0.72, 0.16, M.metalMedio, 0, 0.36, 0));                    // Mástil: base en Y local = 0, tope 0.72
+
+// Tramo corto de columna: ancla el tope del mástil (0, 0.72, 0) con el buje del volante
+const tramoColumna = cyl(0.028, 0.028, 0.20, M.metalMedio, 0, 0.75, 0.08, 16);
+tramoColumna.rotation.x = 1.212;                                                    // Eje alineado con la dirección (0, 0.06, 0.16)
+bisagraCol.add(tramoColumna);
+
+// Consola superior: tope local Y = 0.55, montada sobre el mástil
+const consola = box(0.44, 0.08, 0.28, M.plastico, 0, 0.51, -0.02);
+bisagraCol.add(consola);
+// Piezas apiladas a CONTACTO EXACTO (cara inferior = cara superior de su soporte)
+consola.add(box(0.40, 0.015, 0.22, M.metalOscuro, 0, 0.0475, 0));                   // Placa: 0.04 → 0.055
+for(let i = 0; i < 5; i++){
+  consola.add(cyl(0.018, 0.018, 0.025, M.goma, -0.14 + i*0.07, 0.0675, 0.00, 12)); // Botonera asentada sobre la placa
+}
+// Pulsador hongo rojo de parada de emergencia (e-stop #ef4444), sobre la placa
+consola.add(cyl(0.036, 0.042, 0.018, M.negro, 0.14, 0.064, -0.07, 16));             // Base del e-stop: 0.055 → 0.073
+consola.add(cyl(0.026, 0.026, 0.028, M.estop, 0.14, 0.087, -0.07, 16));             // Hongo rojo: 0.073 → 0.101
+
+// Volante (aro + centro + radios): centro local (0, 0.78, 0.16) → Y mundial ≈ 1.260
+const volante = new THREE.Group();
+volante.position.set(0, 0.78, 0.16);
+volante.rotation.x = 0.26;
+bisagraCol.add(volante);
+volante.add(mesh(new THREE.TorusGeometry(0.19, 0.022, 12, 40), M.goma));
+volante.add(cyl(0.055, 0.055, 0.04, M.plastico, 0, 0, 0).rotateX(Math.PI/2));
+for(let k = 0; k < 3; k++){
+  const a = k * Math.PI*2/3;
+  const radio = box(0.028, 0.03, 0.14, M.plastico, Math.sin(a)*0.09, Math.cos(a)*0.09, 0);
+  radio.rotation.z = -a;
+  volante.add(radio);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// 11. DYNAMICCOCKPIT — MÓDULO JOYSTICKS — PATRÓN BISAGRA (d)
+//     Pods simétricos en X = ±0.360, Z = +0.220, apoyados sobre la alfombra (0.543)
+// ═══════════════════════════════════════════════════════════════════
+const moduloJoysticks = new THREE.Group();
+moduloJoysticks.position.set(0, 0, COTA.BUTACA_Z);
+moduloJoysticks.visible = false;   // Estado inicial: Modo Volante
+DynamicCockpit.add(moduloJoysticks);
+
+[-COTA.POD_X, COTA.POD_X].forEach((x) => {
+  const pod = new THREE.Group();
+  pod.position.set(x, 0, 0);
+  moduloJoysticks.add(pod);
+
+  pod.add(box(0.15, 0.34, 0.44, M.metalOscuro, 0, COTA.ALFOMBRA + 0.17, 0));        // Cuerpo sobre la alfombra
+  pod.add(box(0.17, 0.05, 0.40, M.plastico,   0, COTA.ALFOMBRA + 0.365, 0));        // Tapa
+
+  // Rótula (semiesfera) sobre la tapa: centro en Y = ALFOMBRA + 0.39
+  const rotulaY = COTA.ALFOMBRA + 0.39;
+  pod.add(mesh(new THREE.SphereGeometry(0.05, 20, 12, 0, Math.PI*2, 0, Math.PI/2),
+               M.metalMedio, 0, rotulaY, 0));
+
+  // Palanca — PATRÓN BISAGRA (d): fulcro EXACTAMENTE en el centro de la rótula
+  const bisagraPalanca = hinge(0, rotulaY, 0, -0.15);
+  pod.add(bisagraPalanca);
+  bisagraPalanca.add(cyl(0.014, 0.014, 0.18, M.metalClaro, 0, 0.09, 0, 12));        // Vástago: base en Y local = 0, emerge radial de la cúpula
+  bisagraPalanca.add(box(0.05, 0.10, 0.04, M.goma, 0, 0.23, 0));                     // Mango de goma colgando del extremo del vástago
+  bisagraPalanca.add(cyl(0.013, 0.013, 0.018, M.rojo, 0, 0.289, 0.004, 12));         // Gatillo/pulsador rojo sobre el mango
+});
+
+// ═══════════════════════════════════════════════════════════════════
+// 12. CONTROL DE MODOS, UI HUD Y EVENTOS
+//     Conmutación EXCLUSIVAMENTE vía .visible (cero creación/destrucción en runtime)
+// ═══════════════════════════════════════════════════════════════════
+let rotar = false, ang = 0;
+
+const btnCamion     = document.getElementById('btnCamion');
+const btnExcavadora = document.getElementById('btnExcavadora');
+
+function setModo(excavadora){
+  moduloVolante.visible   = !excavadora;   // Volante + pedales solo en Modo Volante
+  pedalera.visible        = !excavadora;
+  moduloJoysticks.visible =  excavadora;   // Pods solo en Modo Excavadora
+  pedIzq.visible          =  excavadora;   // Laterales solo en Modo Excavadora
+  pedDer.visible          =  excavadora;
+
+  // PointLight interactivo: cálido en Volante, frío en Excavadora
+  if(excavadora){ luzPuesto.color.setHex(0x9fd0ff); luzPuesto.intensity = 0.50; }
+  else           { luzPuesto.color.setHex(0xffc98a); luzPuesto.intensity = 0.55; }
+
+  btnCamion.classList.toggle('activo', !excavadora);
+  btnExcavadora.classList.toggle('activo', excavadora);
+}
+
+btnCamion.onclick     = () => setModo(false);
+btnExcavadora.onclick = () => setModo(true);
+document.getElementById('chkGirar').onchange   = e => rotar = e.target.checked;
+document.getElementById('chkRejilla').onchange = e => grid.visible = e.target.checked;
+addEventListener('keydown', e => {
+  if(e.key === '1') setModo(false);
+  if(e.key === '2') setModo(true);
+});
+
+setModo(false);   // Estado inicial: Modo Volante
+
+// ═══════════════════════════════════════════════════════════════════
+// 13. BUCLE DE RENDER Y RESIZE
+//     DIRECTIVA DE FÍSICA: la vibración se aplica SOLO sobre
+//     DynamicCockpit.position.y (StaticRig permanece inmóvil en Y = 0)
+// ═══════════════════════════════════════════════════════════════════
+const clock = new THREE.Clock();
+function animate(){
+  requestAnimationFrame(animate);
+  const t = clock.getElapsedTime();
+
+  // Vibración exclusiva del cockpit móvil (ningún hijo anima traslación global)
+  DynamicCockpit.position.y = Math.sin(t * 22) * 0.0025;
+
+  if(rotar){
+    ang += 0.003;
+    camera.position.x = Math.sin(ang) * 5.2;
+    camera.position.z = Math.cos(ang) * 5.2;
+  }
+  controls.update();
+  renderer.render(scene, camera);
+}
+animate();
+
+addEventListener('resize', () => {
+  camera.aspect = innerWidth/innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+</script>
+</body>
+</html>
