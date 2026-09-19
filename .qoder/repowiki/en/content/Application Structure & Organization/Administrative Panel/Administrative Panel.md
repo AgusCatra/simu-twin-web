@@ -14,6 +14,8 @@
 - [src/app/admin/visitas-educativas/actions.ts](file://src/app/admin/visitas-educativas/actions.ts)
 - [src/app/admin/registro-actividades/page.tsx](file://src/app/admin/registro-actividades/page.tsx)
 - [src/app/admin/registro-actividades/actions.ts](file://src/app/admin/registro-actividades/actions.ts)
+- [src/app/admin/tup/page.tsx](file://src/app/admin/tup/page.tsx)
+- [src/app/admin/tup/actions.ts](file://src/app/admin/tup/actions.ts)
 - [src/app/login/page.tsx](file://src/app/login/page.tsx)
 - [src/components/admin/Topbar.tsx](file://src/components/admin/Topbar.tsx)
 - [src/components/admin/Sidebar.tsx](file://src/components/admin/Sidebar.tsx)
@@ -26,21 +28,25 @@
 - [src/components/admin/actividades/TablaActividades.tsx](file://src/components/admin/actividades/TablaActividades.tsx)
 - [src/components/admin/visitas/ModalEditarVisita.tsx](file://src/components/admin/visitas/ModalEditarVisita.tsx)
 - [src/components/admin/visitas/TablaVisitasAdmin.tsx](file://src/components/admin/visitas/TablaVisitasAdmin.tsx)
+- [src/components/admin/tup/PanelLogisticaTup.tsx](file://src/components/admin/tup/PanelLogisticaTup.tsx)
+- [src/components/admin/tup/CardTrasladoTup.tsx](file://src/components/admin/tup/CardTrasladoTup.tsx)
 - [src/services/visitasService.ts](file://src/services/visitasService.ts)
 - [src/types/visitas.ts](file://src/types/visitas.ts)
 - [src/types/actividades.ts](file://src/types/actividades.ts)
+- [src/types/tup.ts](file://src/types/tup.ts)
 - [src/lib/supabase/client.ts](file://src/lib/supabase/client.ts)
 - [src/middleware.ts](file://src/middleware.ts)
+- [supabase/migrations/0003_agregar_columnas_tup.sql](file://supabase/migrations/0003_agregar_columnas_tup.sql)
 </cite>
 
 ## Update Summary
 **Changes Made**
-- Added comprehensive educational visit management system with dedicated admin interface
-- Implemented server actions for date availability checking with conflict detection
-- Created advanced visit editing functionality with validation and rollback capabilities
-- Enhanced payroll processing with improved rollback operations for participant synchronization
-- Integrated real-time date conflict resolution and occupancy tracking
-- Added sophisticated error handling with PII-safe logging and user-friendly messages
+- Added comprehensive TUP (Municipal Transportation) logistics management module for coordinating school bus transportation
+- Implemented dedicated TUP navigation integration in the admin sidebar with truck icon
+- Created mobile-optimized dispatch interface for drivers and operators to manage transportation status
+- Enhanced educational visit system with transportation scheduling and driver assignment capabilities
+- Added database schema extensions for TUP logistics tracking including time schedules and transport states
+- Integrated real-time transportation status updates with optimistic UI updates and rollback support
 
 ## Table of Contents
 1. [Introduction](#introduction)
@@ -49,20 +55,21 @@
 4. [Architecture Overview](#architecture-overview)
 5. [Authentication System](#authentication-system)
 6. [Educational Visit Management System](#educational-visit-management-system)
-7. [Date Availability Checking](#date-availability-checking)
-8. [Visit Editing System](#visit-editing-system)
-9. [Enhanced Payroll Processing](#enhanced-payroll-processing)
-10. [Live Session Management](#live-session-management)
-11. [Detailed Component Analysis](#detailed-component-analysis)
-12. [Dependency Analysis](#dependency-analysis)
-13. [Performance Considerations](#performance-considerations)
-14. [Troubleshooting Guide](#troubleshooting-guide)
-15. [Conclusion](#conclusion)
+7. [TUP Logistics Management Module](#tup-logistics-management-module)
+8. [Date Availability Checking](#date-availability-checking)
+9. [Visit Editing System](#visit-editing-system)
+10. [Enhanced Payroll Processing](#enhanced-payroll-processing)
+11. [Live Session Management](#live-session-management)
+12. [Detailed Component Analysis](#detailed-component-analysis)
+13. [Dependency Analysis](#dependency-analysis)
+14. [Performance Considerations](#performance-considerations)
+15. [Troubleshooting Guide](#troubleshooting-guide)
+16. [Conclusion](#conclusion)
 
 ## Introduction
 This project is a Next.js application that provides an administrative panel for managing educational visits to a simulation center. It enables institutions to request visit slots, manage attendee rosters, and supports operational checks (insurance, transport, invoices, and file storage). The system integrates with Supabase for data persistence and exposes service functions used by the UI components.
 
-The application now includes a complete authentication system with secure admin panel access, featuring role-based routing, session management, and responsive design patterns. **Additionally, it features a comprehensive educational visit management system with advanced server actions for date availability checking, visit editing with rollback capabilities, and enhanced payroll processing with improved error recovery mechanisms.**
+The application now includes a complete authentication system with secure admin panel access, featuring role-based routing, session management, and responsive design patterns. **Additionally, it features a comprehensive educational visit management system with advanced server actions for date availability checking, visit editing with rollback capabilities, enhanced payroll processing with improved error recovery mechanisms, and a new TUP logistics management module for coordinating municipal transportation for educational visits.**
 
 It uses Tailwind CSS for styling, Google fonts via Next.js font loader, and includes utilities for Excel-style roster import and client-side validation before submission.
 
@@ -72,10 +79,11 @@ The codebase follows a feature-oriented layout under src:
 - components/admin: Admin panel components including Topbar, Sidebar, and dashboard
 - components/admin/visitas: Educational visit management components with editing capabilities
 - components/admin/actividades: Activity registration and live session management components
+- components/admin/tup: TUP logistics management components for transportation coordination
 - components/auth: Authentication components for login functionality
 - components/visitas: UI components for the visit form and attendee grid
 - services/visitasService: API-like functions wrapping Supabase queries
-- types: Shared TypeScript interfaces and types for both visits and activities
+- types: Shared TypeScript interfaces and types for both visits, activities, and TUP logistics
 - lib/supabase: Supabase client configuration for browser and server environments
 - middleware: Route protection and session management
 
@@ -89,29 +97,35 @@ E --> F["Admin Dashboard<br/>app/admin/page.tsx"]
 E --> G["Login Page<br/>app/login/page.tsx"]
 E --> H["Educational Visits<br/>app/admin/visitas-educativas/page.tsx"]
 E --> I["Activity Registration<br/>app/admin/registro-actividades/page.tsx"]
-H --> J["Visit Edit Modal<br/>components/admin/visitas/ModalEditarVisita.tsx"]
-H --> K["Visit Admin Table<br/>components/admin/visitas/TablaVisitasAdmin.tsx"]
-I --> L["RackSimuladores<br/>components/admin/actividades/RackSimuladores.tsx"]
-I --> M["PanelSesionEnVivo<br/>components/admin/actividades/PanelSesionEnVivo.tsx"]
-I --> N["FormularioActividadModal<br/>components/admin/actividades/FormularioActividadModal.tsx"]
-I --> O["TablaActividades<br/>components/admin/actividades/TablaActividades.tsx"]
-D --> P["FormularioVisita<br/>components/visitas/FormularioVisita.tsx"]
-P --> Q["GridNomina<br/>components/visitas/GridNomina.tsx"]
-E --> R["Topbar<br/>components/admin/Topbar.tsx"]
-E --> S["Sidebar<br/>components/admin/Sidebar.tsx"]
-G --> T["FormularioLogin<br/>components/auth/FormularioLogin.tsx"]
-K --> U["Server Actions<br/>app/admin/visitas-educativas/actions.ts"]
-J --> U
-L --> V["Activity Actions<br/>app/admin/registro-actividades/actions.ts"]
-M --> V
-N --> V
-O --> V
-R --> W["Supabase Client<br/>lib/supabase/client.ts"]
-T --> W
-U --> W
-V --> W
-X["Middleware<br/>middleware.ts"] --> E
-X --> G
+E --> J["TUP Logistics<br/>app/admin/tup/page.tsx"]
+H --> K["Visit Edit Modal<br/>components/admin/visitas/ModalEditarVisita.tsx"]
+H --> L["Visit Admin Table<br/>components/admin/visitas/TablaVisitasAdmin.tsx"]
+I --> M["RackSimuladores<br/>components/admin/actividades/RackSimuladores.tsx"]
+I --> N["PanelSesionEnVivo<br/>components/admin/actividades/PanelSesionEnVivo.tsx"]
+I --> O["FormularioActividadModal<br/>components/admin/actividades/FormularioActividadModal.tsx"]
+I --> P["TablaActividades<br/>components/admin/actividades/TablaActividades.tsx"]
+J --> Q["PanelLogisticaTup<br/>components/admin/tup/PanelLogisticaTup.tsx"]
+Q --> R["CardTrasladoTup<br/>components/admin/tup/CardTrasladoTup.tsx"]
+D --> S["FormularioVisita<br/>components/visitas/FormularioVisita.tsx"]
+S --> T["GridNomina<br/>components/visitas/GridNomina.tsx"]
+E --> U["Topbar<br/>components/admin/Topbar.tsx"]
+E --> V["Sidebar<br/>components/admin/Sidebar.tsx"]
+G --> W["FormularioLogin<br/>components/auth/FormularioLogin.tsx"]
+L --> X["Server Actions<br/>app/admin/visitas-educativas/actions.ts"]
+K --> X
+M --> Y["Activity Actions<br/>app/admin/registro-actividades/actions.ts"]
+N --> Y
+O --> Y
+P --> Y
+Q --> Z["TUP Actions<br/>app/admin/tup/actions.ts"]
+R --> Z
+U --> AA["Supabase Client<br/>lib/supabase/client.ts"]
+W --> AA
+X --> AA
+Y --> AA
+Z --> AA
+BB["Middleware<br/>middleware.ts"] --> E
+BB --> G
 ```
 
 **Diagram sources**
@@ -122,6 +136,7 @@ X --> G
 - [src/app/admin/page.tsx:1-38](file://src/app/admin/page.tsx#L1-L38)
 - [src/app/admin/visitas-educativas/page.tsx:1-26](file://src/app/admin/visitas-educativas/page.tsx#L1-L26)
 - [src/app/admin/registro-actividades/page.tsx:1-261](file://src/app/admin/registro-actividades/page.tsx#L1-L261)
+- [src/app/admin/tup/page.tsx:1-145](file://src/app/admin/tup/page.tsx#L1-L145)
 - [src/app/login/page.tsx:1-31](file://src/app/login/page.tsx#L1-L31)
 - [src/components/admin/Topbar.tsx:1-132](file://src/components/admin/Topbar.tsx#L1-L132)
 - [src/components/admin/Sidebar.tsx:1-113](file://src/components/admin/Sidebar.tsx#L1-L113)
@@ -132,6 +147,8 @@ X --> G
 - [src/components/admin/actividades/PanelSesionEnVivo.tsx:1-866](file://src/components/admin/actividades/PanelSesionEnVivo.tsx#L1-L866)
 - [src/components/admin/actividades/FormularioActividadModal.tsx:1-606](file://src/components/admin/actividades/FormularioActividadModal.tsx#L1-L606)
 - [src/components/admin/actividades/TablaActividades.tsx:1-434](file://src/components/admin/actividades/TablaActividades.tsx#L1-L434)
+- [src/components/admin/tup/PanelLogisticaTup.tsx:1-175](file://src/components/admin/tup/PanelLogisticaTup.tsx#L1-L175)
+- [src/components/admin/tup/CardTrasladoTup.tsx:1-319](file://src/components/admin/tup/CardTrasladoTup.tsx#L1-L319)
 - [src/lib/supabase/client.ts:1-34](file://src/lib/supabase/client.ts#L1-L34)
 - [src/middleware.ts:1-100](file://src/middleware.ts#L1-L100)
 
@@ -149,12 +166,13 @@ X --> G
 - **Activity Registration System**: Module for registering presential activities with participant management and simulator allocation.
 - **Live Session Management**: Real-time session controls with dual viewing modes (list/tablet) for active session monitoring.
 - **Real-time Simulator Rack**: SCADA-style interface for direct simulator state control with optimistic updates.
+- **TUP Logistics Management**: Mobile-optimized dispatch interface for managing municipal transportation coordination for educational visits.
 - **Authentication System**: Complete login/logout functionality with Supabase integration and middleware-based route protection.
 - **Topbar Component**: Enhanced with logout functionality, real-time clock, and responsive mobile navigation.
 - **FormularioVisita**: Client component handling form state, validation, loading states, success view, and integration with the service layer.
 - **GridNomina**: Interactive table for adding, editing, deleting attendees; supports bulk paste from Excel with tab-separated columns.
 - **visitasService**: Encapsulates Supabase operations for schools, available dates, creating visit requests, listing visits for admin, updating operational checkboxes, and fetching attendee lists.
-- **Types**: Centralized TypeScript definitions for entities like Escuela, FechaHabilitada, VisitaEducativa, AsistenteInput, Actividad, Simulador, and related enums.
+- **Types**: Centralized TypeScript definitions for entities like Escuela, FechaHabilitada, VisitaEducativa, AsistenteInput, Actividad, Simulador, TrasladoTupItem, and related enums.
 
 Key responsibilities:
 - Secure authentication flow with role-based access control
@@ -164,6 +182,7 @@ Key responsibilities:
 - **Educational visit management with server-side date conflict detection and validation**
 - **Advanced visit editing with rollback capabilities and comprehensive error handling**
 - **Enhanced payroll processing with improved rollback operations for participant synchronization**
+- **TUP logistics coordination with real-time transportation status updates and driver assignment**
 - Activity lifecycle management from planning to completion
 - Real-time session tracking with participant synchronization
 - Simulator rack control with concurrent session management
@@ -177,6 +196,7 @@ Key responsibilities:
 - [src/components/admin/visitas/ModalEditarVisita.tsx:1-625](file://src/components/admin/visitas/ModalEditarVisita.tsx#L1-L625)
 - [src/components/admin/visitas/TablaVisitasAdmin.tsx:1-349](file://src/components/admin/visitas/TablaVisitasAdmin.tsx#L1-L349)
 - [src/app/admin/registro-actividades/page.tsx:1-261](file://src/app/admin/registro-actividades/page.tsx#L1-L261)
+- [src/app/admin/tup/page.tsx:1-145](file://src/app/admin/tup/page.tsx#L1-L145)
 - [src/components/admin/Topbar.tsx:1-132](file://src/components/admin/Topbar.tsx#L1-L132)
 - [src/components/auth/FormularioLogin.tsx:1-107](file://src/components/auth/FormularioLogin.tsx#L1-L107)
 - [src/components/visitas/FormularioVisita.tsx:1-723](file://src/components/visitas/FormularioVisita.tsx#L1-L723)
@@ -185,12 +205,15 @@ Key responsibilities:
 - [src/components/admin/actividades/PanelSesionEnVivo.tsx:1-866](file://src/components/admin/actividades/PanelSesionEnVivo.tsx#L1-L866)
 - [src/components/admin/actividades/FormularioActividadModal.tsx:1-606](file://src/components/admin/actividades/FormularioActividadModal.tsx#L1-L606)
 - [src/components/admin/actividades/TablaActividades.tsx:1-434](file://src/components/admin/actividades/TablaActividades.tsx#L1-L434)
+- [src/components/admin/tup/PanelLogisticaTup.tsx:1-175](file://src/components/admin/tup/PanelLogisticaTup.tsx#L1-L175)
+- [src/components/admin/tup/CardTrasladoTup.tsx:1-319](file://src/components/admin/tup/CardTrasladoTup.tsx#L1-L319)
 - [src/services/visitasService.ts:1-169](file://src/services/visitasService.ts#L1-L169)
 - [src/types/visitas.ts:1-128](file://src/types/visitas.ts#L1-L128)
 - [src/types/actividades.ts:1-177](file://src/types/actividades.ts#L1-L177)
+- [src/types/tup.ts:1-41](file://src/types/tup.ts#L1-L41)
 
 ## Architecture Overview
-The application is a client-rendered Next.js app using the App Router with comprehensive authentication. The Visitas page composes the FormularioVisita component, which orchestrates user interactions and delegates data operations to visitasService. The admin panel is protected by middleware that validates sessions and redirects unauthenticated users. **The educational visit management system uses Server Actions for all database operations, providing type-safe, validated mutations with optimistic UI updates and robust rollback capabilities.** The service interacts with Supabase to read/write data. Types ensure consistent contracts across layers.
+The application is a client-rendered Next.js app using the App Router with comprehensive authentication. The Visitas page composes the FormularioVisita component, which orchestrates user interactions and delegates data operations to visitasService. The admin panel is protected by middleware that validates sessions and redirects unauthenticated users. **The educational visit management system uses Server Actions for all database operations, providing type-safe, validated mutations with optimistic UI updates and robust rollback capabilities. The new TUP logistics module extends this architecture with specialized transportation coordination workflows.** The service interacts with Supabase to read/write data. Types ensure consistent contracts across layers.
 
 ```mermaid
 sequenceDiagram
@@ -200,9 +223,10 @@ participant Login as "LoginPage"
 participant Admin as "AdminPanel"
 participant VisitPage as "Educational Visits"
 participant EditModal as "Edit Modal"
+participant TupPage as "TUP Logistics"
 participant Actions as "Server Actions"
 participant DB as "Supabase"
-User->>Middleware : Navigate to /admin/visitas-educativas
+User->>Middleware : Navigate to /admin/tup
 Middleware->>DB : Check session
 DB-->>Middleware : User session status
 alt Unauthenticated
@@ -210,24 +234,19 @@ Middleware-->>User : Redirect to /login
 User->>Login : Access login page
 Login->>DB : Authenticate credentials
 DB-->>Login : Auth result
-Login-->>User : Redirect to /admin/visitas-educativas
+Login-->>User : Redirect to /admin/tup
 else Authenticated
-Middleware-->>User : Allow access to /admin/visitas-educativas
-User->>VisitPage : View educational visits
-VisitPage->>Actions : Load available dates
-Actions->>DB : Check date conflicts
-DB-->>Actions : Available dates with occupancy
-Actions-->>VisitPage : Dates with conflict info
-User->>EditModal : Open edit modal
-EditModal->>Actions : Get available dates
-Actions->>DB : Query dates and conflicts
-DB-->>Actions : Date availability data
-Actions-->>EditModal : Available dates
-User->>EditModal : Submit changes
-EditModal->>Actions : Update visit
+Middleware-->>User : Allow access to /admin/tup
+User->>TupPage : View TUP logistics
+TupPage->>Actions : Load transportation data
+Actions->>DB : Query TUP transfers
+DB-->>Actions : Active transfers with schedules
+Actions-->>TupPage : Transfer cards with status
+User->>TupPage : Update transfer status
+TupPage->>Actions : Update status action
 Actions->>DB : Validate and update
-DB-->>Actions : Success or conflict
-Actions-->>EditModal : Result with rollback support
+DB-->>Actions : Success or error
+Actions-->>TupPage : Optimistic UI update
 end
 ```
 
@@ -235,10 +254,9 @@ end
 - [src/middleware.ts:14-85](file://src/middleware.ts#L14-L85)
 - [src/app/login/page.tsx:1-31](file://src/app/login/page.tsx#L1-L31)
 - [src/app/admin/layout.tsx:11-25](file://src/app/admin/layout.tsx#L11-L25)
-- [src/app/admin/visitas-educativas/page.tsx:10-25](file://src/app/admin/visitas-educativas/page.tsx#L10-L25)
-- [src/components/admin/visitas/ModalEditarVisita.tsx:133-153](file://src/components/admin/visitas/ModalEditarVisita.tsx#L133-L153)
-- [src/app/admin/visitas-educativas/actions.ts:114-176](file://src/app/admin/visitas-educativas/actions.ts#L114-L176)
-- [src/app/admin/visitas-educativas/actions.ts:200-332](file://src/app/admin/visitas-educativas/actions.ts#L200-L332)
+- [src/app/admin/tup/page.tsx:101-145](file://src/app/admin/tup/page.tsx#L101-L145)
+- [src/components/admin/tup/PanelLogisticaTup.tsx:63-175](file://src/components/admin/tup/PanelLogisticaTup.tsx#L63-L175)
+- [src/app/admin/tup/actions.ts:33-86](file://src/app/admin/tup/actions.ts#L33-L86)
 
 ## Authentication System
 The application implements a robust authentication system using Supabase with Next.js middleware for route protection.
@@ -270,12 +288,13 @@ The application implements a robust authentication system using Supabase with Ne
 - **Advanced Validation**: Server-side validation with comprehensive error handling and rollback support
 - **Operational Tracking**: Integration with existing operational check system (insurance, transport, invoices, Drive)
 - **Export Capabilities**: Excel export functionality for attendee rosters and visit information
+- **TUP Integration**: Seamless integration with transportation logistics for coordinated scheduling
 
 ### Data Model Enhancements:
 - **FechaDisponibleItem**: Extended date model with occupancy status and conflict information
 - **EditarVisitaInput**: Specialized input type for visit editing with enhanced validation
 - **ResultadoEdicionVisita**: Typed response format for edit operations with error handling
-- **Enhanced VisitaEducativa**: Extended visit model with additional operational fields
+- **Enhanced VisitaEducativa**: Extended visit model with additional operational fields and TUP scheduling
 
 ### Validation & Safety:
 - **PII-Safe Logging**: Error logging that excludes sensitive personal information
@@ -288,6 +307,68 @@ The application implements a robust authentication system using Supabase with Ne
 - [src/app/admin/visitas-educativas/actions.ts:200-332](file://src/app/admin/visitas-educativas/actions.ts#L200-L332)
 - [src/types/visitas.ts:91-128](file://src/types/visitas.ts#L91-L128)
 - [src/components/admin/visitas/ModalEditarVisita.tsx:178-225](file://src/components/admin/visitas/ModalEditarVisita.tsx#L178-L225)
+
+## TUP Logistics Management Module
+**New Feature** - A comprehensive municipal transportation coordination system designed specifically for managing school bus transportation (TUP - Transporte Urbano de Pasajeros) for educational visits.
+
+### Core Capabilities:
+- **Transportation Status Management**: Real-time tracking of bus transportation status from pending to completed
+- **Driver Assignment**: Driver name assignment and contact management for each transportation
+- **Schedule Coordination**: Morning departure and return trip scheduling with time validation
+- **Mobile-Optimized Interface**: Touch-friendly dispatch interface designed for use in vehicles
+- **Contact Integration**: Direct phone calling and WhatsApp messaging capabilities for teacher coordination
+- **Filtering and Organization**: Smart filtering by today's trips, upcoming trips, completed trips, and all trips
+
+### Data Model:
+- **TrasladoTupItem**: Core transportation item containing visit details, institution info, schedules, and status
+- **EstadoTrasladoTup**: Enumerated states (pendiente, en_camino, en_destino, completado, cancelado)
+- **ActualizarEstadoTrasladoInput**: Input type for status updates with optional driver assignment
+
+### Technical Implementation:
+- **Server Action**: `actualizarEstadoTrasladoAction` handles status updates with validation and security
+- **Database Schema**: Extended `visitas_educativas` table with TUP-specific columns and constraints
+- **PostgREST Integration**: Efficient data querying with institution name resolution via foreign key relationships
+- **Optimistic Updates**: Immediate UI feedback while server operations complete
+- **Error Handling**: Comprehensive error handling with user-friendly messages and rollback support
+
+### User Interface Features:
+- **LED Status Indicators**: Visual status indicators with animated pulses for active transportation
+- **Touch-Friendly Controls**: Large buttons (44px minimum) optimized for vehicle use
+- **Contact Quick Actions**: One-touch phone calls and WhatsApp message generation
+- **Schedule Display**: Clear presentation of departure and return times
+- **Capacity Information**: Student count display for transportation planning
+
+```mermaid
+flowchart TD
+Start(["TUP Dispatch Interface"]) --> LoadData["Load active TUP transfers"]
+LoadData --> FilterData["Apply filters (today/upcoming/completed/all)"]
+FilterData --> DisplayCards["Display transfer cards with status LEDs"]
+DisplayCards --> UserAction{"User action?"}
+UserAction --> |Update Status| UpdateStatus["Update transportation status"]
+UserAction --> |Contact Teacher| ContactTeacher["Initiate phone/WhatsApp contact"]
+UpdateStatus --> ValidateState["Validate state transition"]
+ValidateState --> ServerAction["Call server action"]
+ServerAction --> UpdateDB["Update database"]
+UpdateDB --> OptimisticUI["Update UI optimistically"]
+OptimisticUI --> Revalidate["Revalidate path"]
+Revalidate --> DisplayCards
+ContactTeacher --> OpenApp["Open phone/WhatsApp app"]
+OpenApp --> DisplayCards
+```
+
+**Diagram sources**
+- [src/app/admin/tup/page.tsx:101-145](file://src/app/admin/tup/page.tsx#L101-L145)
+- [src/components/admin/tup/PanelLogisticaTup.tsx:63-175](file://src/components/admin/tup/PanelLogisticaTup.tsx#L63-L175)
+- [src/components/admin/tup/CardTrasladoTup.tsx:117-319](file://src/components/admin/tup/CardTrasladoTup.tsx#L117-L319)
+- [src/app/admin/tup/actions.ts:33-86](file://src/app/admin/tup/actions.ts#L33-L86)
+
+**Section sources**
+- [src/app/admin/tup/page.tsx:1-145](file://src/app/admin/tup/page.tsx#L1-L145)
+- [src/app/admin/tup/actions.ts:1-86](file://src/app/admin/tup/actions.ts#L1-L86)
+- [src/components/admin/tup/PanelLogisticaTup.tsx:1-175](file://src/components/admin/tup/PanelLogisticaTup.tsx#L1-L175)
+- [src/components/admin/tup/CardTrasladoTup.tsx:1-319](file://src/components/admin/tup/CardTrasladoTup.tsx#L1-L319)
+- [src/types/tup.ts:1-41](file://src/types/tup.ts#L1-L41)
+- [supabase/migrations/0003_agregar_columnas_tup.sql:1-118](file://supabase/migrations/0003_agregar_columnas_tup.sql#L1-L118)
 
 ## Date Availability Checking
 **New Feature** - Sophisticated date availability checking system that provides real-time conflict detection and occupancy status for educational visits.
@@ -429,24 +510,28 @@ FreeSimulators --> Complete(["Session Complete"])
 
 ## Detailed Component Analysis
 
-### Educational Visit Management Pages
-- **Educational Visits Page**: Dedicated admin interface for managing confirmed educational visits with comprehensive operational tracking
-- **Visit Admin Table**: Interactive table displaying all educational visits with filtering, editing, and export capabilities
-- **Visit Edit Modal**: Advanced modal interface for editing visit details with real-time date availability checking
+### TUP Logistics Management Pages
+**New Module** - Dedicated interface for managing municipal transportation coordination for educational visits.
+
+- **TUP Page**: Server component that loads active transportation transfers with institution name resolution and schedule information
+- **Panel Logística TUP**: Client component providing filtering, counting, and display of transportation cards with touch-optimized interface
+- **Card Traslado TUP**: Individual transportation card with status management, contact integration, and schedule display
 
 **Section sources**
-- [src/app/admin/visitas-educativas/page.tsx:10-25](file://src/app/admin/visitas-educativas/page.tsx#L10-L25)
-- [src/components/admin/visitas/TablaVisitasAdmin.tsx:75-349](file://src/components/admin/visitas/TablaVisitasAdmin.tsx#L75-L349)
-- [src/components/admin/visitas/ModalEditarVisita.tsx:59-625](file://src/components/admin/visitas/ModalEditarVisita.tsx#L59-L625)
+- [src/app/admin/tup/page.tsx:101-145](file://src/app/admin/tup/page.tsx#L101-L145)
+- [src/components/admin/tup/PanelLogisticaTup.tsx:63-175](file://src/components/admin/tup/PanelLogisticaTup.tsx#L63-L175)
+- [src/components/admin/tup/CardTrasladoTup.tsx:117-319](file://src/components/admin/tup/CardTrasladoTup.tsx#L117-L319)
 
 ### Enhanced Server Actions
 - **Date Availability Action**: Provides real-time date availability with conflict detection and occupancy information
 - **Visit Update Action**: Handles comprehensive visit editing with validation, rollback support, and error handling
+- **TUP Status Update Action**: Manages transportation status updates with validation and security controls
 - **Enhanced Error Handling**: PII-safe logging and user-friendly error messages throughout the system
 
 **Section sources**
 - [src/app/admin/visitas-educativas/actions.ts:114-176](file://src/app/admin/visitas-educativas/actions.ts#L114-L176)
 - [src/app/admin/visitas-educativas/actions.ts:200-332](file://src/app/admin/visitas-educativas/actions.ts#L200-L332)
+- [src/app/admin/tup/actions.ts:33-86](file://src/app/admin/tup/actions.ts#L33-L86)
 
 ### Enhanced Topbar Component
 - **Logout Functionality**: Implements secure session termination with Supabase auth.signOut()
@@ -472,15 +557,18 @@ Refresh --> End
 **Section sources**
 - [src/components/admin/Topbar.tsx:1-132](file://src/components/admin/Topbar.tsx#L1-L132)
 
-### Sidebar Navigation
-- **Route Configuration**: Centralized navigation map with icons and labels
-- **Active State Detection**: Smart highlighting of current section
+### Enhanced Sidebar Navigation
+**Updated** - Added TUP logistics navigation with truck icon and proper routing integration.
+
+- **Route Configuration**: Centralized navigation map with icons and labels including new TUP logistics module
+- **Active State Detection**: Smart highlighting of current section with TUP route support
 - **Mobile Integration**: Responsive navigation that works alongside topbar on smaller screens
 - **External Links**: Integration with public visit portal
-- **Educational Visits**: New navigation item for the educational visit management module
+- **TUP Integration**: New navigation item for the TUP logistics management module with truck icon
 
 **Section sources**
-- [src/components/admin/Sidebar.tsx:1-113](file://src/components/admin/Sidebar.tsx#L1-L113)
+- [src/components/admin/Sidebar.tsx:26-32](file://src/components/admin/Sidebar.tsx#L26-L32)
+- [src/components/admin/Sidebar.tsx:79-97](file://src/components/admin/Sidebar.tsx#L79-L97)
 
 ### Visitas Page
 - Purpose: Entry point for the visit reservation flow; sets page title and description.
@@ -598,10 +686,11 @@ Append --> Close["Close modal"]
 - [src/components/admin/actividades/TablaActividades.tsx:1-434](file://src/components/admin/actividades/TablaActividades.tsx#L1-L434)
 
 ### Enhanced Server Actions
-**Enhanced Module** - Comprehensive server-side logic for educational visit management and activity/session management.
+**Enhanced Module** - Comprehensive server-side logic for educational visit management, activity/session management, and TUP logistics coordination.
 
 - **Educational Visit Management**: Complete CRUD operations for educational visits with enhanced validation
 - **Date Availability Checking**: Real-time conflict detection and occupancy status for dates
+- **TUP Logistics Management**: Transportation status updates with validation and security controls
 - **Enhanced Rollback Support**: Improved rollback mechanisms for participant synchronization
 - **PII-Safe Logging**: Error logging that excludes sensitive personal information
 - **Type Safety**: Full TypeScript integration with comprehensive error handling
@@ -609,6 +698,7 @@ Append --> Close["Close modal"]
 **Section sources**
 - [src/app/admin/visitas-educativas/actions.ts:1-333](file://src/app/admin/visitas-educativas/actions.ts#L1-L333)
 - [src/app/admin/registro-actividades/actions.ts:1-909](file://src/app/admin/registro-actividades/actions.ts#L1-L909)
+- [src/app/admin/tup/actions.ts:1-86](file://src/app/admin/tup/actions.ts#L1-L86)
 
 ### visitasService
 - Responsibilities:
@@ -660,9 +750,10 @@ Servicios --> Tipos : "uses"
 - Pages compose components and set metadata
 - Middleware protects routes and manages authentication flow
 - Authentication components integrate with Supabase for credential validation
-- **Server Actions provide type-safe database operations for both educational visit management and activity systems**
+- **Server Actions provide type-safe database operations for educational visit management, activity systems, and TUP logistics coordination**
 - **Enhanced error handling and rollback mechanisms improve system reliability**
 - **Educational visit components depend on specialized server actions for date availability and editing**
+- **TUP logistics components depend on dedicated server actions for transportation status management**
 
 ```mermaid
 graph LR
@@ -691,6 +782,12 @@ FormModal --> Actions
 Table --> Actions
 Actions --> Supabase
 Actions --> Types
+TupPage["app/admin/tup/page.tsx"] --> TupPanel["components/admin/tup/PanelLogisticaTup.tsx"]
+TupPanel --> TupCard["components/admin/tup/CardTrasladoTup.tsx"]
+TupCard --> TupActions["app/admin/tup/actions.ts"]
+TupActions --> Supabase
+TupActions --> Types
+Sidebar --> TupPage
 ```
 
 **Diagram sources**
@@ -715,6 +812,10 @@ Actions --> Types
 - [src/components/admin/actividades/FormularioActividadModal.tsx:1-606](file://src/components/admin/actividades/FormularioActividadModal.tsx#L1-L606)
 - [src/components/admin/actividades/TablaActividades.tsx:1-434](file://src/components/admin/actividades/TablaActividades.tsx#L1-L434)
 - [src/app/admin/registro-actividades/actions.ts:1-909](file://src/app/admin/registro-actividades/actions.ts#L1-L909)
+- [src/app/admin/tup/page.tsx:1-145](file://src/app/admin/tup/page.tsx#L1-L145)
+- [src/components/admin/tup/PanelLogisticaTup.tsx:1-175](file://src/components/admin/tup/PanelLogisticaTup.tsx#L1-L175)
+- [src/components/admin/tup/CardTrasladoTup.tsx:1-319](file://src/components/admin/tup/CardTrasladoTup.tsx#L1-L319)
+- [src/app/admin/tup/actions.ts:1-86](file://src/app/admin/tup/actions.ts#L1-L86)
 
 **Section sources**
 - [src/app/visitas/page.tsx:1-28](file://src/app/visitas/page.tsx#L1-L28)
@@ -738,6 +839,10 @@ Actions --> Types
 - [src/components/admin/actividades/FormularioActividadModal.tsx:1-606](file://src/components/admin/actividades/FormularioActividadModal.tsx#L1-L606)
 - [src/components/admin/actividades/TablaActividades.tsx:1-434](file://src/components/admin/actividades/TablaActividades.tsx#L1-L434)
 - [src/app/admin/registro-actividades/actions.ts:1-909](file://src/app/admin/registro-actividades/actions.ts#L1-L909)
+- [src/app/admin/tup/page.tsx:1-145](file://src/app/admin/tup/page.tsx#L1-L145)
+- [src/components/admin/tup/PanelLogisticaTup.tsx:1-175](file://src/components/admin/tup/PanelLogisticaTup.tsx#L1-L175)
+- [src/components/admin/tup/CardTrasladoTup.tsx:1-319](file://src/components/admin/tup/CardTrasladoTup.tsx#L1-L319)
+- [src/app/admin/tup/actions.ts:1-86](file://src/app/admin/tup/actions.ts#L1-L86)
 
 ## Performance Considerations
 - **Parallel data loading**: Initial fetches for schools and dates are executed concurrently to reduce latency
@@ -752,6 +857,8 @@ Actions --> Types
 - **Optimistic Updates**: Server actions use revalidatePath for efficient UI updates without full page reloads
 - **Enhanced Performance**: Educational visit management uses parallel queries for date availability and occupancy data
 - **Efficient Conflict Detection**: Map-based conflict detection minimizes computational overhead
+- **TUP Optimization**: PostgREST embeds for efficient institution name resolution and filtered queries for active transfers only
+- **Touch-Optimized UI**: TUP interface uses large touch targets and minimal animations for vehicle usability
 
 ## Troubleshooting Guide
 Common issues and resolutions:
@@ -804,6 +911,13 @@ Common issues and resolutions:
   - Check enhanced rollback operations for participant synchronization
   - Verify data integrity during batch participant operations
   - Review improved error handling for participant data validation
+- **TUP logistics issues**:
+  - Verify transportation schedules are properly formatted and within valid ranges
+  - Check that institution names resolve correctly via foreign key relationships
+  - Ensure driver assignment updates are properly validated and secured
+  - Verify contact information normalization for phone and WhatsApp integration
+  - Check that transportation status transitions follow allowed state patterns
+  - Ensure mobile interface renders correctly on various screen sizes
 
 **Section sources**
 - [src/components/auth/FormularioLogin.tsx:21-51](file://src/components/auth/FormularioLogin.tsx#L21-L51)
@@ -816,14 +930,17 @@ Common issues and resolutions:
 - [src/app/admin/visitas-educativas/actions.ts:82-88](file://src/app/admin/visitas-educativas/actions.ts#L82-L88)
 - [src/app/admin/visitas-educativas/actions.ts:200-332](file://src/app/admin/visitas-educativas/actions.ts#L200-L332)
 - [src/app/admin/registro-actividades/actions.ts:650-699](file://src/app/admin/registro-actividades/actions.ts#L650-L699)
+- [src/app/admin/tup/actions.ts:33-86](file://src/app/admin/tup/actions.ts#L33-L86)
 
 ## Conclusion
-The Administrative Panel now provides a comprehensive, secure, and user-friendly interface for scheduling educational visits, managing attendee rosters, and supporting operational workflows through Supabase integration. **The addition of a complete educational visit management system with advanced server actions for date availability checking, visit editing with rollback capabilities, and enhanced payroll processing significantly enhances the platform's capabilities**, enabling administrators to effectively manage confirmed educational visits with sophisticated conflict resolution and error handling.
+The Administrative Panel now provides a comprehensive, secure, and user-friendly interface for scheduling educational visits, managing attendee rosters, supporting operational workflows through Supabase integration, and coordinating municipal transportation for educational visits. **The addition of a complete educational visit management system with advanced server actions for date availability checking, visit editing with rollback capabilities, enhanced payroll processing with improved error recovery mechanisms, and a new TUP logistics management module significantly enhances the platform's capabilities**, enabling administrators to effectively manage confirmed educational visits with sophisticated conflict resolution, error handling, and transportation coordination.
 
 The enhanced authentication system with middleware-based route protection ensures only authorized users can access admin functionality. Its modular architecture separates concerns between UI, services, types, and authentication, enabling maintainability and scalability. With clear validation, error handling, performance-conscious patterns, and responsive design improvements, it offers a solid foundation for further enhancements such as advanced reporting, expanded admin capabilities, and additional security features.
 
-**The new educational visit management system demonstrates sophisticated software engineering practices**, including transactional operations, concurrent access protection, optimistic UI updates, comprehensive error handling, and PII-safe logging. The enhanced rollback mechanisms for payroll processing showcase robust error recovery strategies that maintain data integrity even during partial failures. The sophisticated date conflict detection system provides real-time feedback to users while maintaining database consistency.
+**The new TUP logistics management module demonstrates sophisticated software engineering practices**, including mobile-optimized interfaces for vehicle use, real-time status updates with optimistic UI, comprehensive validation and security controls, and seamless integration with existing educational visit workflows. The transportation coordination system provides essential functionality for managing school bus transportation with driver assignment, schedule management, and contact integration for teacher communication.
 
-The addition of logout functionality with proper session cleanup demonstrates the system's commitment to security best practices, while the responsive design improvements ensure accessibility across different device sizes and screen orientations. **The comprehensive educational visit management system represents a significant evolution from simple visit scheduling to full-scale educational institution administration**, positioning the platform as a complete solution for simulation center operations management with advanced administrative capabilities.
+The enhanced educational visit management system showcases transactional operations, concurrent access protection, optimistic UI updates, comprehensive error handling, and PII-safe logging. The enhanced rollback mechanisms for payroll processing demonstrate robust error recovery strategies that maintain data integrity even during partial failures. The sophisticated date conflict detection system provides real-time feedback to users while maintaining database consistency.
 
-**The enhanced payroll processing with improved rollback operations ensures data integrity and reliability** during complex participant synchronization operations, making the system more robust and user-friendly for administrative staff managing large groups of educational visitors.
+The addition of logout functionality with proper session cleanup demonstrates the system's commitment to security best practices, while the responsive design improvements ensure accessibility across different device sizes and screen orientations. **The comprehensive educational visit management system combined with the new TUP logistics module represents a significant evolution from simple visit scheduling to full-scale educational institution administration**, positioning the platform as a complete solution for simulation center operations management with advanced administrative capabilities and transportation coordination.
+
+**The enhanced payroll processing with improved rollback operations ensures data integrity and reliability** during complex participant synchronization operations, making the system more robust and user-friendly for administrative staff managing large groups of educational visitors. **The TUP logistics module fills a critical gap in educational visit coordination**, providing municipal transportation management that was previously missing from the administrative toolkit.

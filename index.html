@@ -52,8 +52,8 @@ const COTA = {
   ALFOMBRA:   0.543,   // Alfombra antideslizante (+3 mm sobre la chapa)
   COJIN:      0.850,   // Cara superior del cojín de la butaca
   BUTACA_Z:   0.220,   // Centro de butaca y pods en Z
-  COL_Z:     -0.300,   // Base de la columna de volante en Z
-  PEDAL_Z:   -0.500,   // Pedalera al frente (clearance ≥10 mm del mástil)
+  COL_Z:     -0.460,   // Columna hacia los monitores, sin bloquear los pies
+  PEDAL_Z:   -0.150,   // Pedalera entre la columna y la butaca (lado del conductor)
   POD_X:      0.360,   // Pods de joystick simétricos en X = ±0.360
   MON_Y:      1.300,   // Altura de centros de monitores (nivel de ojos)
   MON_CZ:    -1.500,   // Monitor central en Z
@@ -317,35 +317,38 @@ const cinturon = box(0.05, 0.64, 0.01, M.negro, -0.10, 0.33, -0.055);
 cinturon.rotation.z = 0.32;
 bisagraRespaldo.add(cinturon);
 
-// Casco amarillo colgado del headrest (lado derecho)
+// Casco fuera del lateral derecho del respaldo, con la visera hacia fuera.
+// El brazo nace en X = 0.23 y apoya bajo la visera, sin atravesar la carcasa.
+bisagraRespaldo.add(box(0.24, 0.016, 0.03, M.metalOscuro, 0.35, 0.5595, 0));
 const casco = new THREE.Group();
-casco.position.set(0.14, 0.58, -0.09);
-casco.rotation.set(0.15, 0.5, 0.1);
+casco.position.set(0.37, 0.58, 0);
+casco.rotation.y = Math.PI/2;
 bisagraRespaldo.add(casco);
 casco.add(mesh(new THREE.SphereGeometry(0.11, 24, 16, 0, Math.PI*2, 0, Math.PI/2), M.amarillo));
 casco.add(box(0.20, 0.015, 0.10, M.amarillo, 0, -0.005, 0.10));                     // Visera
 
 // ═══════════════════════════════════════════════════════════════════
 // 9. DYNAMICCOCKPIT — PEDALERA — PATRÓN BISAGRA (a)
-//    Marco en Z = -0.500 sobre la chapa (Y = 0.540)
+//    Marco en Z = -0.150 sobre la alfombra, entre la columna y la butaca
 // ═══════════════════════════════════════════════════════════════════
 const pedalera = new THREE.Group();
 pedalera.position.set(0, 0, COTA.PEDAL_Z);
 DynamicCockpit.add(pedalera);
 
-pedalera.add(box(0.42, 0.04, 0.22, M.metalOscuro, 0, 0.560, 0));                    // Marco base (0.540 → 0.580)
+const pedalBaseY = COTA.ALFOMBRA + 0.04;
+pedalera.add(box(0.42, 0.04, 0.22, M.metalOscuro, 0, COTA.ALFOMBRA + 0.02, 0));     // Marco apoyado en la alfombra
 
 [-0.13, 0, 0.13].forEach((x) => {
-  // Fulcro en el borde inferior trasero de cada pedal (Y = 0.580, Z local +0.08)
-  const bisagraPedal = hinge(x, 0.580, 0.08, -0.35);
+  // Fulcro sobre el marco, con la cara del pedal orientada hacia el conductor.
+  const bisagraPedal = hinge(x, pedalBaseY, 0.08, -0.35);
   pedalera.add(bisagraPedal);
   bisagraPedal.add(box(0.07, 0.15, 0.012, M.metalClaro, 0, 0.075, 0));              // Base de la malla en Y local = 0
-  pedalera.add(box(0.03, 0.05, 0.02, M.metalOscuro, x, 0.60, 0.10));               // Soporte trasero
+  pedalera.add(box(0.03, 0.05, 0.02, M.metalOscuro, x, pedalBaseY + 0.02, 0.10));  // Soporte trasero
 });
 
 // ═══════════════════════════════════════════════════════════════════
 // 10. DYNAMICCOCKPIT — MÓDULO VOLANTE — PATRÓN BISAGRA (b)
-//     Base en X = 0.000, Z = -0.300 · Fulcro en Y = 0.540 (chapa superior)
+//     Base en X = 0.000, Z = -0.460 · Fulcro en Y = 0.540 (chapa superior)
 // ═══════════════════════════════════════════════════════════════════
 const moduloVolante = new THREE.Group();
 moduloVolante.position.set(0, 0, COTA.COL_Z);
@@ -356,11 +359,6 @@ const bisagraCol = hinge(0, COTA.CHAPA, 0, 0.24);
 moduloVolante.add(bisagraCol);
 
 bisagraCol.add(box(0.24, 0.72, 0.16, M.metalMedio, 0, 0.36, 0));                    // Mástil: base en Y local = 0, tope 0.72
-
-// Tramo corto de columna: ancla el tope del mástil (0, 0.72, 0) con el buje del volante
-const tramoColumna = cyl(0.028, 0.028, 0.20, M.metalMedio, 0, 0.75, 0.08, 16);
-tramoColumna.rotation.x = 1.212;                                                    // Eje alineado con la dirección (0, 0.06, 0.16)
-bisagraCol.add(tramoColumna);
 
 // Consola superior: tope local Y = 0.55, montada sobre el mástil
 const consola = box(0.44, 0.08, 0.28, M.plastico, 0, 0.51, -0.02);
@@ -374,19 +372,25 @@ for(let i = 0; i < 5; i++){
 consola.add(cyl(0.036, 0.042, 0.018, M.negro, 0.14, 0.064, -0.07, 16));             // Base del e-stop: 0.055 → 0.073
 consola.add(cyl(0.026, 0.026, 0.028, M.estop, 0.14, 0.087, -0.07, 16));             // Hongo rojo: 0.073 → 0.101
 
-// Volante (aro + centro + radios): centro local (0, 0.78, 0.16) → Y mundial ≈ 1.260
+// Volante separado del mástil y la consola; aro, buje y radios comparten el plano XY.
 const volante = new THREE.Group();
-volante.position.set(0, 0.78, 0.16);
-volante.rotation.x = 0.26;
+volante.position.set(0, 0.80, 0.28);
+volante.rotation.x = -0.55;
 bisagraCol.add(volante);
 volante.add(mesh(new THREE.TorusGeometry(0.19, 0.022, 12, 40), M.goma));
 volante.add(cyl(0.055, 0.055, 0.04, M.plastico, 0, 0, 0).rotateX(Math.PI/2));
 for(let k = 0; k < 3; k++){
-  const a = k * Math.PI*2/3;
-  const radio = box(0.028, 0.03, 0.14, M.plastico, Math.sin(a)*0.09, Math.cos(a)*0.09, 0);
+  const a = Math.PI + k * Math.PI*2/3;
+  const radio = box(0.028, 0.15, 0.03, M.plastico, Math.sin(a)*0.12, Math.cos(a)*0.12, 0);
   radio.rotation.z = -a;
   volante.add(radio);
 }
+
+// Eje coaxial con el buje: termina en su cara trasera (Z local = -0.02).
+// El extremo opuesto entra en el mástil, sin cruzar los radios ni el aro.
+const tramoColumna = cyl(0.028, 0.028, 0.22, M.metalMedio, 0, 0, -0.13, 16);
+tramoColumna.rotation.x = Math.PI/2;
+volante.add(tramoColumna);
 
 // ═══════════════════════════════════════════════════════════════════
 // 11. DYNAMICCOCKPIT — MÓDULO JOYSTICKS — PATRÓN BISAGRA (d)
