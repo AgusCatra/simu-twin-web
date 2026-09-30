@@ -1,6 +1,6 @@
 schema_version: 1
 module_path: ""
-title: Next.js Project Root Configuration
+title: Project Root & Build Configuration
 scope:
     - README.md
     - .gitignore
