@@ -529,63 +529,84 @@ function crearSimspray(cfg){
     color:0x0a0a0a, roughness:0.25, emissive:0x000000, emissiveIntensity:0.0
   });
   const luz = new THREE.PointLight(0xfff1d6, 0, 6.0);
-  luz.position.set(0.4, 1.9, 0.6);
+  luz.position.set(0, 2.3, -0.3);
   E.add(luz);
 
-  // Tótem instructor vertical
-  E.add(box(0.55, 0.04, 0.40, M.metalOscuro, 0, 0.02, 0));
-  E.add(box(0.45, 1.65, 0.30, M.metalOscuro, 0, 0.865, 0));
-  E.add(box(0.47, 0.03, 0.32, M.plastico, 0, 1.70, 0));
+  // 1. Chasis / Carro rodante de la unidad SimSpray
+  E.add(box(0.68, 0.06, 0.52, M.metalOscuro, 0, 0.03, 0));
+  [[-0.26, -0.18], [0.26, -0.18], [-0.26, 0.18], [0.26, 0.18]].forEach(([rx, rz]) => {
+    const rueda = cyl(0.045, 0.045, 0.035, M.goma, rx, 0.045, rz, 16);
+    rueda.rotation.z = Math.PI/2;
+    E.add(rueda);
+  });
 
-  // Pantalla táctil vertical del instructor
-  E.add(box(0.40, 0.56, 0.015, M.negro, 0, 1.26, 0.150));
-  const tactil = box(0.36, 0.50, 0.02, matPantalla, 0, 1.26, 0.168);
-  tactil.rotation.x = -0.12;
+  // Gabinete vertical principal (debajo de la V de sensores)
+  E.add(box(0.52, 1.58, 0.36, M.metalOscuro, 0, 0.85, 0));
+  E.add(box(0.54, 0.04, 0.38, M.metalMedio, 0, 1.65, 0));
+
+  // 2. Pantalla táctil del instructor / menú (mira hacia el frente -Z)
+  E.add(box(0.44, 0.58, 0.02, M.negro, 0, 1.28, -0.19));
+  const tactil = box(0.40, 0.52, 0.015, matPantalla, 0, 1.28, -0.20);
+  tactil.rotation.x = 0.10;
   E.add(tactil);
 
-  // Soporte lateral para visor VR
-  E.add(box(0.30, 0.03, 0.05, M.metalMedio, 0.37, 1.15, 0.05));
-  E.add(box(0.17, 0.02, 0.03, M.metalClaro, 0.50, 1.12, 0.05));
-  const visor = box(0.18, 0.11, 0.09, M.negro, 0.50, 1.03, 0.05);
-  visor.rotation.y = 0.10;
-  E.add(visor);
-  E.add(box(0.19, 0.015, 0.02, M.goma, 0.50, 1.095, 0.05));
-  E.add(box(0.15, 0.06, 0.008, M.plastico, 0.50, 1.03, 0.096));
+  // 3. DOS BRAZOS EN FORMA DE "V" CON SENSORES DE TRACKING ÓPTICO
+  // Salen del simulador hacia arriba abriéndose en V y debajo queda el simulador
+  const soporteV = box(0.16, 0.05, 0.16, M.metalMedio, 0, 1.68, 0);
+  E.add(soporteV);
 
-  // Pistola aerográfica colgada
-  E.add(box(0.05, 0.02, 0.12, M.metalClaro, -0.245, 1.16, 0.08));
+  function crearRamaSensor(esIzq){
+    const s = esIzq ? -1 : 1;
+    const rama = new THREE.Group();
+    rama.position.set(s * 0.06, 1.70, 0);
+    rama.rotation.z = -s * 0.52; // Ángulo de apertura en V (30°)
+    rama.rotation.x = -0.16;     // Inclinación hacia adelante (-Z) hacia el operario
+
+    // Brazo tubular metálico
+    rama.add(cyl(0.015, 0.018, 0.65, M.metalOscuro, 0, 0.325, 0, 16));
+
+    // Cabezal sensor en el extremo
+    const cabezal = new THREE.Group();
+    cabezal.position.set(0, 0.65, 0);
+    cabezal.rotation.z = s * 0.52;
+    cabezal.rotation.x = 0.20;
+    cabezal.add(box(0.07, 0.08, 0.10, M.negro, 0, 0, 0));
+    const lente = cyl(0.024, 0.024, 0.012, M.metalClaro, 0, 0, -0.055, 16);
+    lente.rotation.x = Math.PI/2;
+    cabezal.add(lente);
+    cabezal.add(mesh(new THREE.SphereGeometry(0.015, 12, 8), M.estop, 0, 0, -0.058));
+    rama.add(cabezal);
+
+    return rama;
+  }
+  E.add(crearRamaSensor(true));  // Rama izquierda de la V
+  E.add(crearRamaSensor(false)); // Rama derecha de la V
+
+  // 4. Soporte para visor VR colgado (en el lateral izquierdo)
+  E.add(box(0.12, 0.02, 0.04, M.metalMedio, -0.32, 1.15, -0.05));
+  const visor = box(0.18, 0.11, 0.09, M.negro, -0.40, 1.08, -0.05);
+  visor.rotation.y = -0.20;
+  E.add(visor);
+  E.add(box(0.19, 0.015, 0.02, M.goma, -0.40, 1.145, -0.05));
+
+  // 5. Pistola aerográfica colgada (en el lateral derecho)
+  E.add(box(0.12, 0.02, 0.04, M.metalMedio, 0.32, 1.12, -0.05));
   const pistola = new THREE.Group();
-  pistola.position.set(-0.245, 1.05, 0.08);
+  pistola.position.set(0.40, 1.02, -0.05);
   E.add(pistola);
   pistola.add(box(0.05, 0.14, 0.05, M.metalClaro, 0, 0, 0));
   pistola.add(cyl(0.012, 0.016, 0.08, M.metalMedio, 0, -0.10, 0, 12));
   pistola.add(box(0.02, 0.05, 0.03, M.negro, 0, 0.04, -0.035));
   pistola.add(cyl(0.018, 0.018, 0.05, M.goma, 0, 0.095, 0, 12));
 
-  // Manguera flexible
-  const puntos = [
-    new THREE.Vector3(-0.20, 0.05, 0.14),
-    new THREE.Vector3(-0.34, 0.05, 0.10),
-    new THREE.Vector3(-0.36, 0.35, 0.08),
-    new THREE.Vector3(-0.30, 0.72, 0.08),
-    new THREE.Vector3(-0.245, 0.96, 0.08)
+  // Manguera flexible desde el gabinete hasta la pistola
+  const puntosManguera = [
+    new THREE.Vector3(0.20, 0.08, -0.05),
+    new THREE.Vector3(0.36, 0.15, -0.05),
+    new THREE.Vector3(0.42, 0.50, -0.05),
+    new THREE.Vector3(0.40, 0.92, -0.05)
   ];
-  E.add(mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(puntos), 40, 0.014, 10), M.goma));
-
-  // Caballete con probeta de chapa frente al tótem
-  const caballete = new THREE.Group();
-  caballete.position.set(0, 0, -1.0);
-  E.add(caballete);
-  const pataI = box(0.05, 0.78, 0.05, M.metalMedio, -0.24, 0.39, -0.10);
-  pataI.rotation.x = 0.18; caballete.add(pataI);
-  const pataD = box(0.05, 0.78, 0.05, M.metalMedio, 0.24, 0.39, -0.10);
-  pataD.rotation.x = 0.18; caballete.add(pataD);
-  caballete.add(box(0.05, 0.78, 0.05, M.metalMedio, -0.24, 0.39, 0.10));
-  caballete.add(box(0.05, 0.78, 0.05, M.metalMedio, 0.24, 0.39, 0.10));
-  caballete.add(box(0.60, 0.04, 0.42, M.metalOscuro, 0, 0.76, 0));
-  const probeta = box(0.45, 0.60, 0.008, M.metalClaro, 0, 1.08, 0.05);
-  probeta.rotation.x = -0.03;
-  caballete.add(probeta);
+  E.add(mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(puntosManguera), 30, 0.014, 10), M.goma));
 
   return {
     nombre: cfg.nombre, cfg: cfg, grupo: E, DC: null, butaca: null,
@@ -757,10 +778,10 @@ function getPuntosEstacion(cfg){
 
   if(cfg.tipo === 'simspray'){
     return {
-      acceso: aMundo(0, 0, 1.2),       // Frente a la probeta
-      subida: aMundo(0, 0, 0.5),       // Entrada al puesto
-      plataforma: aMundo(0, 0, -0.2),  // De pie frente a la probeta de práctica
-      rotFinal: cfg.rotY + Math.PI     // Mirando hacia la probeta (+Z local apunta a -Z de la máquina)
+      acceso: aMundo(0.80, 0, -1.15),      // Aproximación lateral por el pasillo despejado
+      subida: aMundo(0.40, 0, -1.15),      // Paso de entrada frente al simulador
+      plataforma: aMundo(0, 0, -1.15),     // Posición de pie en el área de tracking bajo la V
+      rotFinal: cfg.rotY                   // Mirando de frente hacia el simulador y los sensores V
     };
   }
 

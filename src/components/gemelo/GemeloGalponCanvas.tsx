@@ -155,14 +155,17 @@ interface EstacionInterna {
 interface ExtendedGemeloProps extends GemeloGalponCanvasProps {
   grillaVisible?: boolean;
   rotarCamara?: boolean;
+  resetCamaraTrigger?: number;
   onEstadoOperariosChange?: (activos: number, enCamino: number) => void;
 }
 
 export default function GemeloGalponCanvas({
   estados,
+  estacionSeleccionada,
   camaraSeguimiento,
   grillaVisible = false,
   rotarCamara = false,
+  resetCamaraTrigger = 0,
   onToggleEstacion,
   onSeleccionarEstacion,
   onEstadoOperariosChange,
@@ -173,17 +176,20 @@ export default function GemeloGalponCanvas({
   const opChangeRef = useRef(onEstadoOperariosChange);
   const camaraSeguimientoRef = useRef(camaraSeguimiento);
   const rotarCamaraRef = useRef(rotarCamara);
+  const estacionSeleccionadaRef = useRef(estacionSeleccionada);
 
   toggleRef.current = onToggleEstacion;
   selectRef.current = onSeleccionarEstacion;
   opChangeRef.current = onEstadoOperariosChange;
   camaraSeguimientoRef.current = camaraSeguimiento;
   rotarCamaraRef.current = rotarCamara;
+  estacionSeleccionadaRef.current = estacionSeleccionada;
 
   const controlSceneRef = useRef<{
     toggleByIndex: (index: number) => void;
     setGridVisible: (v: boolean) => void;
     setRotar: (v: boolean) => void;
+    resetCamera: () => void;
     syncEstados: (estados: Record<string, EstadoSimulador>) => void;
   } | null>(null);
 
@@ -198,6 +204,12 @@ export default function GemeloGalponCanvas({
       controlSceneRef.current.setRotar(rotarCamara);
     }
   }, [rotarCamara]);
+
+  useEffect(() => {
+    if (controlSceneRef.current && resetCamaraTrigger > 0) {
+      controlSceneRef.current.resetCamera();
+    }
+  }, [resetCamaraTrigger]);
 
   useEffect(() => {
     if (controlSceneRef.current) {
@@ -712,59 +724,91 @@ export default function GemeloGalponCanvas({
       });
 
       const luz = new THREE.PointLight(0xfff1d6, 0, 6.0);
-      luz.position.set(0.4, 1.9, 0.6);
+      luz.position.set(0, 2.3, -0.3);
       E.add(luz);
 
-      E.add(box(0.55, 0.04, 0.4, M.metalOscuro, 0, 0.02, 0));
-      E.add(box(0.45, 1.65, 0.3, M.metalOscuro, 0, 0.865, 0));
-      E.add(box(0.47, 0.03, 0.32, M.plastico, 0, 1.7, 0));
+      // 1. Chasis / Carro rodante de la unidad SimSpray
+      E.add(box(0.68, 0.06, 0.52, M.metalOscuro, 0, 0.03, 0));
+      [
+        [-0.26, -0.18],
+        [0.26, -0.18],
+        [-0.26, 0.18],
+        [0.26, 0.18],
+      ].forEach(([rx, rz]) => {
+        const rueda = cyl(0.045, 0.045, 0.035, M.goma, rx, 0.045, rz, 16);
+        rueda.rotation.z = Math.PI / 2;
+        E.add(rueda);
+      });
 
-      E.add(box(0.4, 0.56, 0.015, M.negro, 0, 1.26, 0.15));
-      const tactil = box(0.36, 0.5, 0.02, matPantalla, 0, 1.26, 0.168);
-      tactil.rotation.x = -0.12;
+      // Gabinete vertical principal (debajo de la V de sensores)
+      E.add(box(0.52, 1.58, 0.36, M.metalOscuro, 0, 0.85, 0));
+      E.add(box(0.54, 0.04, 0.38, M.metalMedio, 0, 1.65, 0));
+
+      // 2. Pantalla táctil del instructor / menú (mira hacia el frente -Z)
+      E.add(box(0.44, 0.58, 0.02, M.negro, 0, 1.28, -0.19));
+      const tactil = box(0.4, 0.52, 0.015, matPantalla, 0, 1.28, -0.2);
+      tactil.rotation.x = 0.1;
       E.add(tactil);
 
-      E.add(box(0.3, 0.03, 0.05, M.metalMedio, 0.37, 1.15, 0.05));
-      E.add(box(0.17, 0.02, 0.03, M.metalClaro, 0.5, 1.12, 0.05));
-      const visor = box(0.18, 0.11, 0.09, M.negro, 0.5, 1.03, 0.05);
-      visor.rotation.y = 0.1;
-      E.add(visor);
-      E.add(box(0.19, 0.015, 0.02, M.goma, 0.5, 1.095, 0.05));
-      E.add(box(0.15, 0.06, 0.008, M.plastico, 0.5, 1.03, 0.096));
+      // 3. DOS BRAZOS EN FORMA DE "V" CON SENSORES DE TRACKING ÓPTICO
+      // Salen del simulador hacia arriba abriéndose en V y debajo queda el simulador
+      const soporteV = box(0.16, 0.05, 0.16, M.metalMedio, 0, 1.68, 0);
+      E.add(soporteV);
 
-      E.add(box(0.05, 0.02, 0.12, M.metalClaro, -0.245, 1.16, 0.08));
+      function crearRamaSensor(esIzq: boolean) {
+        const s = esIzq ? -1 : 1;
+        const rama = new THREE.Group();
+        rama.position.set(s * 0.06, 1.7, 0);
+        rama.rotation.z = -s * 0.52; // Ángulo de apertura en V (30°)
+        rama.rotation.x = -0.16; // Inclinación hacia adelante (-Z) hacia el operario
+
+        // Brazo tubular metálico
+        rama.add(cyl(0.015, 0.018, 0.65, M.metalOscuro, 0, 0.325, 0, 16));
+
+        // Cabezal sensor en el extremo
+        const cabezal = new THREE.Group();
+        cabezal.position.set(0, 0.65, 0);
+        cabezal.rotation.z = s * 0.52;
+        cabezal.rotation.x = 0.2;
+        cabezal.add(box(0.07, 0.08, 0.1, M.negro, 0, 0, 0));
+        const lente = cyl(0.024, 0.024, 0.012, M.metalClaro, 0, 0, -0.055, 16);
+        lente.rotation.x = Math.PI / 2;
+        cabezal.add(lente);
+        cabezal.add(mesh(new THREE.SphereGeometry(0.015, 12, 8), M.estop, 0, 0, -0.058));
+        rama.add(cabezal);
+
+        return rama;
+      }
+      E.add(crearRamaSensor(true)); // Rama izquierda de la V
+      E.add(crearRamaSensor(false)); // Rama derecha de la V
+
+      // 4. Soporte para visor VR colgado (en el lateral izquierdo)
+      E.add(box(0.12, 0.02, 0.04, M.metalMedio, -0.32, 1.15, -0.05));
+      const visor = box(0.18, 0.11, 0.09, M.negro, -0.4, 1.08, -0.05);
+      visor.rotation.y = -0.2;
+      E.add(visor);
+      E.add(box(0.19, 0.015, 0.02, M.goma, -0.4, 1.145, -0.05));
+
+      // 5. Pistola aerográfica colgada (en el lateral derecho)
+      E.add(box(0.12, 0.02, 0.04, M.metalMedio, 0.32, 1.12, -0.05));
       const pistola = new THREE.Group();
-      pistola.position.set(-0.245, 1.05, 0.08);
+      pistola.position.set(0.4, 1.02, -0.05);
       E.add(pistola);
       pistola.add(box(0.05, 0.14, 0.05, M.metalClaro, 0, 0, 0));
       pistola.add(cyl(0.012, 0.016, 0.08, M.metalMedio, 0, -0.1, 0, 12));
       pistola.add(box(0.02, 0.05, 0.03, M.negro, 0, 0.04, -0.035));
       pistola.add(cyl(0.018, 0.018, 0.05, M.goma, 0, 0.095, 0, 12));
 
-      const puntos = [
-        new THREE.Vector3(-0.2, 0.05, 0.14),
-        new THREE.Vector3(-0.34, 0.05, 0.1),
-        new THREE.Vector3(-0.36, 0.35, 0.08),
-        new THREE.Vector3(-0.3, 0.72, 0.08),
-        new THREE.Vector3(-0.245, 0.96, 0.08),
+      // Manguera flexible desde el gabinete hasta la pistola
+      const puntosManguera = [
+        new THREE.Vector3(0.2, 0.08, -0.05),
+        new THREE.Vector3(0.36, 0.15, -0.05),
+        new THREE.Vector3(0.42, 0.5, -0.05),
+        new THREE.Vector3(0.4, 0.92, -0.05),
       ];
-      E.add(mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(puntos), 40, 0.014, 10), M.goma));
-
-      const caballete = new THREE.Group();
-      caballete.position.set(0, 0, -1.0);
-      E.add(caballete);
-      const pataI = box(0.05, 0.78, 0.05, M.metalMedio, -0.24, 0.39, -0.1);
-      pataI.rotation.x = 0.18;
-      caballete.add(pataI);
-      const pataD = box(0.05, 0.78, 0.05, M.metalMedio, 0.24, 0.39, -0.1);
-      pataD.rotation.x = 0.18;
-      caballete.add(pataD);
-      caballete.add(box(0.05, 0.78, 0.05, M.metalMedio, -0.24, 0.39, 0.1));
-      caballete.add(box(0.05, 0.78, 0.05, M.metalMedio, 0.24, 0.39, 0.1));
-      caballete.add(box(0.6, 0.04, 0.42, M.metalOscuro, 0, 0.76, 0));
-      const probeta = box(0.45, 0.6, 0.008, M.metalClaro, 0, 1.08, 0.05);
-      probeta.rotation.x = -0.03;
-      caballete.add(probeta);
+      E.add(
+        mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(puntosManguera), 30, 0.014, 10), M.goma)
+      );
 
       return {
         config: cfg,
@@ -781,6 +825,7 @@ export default function GemeloGalponCanvas({
         enOperacion: false,
       };
     }
+
 
     const INSTANCIAS: EstacionInterna[] = ESTACIONES_CONFIG.map((cfg, i) => {
       const seed = i * 1.7;
@@ -916,10 +961,10 @@ export default function GemeloGalponCanvas({
 
       if (cfg.tipo === 'simspray') {
         return {
-          acceso: aMundo(0, 0, 1.2),
-          subida: aMundo(0, 0, 0.5),
-          plataforma: aMundo(0, 0, -0.2),
-          rotFinal: cfg.rotY + Math.PI,
+          acceso: aMundo(0.8, 0, -1.15),
+          subida: aMundo(0.4, 0, -1.15),
+          plataforma: aMundo(0, 0, -1.15),
+          rotFinal: cfg.rotY,
         };
       }
 
@@ -959,11 +1004,16 @@ export default function GemeloGalponCanvas({
         inst.matPantalla.emissive.setHex(0x10b981);
         inst.matPantalla.emissiveIntensity = 0.85;
         inst.luz.intensity = 0.7;
+        if (inst.cascoButaca) inst.cascoButaca.visible = false;
       } else {
         inst.matPantalla.color.setHex(0x0a0a0a);
         inst.matPantalla.emissive.setHex(0x000000);
         inst.matPantalla.emissiveIntensity = 0.0;
         inst.luz.intensity = 0.0;
+        if (inst.cascoButaca) inst.cascoButaca.visible = true;
+        if (inst.DC) inst.DC.position.y = 0.0;
+        if (inst.visorColgado) inst.visorColgado.visible = true;
+        if (inst.pistolaColgada) inst.pistolaColgada.visible = true;
       }
     }
 
@@ -1181,7 +1231,7 @@ export default function GemeloGalponCanvas({
         op.estado = 'caminando';
       }
       emitirCambioOperarios();
-      toggleRef.current(inst.config.id);
+      toggleRef.current?.(inst.config.id);
     }
 
     function syncEstadosInterno(currentEstados: Record<string, EstadoSimulador>) {
@@ -1211,6 +1261,12 @@ export default function GemeloGalponCanvas({
       emitirCambioOperarios();
     }
 
+    function resetCamera() {
+      camera.position.set(10.5, 9.5, 12.5);
+      controls.target.set(0, 1.0, 0);
+      controls.update();
+    }
+
     controlSceneRef.current = {
       toggleByIndex: toggleSimuladorInterno,
       setGridVisible: (v: boolean) => {
@@ -1219,14 +1275,52 @@ export default function GemeloGalponCanvas({
       setRotar: (v: boolean) => {
         rotarCamaraRef.current = v;
       },
+      resetCamera,
       syncEstados: syncEstadosInterno,
     };
 
+    // Anillo visual de selección para la estación activa
+    const ringGeo = new THREE.RingGeometry(1.25, 1.34, 40);
+    const ringMat = new THREE.MeshBasicMaterial({
+      color: 0x10b981,
+      side: THREE.DoubleSide,
+      transparent: true,
+      opacity: 0.85,
+    });
+    const selectionRing = new THREE.Mesh(ringGeo, ringMat);
+    selectionRing.rotation.x = -Math.PI / 2;
+    selectionRing.position.y = COTA.LINEA + 0.002;
+    selectionRing.visible = false;
+    scene.add(selectionRing);
+
     // ═══════════════════════════════════════════════════════════════════
-    // RAYCASTING PARA CLIC 3D
+    // RAYCASTING PARA HOVER Y SELECCIÓN DE SOLO LECTURA
     // ═══════════════════════════════════════════════════════════════════
     const raycaster = new THREE.Raycaster();
     const mouse = new THREE.Vector2();
+
+    const onPointerMove = (e: PointerEvent) => {
+      const rect = renderer.domElement.getBoundingClientRect();
+      mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+      mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+
+      raycaster.setFromCamera(mouse, camera);
+      const hits = raycaster.intersectObjects(scene.children, true);
+      let isOverStation = false;
+      for (const hit of hits) {
+        let obj: THREE.Object3D | null = hit.object;
+        while (obj && obj !== scene) {
+          const idx = INSTANCIAS.findIndex((inst) => inst.grupo === obj);
+          if (idx !== -1) {
+            isOverStation = true;
+            break;
+          }
+          obj = obj.parent;
+        }
+        if (isOverStation) break;
+      }
+      renderer.domElement.style.cursor = isOverStation ? 'pointer' : 'default';
+    };
 
     const onPointerDown = (e: PointerEvent) => {
       const startX = e.clientX;
@@ -1242,23 +1336,28 @@ export default function GemeloGalponCanvas({
 
         raycaster.setFromCamera(mouse, camera);
         const hits = raycaster.intersectObjects(scene.children, true);
+        let foundStationId: string | null = null;
         for (const hit of hits) {
           let obj: THREE.Object3D | null = hit.object;
           while (obj && obj !== scene) {
             const idx = INSTANCIAS.findIndex((inst) => inst.grupo === obj);
             if (idx !== -1) {
-              toggleSimuladorInterno(idx);
-              selectRef.current(INSTANCIAS[idx].config.id);
-              return;
+              foundStationId = INSTANCIAS[idx].config.id;
+              break;
             }
             obj = obj.parent;
           }
+          if (foundStationId) break;
         }
+
+        // Selección exclusiva de solo lectura (NO cambia estado de la máquina)
+        selectRef.current(foundStationId);
       };
 
       renderer.domElement.addEventListener('pointerup', onPointerUp);
     };
 
+    renderer.domElement.addEventListener('pointermove', onPointerMove);
     renderer.domElement.addEventListener('pointerdown', onPointerDown);
 
     // ═══════════════════════════════════════════════════════════════════
@@ -1280,6 +1379,20 @@ export default function GemeloGalponCanvas({
       });
 
       OPERARIOS.forEach((op) => actualizarOperarioIndividual(op, dt, t));
+
+      if (estacionSeleccionadaRef.current) {
+        const sel = INSTANCIAS.find((i) => i.config.id === estacionSeleccionadaRef.current);
+        if (sel) {
+          selectionRing.position.x = sel.config.pos[0];
+          selectionRing.position.z = sel.config.pos[2];
+          selectionRing.visible = true;
+          selectionRing.rotation.z += 0.015;
+        } else {
+          selectionRing.visible = false;
+        }
+      } else {
+        selectionRing.visible = false;
+      }
 
       if (camaraSeguimientoRef.current && ultimoOperarioActivo && ultimoOperarioActivo.root.visible) {
         controls.target.lerp(
@@ -1327,6 +1440,7 @@ export default function GemeloGalponCanvas({
       cancelAnimationFrame(animId);
       resizeObserver.disconnect();
       window.removeEventListener('resize', handleResize);
+      renderer.domElement.removeEventListener('pointermove', onPointerMove);
       renderer.domElement.removeEventListener('pointerdown', onPointerDown);
 
       controls.dispose();

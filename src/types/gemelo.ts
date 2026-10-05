@@ -63,10 +63,29 @@ export interface SCADANaveStatus {
   tiempoOperacionSeg: number;
 }
 
+export type EstadoPuesto = 'operando' | 'libre';
+
+export interface FichaTecnicaSimulador {
+  id: string;
+  codigo: string;
+  nombre: string;
+  tipo: TipoSimulador;
+  estado: EstadoPuesto;
+  especificacionesHardware: {
+    pantallas: string;
+    mandos: string;
+    plataforma: string;
+  };
+  modulosPedagogicos: string[];
+  detalles: string;
+  instructor?: string;
+  horaInicio?: string;
+}
+
 export interface GemeloGalponCanvasProps {
   estados: Record<string, EstadoSimulador>;
   estacionSeleccionada: string | null;
-  onToggleEstacion: (id: string) => void;
+  onToggleEstacion?: (id: string) => void;
   onSeleccionarEstacion: (id: string | null) => void;
-  camaraSeguimiento: boolean;
+  camaraSeguimiento?: boolean;
 }
