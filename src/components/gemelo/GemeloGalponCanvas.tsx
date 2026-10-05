@@ -236,7 +236,7 @@ export default function GemeloGalponCanvas({
       amarillo: new THREE.MeshStandardMaterial({ color: 0xffc21c, roughness: 0.45 }),
       estop: new THREE.MeshStandardMaterial({ color: 0xef4444, roughness: 0.4 }),
       alfombra: new THREE.MeshStandardMaterial({ color: 0x1a1a1c, roughness: 1.0 }),
-      hormigon: new THREE.MeshStandardMaterial({ color: 0x222327, roughness: 0.95 }),
+      hormigon: new THREE.MeshStandardMaterial({ color: 0x8a99a8, roughness: 0.45 }),
       vial: new THREE.MeshStandardMaterial({ color: 0xf59e0b, roughness: 0.65 }),
       reflectivo: new THREE.MeshStandardMaterial({ color: 0xd1d5db, metalness: 0.5, roughness: 0.25 }),
       cascoOp: new THREE.MeshStandardMaterial({ color: 0xfacc15, roughness: 0.45 }),
@@ -247,14 +247,14 @@ export default function GemeloGalponCanvas({
     // ESCENA, CÁMARA Y RENDERER
     // ═══════════════════════════════════════════════════════════════════
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x111216);
-    scene.fog = new THREE.Fog(0x111216, 25, 75);
+    scene.background = new THREE.Color(0x0f172a);
+    scene.fog = new THREE.Fog(0x0f172a, 25, 75);
 
     const width = container.clientWidth || window.innerWidth;
     const height = container.clientHeight || window.innerHeight;
 
     const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 200);
-    camera.position.set(13.0, 13.5, 15.0);
+    camera.position.set(11.8, 12.2, 13.6);
 
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(width, height);
@@ -264,7 +264,7 @@ export default function GemeloGalponCanvas({
     container.appendChild(renderer.domElement);
 
     const controls = new OrbitControls(camera, renderer.domElement);
-    controls.target.set(0, 0.5, 0);
+    controls.target.set(0.0, 0.4, 0.5);
     controls.enableRotate = false;
     controls.enablePan = false;
     controls.enableZoom = false;
@@ -274,9 +274,9 @@ export default function GemeloGalponCanvas({
     // ═══════════════════════════════════════════════════════════════════
     // ILUMINACIÓN AMBIENTE Y DIRECCIONAL
     // ═══════════════════════════════════════════════════════════════════
-    scene.add(new THREE.AmbientLight(0x9aa5b5, 0.5));
+    scene.add(new THREE.AmbientLight(0xffffff, 0.95));
 
-    const key = new THREE.DirectionalLight(0xffffff, 0.95);
+    const key = new THREE.DirectionalLight(0xffffff, 1.3);
     key.position.set(10, 14, 7);
     key.castShadow = true;
     key.shadow.mapSize.set(2048, 2048);
@@ -287,7 +287,7 @@ export default function GemeloGalponCanvas({
     key.shadow.bias = -0.0004;
     scene.add(key);
 
-    const fill = new THREE.DirectionalLight(0x8899bb, 0.35);
+    const fill = new THREE.DirectionalLight(0x94a3b8, 0.5);
     fill.position.set(-8, 6, -6);
     scene.add(fill);
 
@@ -434,6 +434,199 @@ export default function GemeloGalponCanvas({
     }
 
     crearLineaSeguridadUnica();
+
+    // ═══════════════════════════════════════════════════════════════════
+    // ESTRUCTURA ARQUITECTÓNICA — MAQUETA SECCIONADA (MURETES Y PÓRTICO)
+    // ═══════════════════════════════════════════════════════════════════
+    function crearEstructuraArquitectonica(escena: THREE.Scene) {
+      const grupo = new THREE.Group();
+      grupo.name = 'EstructuraArquitectonica';
+      escena.add(grupo);
+
+      const matMuro = new THREE.MeshStandardMaterial({
+        color: 0x24262b,
+        roughness: 0.9,
+      });
+      const matAlbardilla = new THREE.MeshStandardMaterial({
+        color: 0x383b42,
+        metalness: 0.6,
+        roughness: 0.4,
+      });
+      const matMetal = new THREE.MeshStandardMaterial({
+        color: 0x30333a,
+        metalness: 0.7,
+        roughness: 0.35,
+      });
+
+      function addTramoMuro(w: number, d: number, cx: number, cz: number) {
+        // Murete base (h = 0.90m, Y centrado en 0.45m, espesor 0.22m)
+        const muro = new THREE.Mesh(new THREE.BoxGeometry(w, 0.90, d), matMuro);
+        muro.position.set(cx, 0.45, cz);
+        muro.castShadow = true;
+        muro.receiveShadow = true;
+        muro.raycast = () => {};
+        grupo.add(muro);
+
+        // Albardilla superior metálica (Y = 0.92m, espesor 0.26m en la cota menor)
+        const albW = w >= d ? w : 0.26;
+        const albD = d > w ? d : 0.26;
+        const alb = new THREE.Mesh(new THREE.BoxGeometry(albW, 0.04, albD), matAlbardilla);
+        alb.position.set(cx, 0.92, cz);
+        alb.castShadow = true;
+        alb.receiveShadow = true;
+        alb.raycast = () => {};
+        grupo.add(alb);
+      }
+
+      // ── Muro Norte (fondo): Longitud 17.0m en Z = -6.80m ──
+      addTramoMuro(17.0, 0.22, 0.0, -6.80);
+
+      // ── Muro Oeste (lateral izquierdo): Longitud 13.6m en X = -8.50m ──
+      addTramoMuro(0.22, 13.6, -8.50, 0.0);
+
+      // ── Muro Este (lateral derecho): Desde Z = -6.80m hasta Z = +4.80m en X = +8.50m ──
+      addTramoMuro(0.22, 11.6, 8.50, -1.00);
+
+      // ── Muro Sur (frente): Longitud 15.0m en Z = +6.80m (desde X = -8.50m hasta X = +6.50m) ──
+      addTramoMuro(15.0, 0.22, -1.00, 6.80);
+
+      // ── 4 Columnas Esquineras Tipo Perfil H (altura 1.30m) ──
+      function crearColumnaPerfilH(x: number, z: number) {
+        const colG = new THREE.Group();
+        colG.position.set(x, 0, z);
+
+        // Ala frontal
+        const f1 = new THREE.Mesh(new THREE.BoxGeometry(0.24, 1.30, 0.025), matMetal);
+        f1.position.set(0, 0.65, -0.09);
+        f1.castShadow = true;
+        f1.receiveShadow = true;
+        f1.raycast = () => {};
+        colG.add(f1);
+
+        // Ala trasera
+        const f2 = new THREE.Mesh(new THREE.BoxGeometry(0.24, 1.30, 0.025), matMetal);
+        f2.position.set(0, 0.65, 0.09);
+        f2.castShadow = true;
+        f2.receiveShadow = true;
+        f2.raycast = () => {};
+        colG.add(f2);
+
+        // Alma central
+        const web = new THREE.Mesh(new THREE.BoxGeometry(0.025, 1.30, 0.18), matMetal);
+        web.position.set(0, 0.65, 0);
+        web.castShadow = true;
+        web.receiveShadow = true;
+        web.raycast = () => {};
+        colG.add(web);
+
+        colG.raycast = () => {};
+        grupo.add(colG);
+      }
+
+      crearColumnaPerfilH(-8.50, -6.80); // Noroeste
+      crearColumnaPerfilH(8.50, -6.80);  // Noreste
+      crearColumnaPerfilH(-8.50, 6.80);  // Suroeste
+      crearColumnaPerfilH(8.50, 6.80);   // Sureste
+
+      // ── Pórtico de Acceso Peatonal en [6.8, 0, 5.8] ──
+      // 2 Jambas metálicas verticales (0.14m x 0.14m, altura 2.20m)
+      const jambaIzq = new THREE.Mesh(new THREE.BoxGeometry(0.14, 2.20, 0.14), matMetal);
+      jambaIzq.position.set(6.20, 1.10, 5.80);
+      jambaIzq.castShadow = true;
+      jambaIzq.receiveShadow = true;
+      jambaIzq.raycast = () => {};
+      grupo.add(jambaIzq);
+
+      const jambaDer = new THREE.Mesh(new THREE.BoxGeometry(0.14, 2.20, 0.14), matMetal);
+      jambaDer.position.set(7.40, 1.10, 5.80);
+      jambaDer.castShadow = true;
+      jambaDer.receiveShadow = true;
+      jambaDer.raycast = () => {};
+      grupo.add(jambaDer);
+
+      // Dintel superior horizontal en Y = 2.15m que une las jambas
+      const dintel = new THREE.Mesh(new THREE.BoxGeometry(1.34, 0.14, 0.14), matMetal);
+      dintel.position.set(6.80, 2.15, 5.80);
+      dintel.castShadow = true;
+      dintel.receiveShadow = true;
+      dintel.raycast = () => {};
+      grupo.add(dintel);
+
+      // Cartel sobre dintel con rotulado institucional: Fondo gris técnico con filete esmeralda (#10b981/40)
+      const canvasCartel = document.createElement('canvas');
+      canvasCartel.width = 512;
+      canvasCartel.height = 128;
+      const ctxC = canvasCartel.getContext('2d');
+      if (ctxC) {
+        ctxC.fillStyle = '#1c1d22';
+        ctxC.fillRect(0, 0, 512, 128);
+        ctxC.strokeStyle = 'rgba(16, 185, 129, 0.4)';
+        ctxC.lineWidth = 6;
+        ctxC.strokeRect(4, 4, 504, 120);
+        ctxC.fillStyle = '#10b981';
+        ctxC.font = 'bold 28px "Segoe UI", Arial, sans-serif';
+        ctxC.textAlign = 'center';
+        ctxC.textBaseline = 'middle';
+        ctxC.fillText('ACCESO A SIMULADORES', 256, 46);
+        ctxC.fillStyle = '#9ca3af';
+        ctxC.font = '18px "Segoe UI", Arial, sans-serif';
+        ctxC.fillText('GOBIERNO DE VENADO TUERTO', 256, 86);
+      }
+      const texCartel = new THREE.CanvasTexture(canvasCartel);
+      const matCartel = new THREE.MeshStandardMaterial({
+        map: texCartel,
+        roughness: 0.4,
+      });
+      const cartel = new THREE.Mesh(new THREE.BoxGeometry(1.24, 0.30, 0.04), matCartel);
+      cartel.position.set(6.80, 2.37, 5.80);
+      cartel.castShadow = true;
+      cartel.raycast = () => {};
+      grupo.add(cartel);
+
+      // Umbral de piso en Y = 0.003 con bandas amarillas de seguridad reflectivas (#f59e0b)
+      const canvasUmbral = document.createElement('canvas');
+      canvasUmbral.width = 512;
+      canvasUmbral.height = 256;
+      const ctxU = canvasUmbral.getContext('2d');
+      if (ctxU) {
+        ctxU.fillStyle = '#141416';
+        ctxU.fillRect(0, 0, 512, 256);
+        ctxU.fillStyle = '#f59e0b';
+        for (let i = -256; i < 768; i += 64) {
+          ctxU.beginPath();
+          ctxU.moveTo(i, 0);
+          ctxU.lineTo(i + 32, 0);
+          ctxU.lineTo(i + 32 - 128, 256);
+          ctxU.lineTo(i - 128, 256);
+          ctxU.fill();
+        }
+        ctxU.strokeStyle = '#f59e0b';
+        ctxU.lineWidth = 10;
+        ctxU.strokeRect(5, 5, 502, 246);
+      }
+      const texUmbral = new THREE.CanvasTexture(canvasUmbral);
+      const matUmbral = new THREE.MeshStandardMaterial({
+        map: texUmbral,
+        roughness: 0.6,
+      });
+      const umbral = new THREE.Mesh(new THREE.PlaneGeometry(1.20, 0.45), matUmbral);
+      umbral.rotation.x = -Math.PI / 2;
+      umbral.position.set(6.80, 0.003, 5.80);
+      umbral.receiveShadow = true;
+      umbral.raycast = () => {};
+      grupo.add(umbral);
+
+      // Asegurar exclusión total del raycast para todos los elementos arquitectónicos
+      grupo.traverse((child) => {
+        if ((child as THREE.Mesh).isMesh) {
+          child.raycast = () => {};
+        }
+      });
+
+      return grupo;
+    }
+
+    crearEstructuraArquitectonica(scene);
 
     // ═══════════════════════════════════════════════════════════════════
     // CONSTRUCCIÓN DE SIMULADORES
@@ -1263,9 +1456,10 @@ export default function GemeloGalponCanvas({
     }
 
     function resetCamera() {
-      camera.position.set(13.0, 13.5, 15.0);
-      controls.target.set(0, 0.5, 0);
+      camera.position.set(11.8, 12.2, 13.6);
+      controls.target.set(0.0, 0.4, 0.5);
       controls.update();
+      handleResize();
     }
 
     controlSceneRef.current = {
@@ -1425,10 +1619,29 @@ export default function GemeloGalponCanvas({
       if (!container) return;
       const w = container.clientWidth;
       const h = container.clientHeight;
-      camera.aspect = w / h;
+      if (w === 0 || h === 0) return;
+      const aspect = w / h;
+      camera.aspect = aspect;
+
+      // Si la pantalla es angosta (móviles verticales o tablets):
+      if (aspect < 1.0) {
+        // Modo Portrait móvil: alejar la cámara proporcionalmente al ancho disponible
+        const factorEscala = 1.0 / aspect;
+        camera.position.set(11.8 * factorEscala * 0.95, 12.2 * factorEscala * 0.95, 13.6 * factorEscala * 0.95);
+      } else if (aspect < 1.4) {
+        // Laptops compactas / tablets horizontales
+        camera.position.set(13.2, 13.6, 15.2);
+      } else {
+        // Monitores panorámicos estándar (aspect >= 1.4)
+        camera.position.set(11.8, 12.2, 13.6);
+      }
+
       camera.updateProjectionMatrix();
       renderer.setSize(w, h);
     };
+
+    // Ejecución inmediata al montar la escena
+    handleResize();
 
     const resizeObserver = new ResizeObserver(handleResize);
     resizeObserver.observe(container);
@@ -1477,7 +1690,7 @@ export default function GemeloGalponCanvas({
   return (
     <div
       ref={containerRef}
-      className="relative w-full h-full min-h-screen overflow-hidden bg-[#111216] select-none"
+      className="relative w-full h-full min-h-[480px] overflow-hidden bg-slate-900 select-none"
     />
   );
 }
