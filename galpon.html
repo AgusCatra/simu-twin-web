@@ -439,10 +439,11 @@ function crearEstacion(cfg){
 
   // Brazos inclinados hacia los mandos de la máquina (manos al mando en el extremo +Y)
   if(cfg.mandos === 'joysticks_duales'){
+    // Mangos en (±0.36, Y≈1.16): brazos hacia afuera y abajo hasta el mango del pod
     [-1, 1].forEach((s) => {
-      const brazo = box(0.09, 0.26, 0.09, M.chaleco, s*0.27, 1.17, 0.03);
-      brazo.rotation.set(-0.45, 0, -s*0.55);
-      brazo.add(box(0.08, 0.05, 0.10, M.piel, 0, -0.145, 0));                        // Mano al mango
+      const brazo = box(0.09, 0.26, 0.09, M.chaleco, s*0.275, 1.19, 0.033);
+      brazo.rotation.set(-1.99, 0, -s*0.85);
+      brazo.add(box(0.08, 0.05, 0.10, M.piel, 0, 0.115, 0));                       // Mano al mango
       operario.add(brazo);
     });
   } else if(cfg.mandos === 'volante_camion'){
