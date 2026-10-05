@@ -39,77 +39,77 @@ const COTA = {
 const ESTACIONES_CONFIG: Array<ConfiguracionEstacion & { pantallas?: string; mandos?: string }> = [
   {
     id: 'autoelevador',
-    nombre: 'Autoelevador',
+    nombre: 'Autoelevador Industrial',
     tipo: 'autoelevador',
     pos: [6.4, 0, -0.5],
     rotY: 0,
-    color: 0xf59e0b,
+    color: 0x10b981,
     pantallas: 'bi_pantalla',
     mandos: 'volante_industrial',
     detalles: 'Simulador bi-pantalla apaisado paralelo a pared este',
   },
   {
     id: 'pala-frontal',
-    nombre: 'Pala Frontal',
+    nombre: 'Pala Cargadora Frontal / Excavadora Hidráulica',
     tipo: 'pala-frontal',
     pos: [5.5, 0, -4.8],
     rotY: -Math.PI / 4,
-    color: 0xeab308,
+    color: 0x00a887,
     pantallas: 'triple',
     mandos: 'joysticks_duales',
     detalles: 'Esquina noreste a 45°, 3 pantallas espaldas a la esquina',
   },
   {
     id: 'retroexcavadora',
-    nombre: 'Retroexcavadora',
+    nombre: 'Retroexcavadora / Telehandler',
     tipo: 'retroexcavadora',
     pos: [0.0, 0, -5.4],
     rotY: 0,
-    color: 0xf97316,
+    color: 0x10b981,
     pantallas: 'mono',
     mandos: 'volante_industrial',
     detalles: 'Pared norte, monitores hacia la pared, asiento hacia el centro',
   },
   {
     id: 'grua-telescopica',
-    nombre: 'Grúa Telescópica',
+    nombre: 'Grúa Telescópica / Izaje Industrial',
     tipo: 'grua-telescopica',
     pos: [-5.5, 0, -4.8],
     rotY: Math.PI / 4,
-    color: 0x06b6d4,
+    color: 0x0d9488,
     pantallas: 'triple',
     mandos: 'joysticks_duales',
     detalles: 'Esquina noroeste a 45°, 3 pantallas espaldas a la esquina',
   },
   {
     id: 'tractor',
-    nombre: 'Tractor Agrícola',
+    nombre: 'Tractor Agrícola / Implementos',
     tipo: 'tractor',
     pos: [-6.4, 0, -0.5],
     rotY: 0,
-    color: 0x84cc16,
+    color: 0x10b981,
     pantallas: 'bi_pantalla',
     mandos: 'volante_industrial',
     detalles: 'Apaisado paralelo a pared oeste',
   },
   {
     id: 'camion',
-    nombre: 'Camión Pesado',
+    nombre: 'Camión Pesado de Cargas',
     tipo: 'camion',
     pos: [-6.0, 0, 3.8],
     rotY: Math.PI / 2,
-    color: 0x3b82f6,
+    color: 0x047857,
     pantallas: 'triple',
     mandos: 'volante_camion',
     detalles: 'Pared oeste perpendicular con cabina triple',
   },
   {
     id: 'simspray',
-    nombre: 'SimSpray Pintura VR',
+    nombre: 'SimSpray VR · Pintura Industrial',
     tipo: 'simspray',
     pos: [-2.5, 0, 4.8],
     rotY: 0,
-    color: 0xa855f7,
+    color: 0x00a887,
     detalles: 'Tótem interactivo con casco de Realidad Virtual y pistola de pulverizado',
   },
 ];
@@ -254,7 +254,7 @@ export default function GemeloGalponCanvas({
     const height = container.clientHeight || window.innerHeight;
 
     const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 200);
-    camera.position.set(10.5, 9.5, 12.5);
+    camera.position.set(13.0, 13.5, 15.0);
 
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(width, height);
@@ -264,11 +264,12 @@ export default function GemeloGalponCanvas({
     container.appendChild(renderer.domElement);
 
     const controls = new OrbitControls(camera, renderer.domElement);
-    controls.target.set(0, 1.0, 0);
-    controls.enableDamping = true;
-    controls.maxPolarAngle = Math.PI / 2 - 0.02;
-    controls.minDistance = 2;
-    controls.maxDistance = 50;
+    controls.target.set(0, 0.5, 0);
+    controls.enableRotate = false;
+    controls.enablePan = false;
+    controls.enableZoom = false;
+    controls.enableDamping = false;
+    controls.update();
 
     // ═══════════════════════════════════════════════════════════════════
     // ILUMINACIÓN AMBIENTE Y DIRECCIONAL
@@ -1262,8 +1263,8 @@ export default function GemeloGalponCanvas({
     }
 
     function resetCamera() {
-      camera.position.set(10.5, 9.5, 12.5);
-      controls.target.set(0, 1.0, 0);
+      camera.position.set(13.0, 13.5, 15.0);
+      controls.target.set(0, 0.5, 0);
       controls.update();
     }
 

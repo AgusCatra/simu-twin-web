@@ -4,7 +4,6 @@ import React, { useState, useMemo, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import type { FichaTecnicaSimulador, EstadoSimulador } from '@/types/gemelo';
 import {
-  RotateCcw,
   X,
   Tv,
   Gamepad2,
@@ -12,7 +11,6 @@ import {
   GraduationCap,
   Radio,
   CheckCircle,
-  Clock,
   User,
   HelpCircle,
 } from 'lucide-react';
@@ -22,16 +20,16 @@ const GemeloGalponCanvas = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="flex h-full min-h-[600px] w-full flex-col items-center justify-center bg-zinc-950 text-amber-400">
+      <div className="flex h-full min-h-[600px] w-full flex-col items-center justify-center bg-zinc-950 text-emerald-400">
         <div className="relative flex items-center justify-center mb-4">
-          <div className="h-16 w-16 animate-spin rounded-full border-4 border-amber-400/20 border-t-amber-400" />
-          <Radio className="absolute h-6 w-6 animate-pulse text-amber-400" />
+          <div className="h-16 w-16 animate-spin rounded-full border-4 border-emerald-400/20 border-t-emerald-400" />
+          <Radio className="absolute h-6 w-6 animate-pulse text-emerald-400" />
         </div>
         <div className="text-sm font-mono tracking-widest uppercase text-zinc-300">
           Cargando Gemelo Digital SCADA...
         </div>
         <div className="text-xs text-zinc-500 mt-1">
-          Inicializando puestos de simulación y telemetría 3D
+          Inicializando maqueta isométrica del galpón y telemetría 3D
         </div>
       </div>
     ),
@@ -42,7 +40,7 @@ export const SIMULADORES_DEFAULT: FichaTecnicaSimulador[] = [
   {
     id: 'autoelevador',
     codigo: 'SIM-01',
-    nombre: 'Autoelevador Industrial Yale',
+    nombre: 'Autoelevador Industrial',
     tipo: 'autoelevador',
     estado: 'libre',
     especificacionesHardware: {
@@ -61,7 +59,7 @@ export const SIMULADORES_DEFAULT: FichaTecnicaSimulador[] = [
   {
     id: 'pala-frontal',
     codigo: 'SIM-02',
-    nombre: 'Pala Cargadora Frontal CAT 950',
+    nombre: 'Pala Cargadora Frontal / Excavadora Hidráulica',
     tipo: 'pala-frontal',
     estado: 'operando',
     especificacionesHardware: {
@@ -76,13 +74,12 @@ export const SIMULADORES_DEFAULT: FichaTecnicaSimulador[] = [
       'Protocolos de parada de emergencia y control de estabilidad bajo carga máxima',
     ],
     detalles: 'Puesto de alta demanda para obras viales municipales, movimientos de suelo y canteras.',
-    instructor: 'Ing. Carlos Mendoza',
-    horaInicio: '09:15 hs',
+    instructor: 'Instructor en turno: Práctica formativa activa',
   },
   {
     id: 'retroexcavadora',
     codigo: 'SIM-03',
-    nombre: 'Retroexcavadora Mixta JCB 3CX',
+    nombre: 'Retroexcavadora / Telehandler',
     tipo: 'retroexcavadora',
     estado: 'libre',
     especificacionesHardware: {
@@ -101,7 +98,7 @@ export const SIMULADORES_DEFAULT: FichaTecnicaSimulador[] = [
   {
     id: 'grua-telescopica',
     codigo: 'SIM-04',
-    nombre: 'Grúa Móvil Telescópica Liebherr',
+    nombre: 'Grúa Telescópica / Izaje Industrial',
     tipo: 'grua-telescopica',
     estado: 'libre',
     especificacionesHardware: {
@@ -120,7 +117,7 @@ export const SIMULADORES_DEFAULT: FichaTecnicaSimulador[] = [
   {
     id: 'tractor',
     codigo: 'SIM-05',
-    nombre: 'Tractor Agrícola John Deere 7R',
+    nombre: 'Tractor Agrícola / Implementos',
     tipo: 'tractor',
     estado: 'libre',
     especificacionesHardware: {
@@ -139,12 +136,12 @@ export const SIMULADORES_DEFAULT: FichaTecnicaSimulador[] = [
   {
     id: 'camion',
     codigo: 'SIM-06',
-    nombre: 'Camión de Carga Pesada Scania R500',
+    nombre: 'Camión Pesado de Cargas',
     tipo: 'camion',
     estado: 'operando',
     especificacionesHardware: {
       pantallas: 'Triple pantalla panorámica envolvente con retrovisores digitales gran angular',
-      mandos: 'Volante de gran diámetro con retarder, transmisión Scania Opticruise y pedalera completa',
+      mandos: 'Volante de gran diámetro con retarder, selector de transmisión sincronizada y pedalera completa',
       plataforma: 'Cabina neumática con sensación real de transferencia de masa, frenado y acople',
     },
     modulosPedagogicos: [
@@ -154,13 +151,12 @@ export const SIMULADORES_DEFAULT: FichaTecnicaSimulador[] = [
       'Control y reacción del vehículo en calzada húmeda, aquaplaning y niebla densa',
     ],
     detalles: 'Formación profesional para choferes de transporte interurbano, cargas pesadas y sustancias peligrosas.',
-    instructor: 'Prof. Roberto Gómez',
-    horaInicio: '09:00 hs',
+    instructor: 'Instructor en turno: Práctica formativa activa',
   },
   {
     id: 'simspray',
     codigo: 'SIM-07',
-    nombre: 'SimSpray Pintura Industrial & Recubrimientos VR',
+    nombre: 'SimSpray VR · Pintura Industrial',
     tipo: 'simspray',
     estado: 'libre',
     especificacionesHardware: {
@@ -187,7 +183,6 @@ export default function VisorNave3D({
 }: VisorNave3DProps) {
   const [simuladores] = useState<FichaTecnicaSimulador[]>(simuladoresIniciales);
   const [estacionSeleccionadaId, setEstacionSeleccionadaId] = useState<string | null>(null);
-  const [resetCamaraTrigger, setResetCamaraTrigger] = useState<number>(0);
 
   // Mapeo de estados 'operando' vs 'detenido' para Three.js
   const estadosParaCanvas = useMemo(() => {
@@ -213,27 +208,22 @@ export default function VisorNave3D({
     setEstacionSeleccionadaId(id);
   }, []);
 
-  const handleResetearVista = useCallback(() => {
-    setResetCamaraTrigger((prev) => prev + 1);
-  }, []);
-
   const handleCerrarDrawer = useCallback(() => {
     setEstacionSeleccionadaId(null);
   }, []);
 
   return (
     <div className="relative w-full h-full min-h-[600px] overflow-hidden bg-[#111216]">
-      {/* Canvas 3D de Three.js */}
+      {/* Canvas 3D de Three.js con Maqueta Isométrica Fija */}
       <GemeloGalponCanvas
         estados={estadosParaCanvas}
         estacionSeleccionada={estacionSeleccionadaId}
         onSeleccionarEstacion={handleSeleccionarEstacion}
         camaraSeguimiento={false}
-        resetCamaraTrigger={resetCamaraTrigger}
       />
 
       {/* ═══════════════════════════════════════════════════════════════════
-          HUD SUPERIOR LIMPIO — ESTADO EN VIVO Y RESET VISTA
+          HUD SUPERIOR — ESTADO EN VIVO SCADA
       ═══════════════════════════════════════════════════════════════════ */}
       <div className="absolute top-4 left-4 z-20 pointer-events-auto">
         <div className="flex items-center gap-3 rounded-xl border border-zinc-800 bg-zinc-950/85 px-4 py-2.5 shadow-2xl backdrop-blur-md">
@@ -243,7 +233,7 @@ export default function VisorNave3D({
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <span className="font-mono text-xs font-bold uppercase tracking-wider text-amber-400">
+              <span className="font-mono text-xs font-bold uppercase tracking-wider text-emerald-400">
                 SISTEMA EN VIVO // GEMELO DIGITAL SCADA
               </span>
             </div>
@@ -254,21 +244,10 @@ export default function VisorNave3D({
         </div>
       </div>
 
-      <div className="absolute top-4 right-4 z-20 pointer-events-auto flex items-center gap-2">
-        <button
-          onClick={handleResetearVista}
-          className="flex items-center gap-1.5 rounded-xl border border-zinc-700 bg-zinc-950/85 px-3.5 py-2.5 text-xs font-semibold text-zinc-200 shadow-xl backdrop-blur-md transition hover:border-zinc-500 hover:bg-zinc-900 active:scale-95"
-          title="Restablecer posición isométrica original de la cámara"
-        >
-          <RotateCcw className="h-3.5 w-3.5 text-amber-400" />
-          <span>Resetear Vista</span>
-        </button>
-      </div>
-
-      {/* Ayuda táctil en esquina inferior izquierda */}
+      {/* Ayuda interactiva en esquina inferior izquierda */}
       <div className="absolute bottom-4 left-4 z-20 pointer-events-none hidden md:flex items-center gap-2 rounded-lg border border-zinc-800/80 bg-zinc-950/75 px-3 py-1.5 text-[11px] font-mono text-zinc-400 backdrop-blur-sm">
-        <HelpCircle className="h-3.5 w-3.5 text-amber-400" />
-        <span>Hacé clic sobre cualquier máquina en el modelo 3D para abrir su Ficha Técnica</span>
+        <HelpCircle className="h-3.5 w-3.5 text-emerald-400" />
+        <span>Hacé clic sobre cualquier máquina en la maqueta 3D para abrir su Ficha Técnica</span>
       </div>
 
       {/* ═══════════════════════════════════════════════════════════════════
@@ -278,14 +257,14 @@ export default function VisorNave3D({
         <aside
           role="dialog"
           aria-label={`Ficha Técnica ${simuladorSeleccionado.nombre}`}
-          className="absolute top-4 right-4 bottom-4 z-30 w-96 max-w-[calc(100vw-32px)] flex flex-col justify-between rounded-2xl border border-zinc-800 bg-zinc-950/92 p-5 text-zinc-100 shadow-2xl backdrop-blur-xl animate-in slide-in-from-right-4 duration-200"
+          className="absolute top-4 right-4 bottom-4 z-30 w-96 max-w-[calc(100vw-32px)] flex flex-col justify-between rounded-2xl border border-zinc-800/90 bg-zinc-950/95 p-5 text-zinc-100 shadow-2xl backdrop-blur-xl animate-in slide-in-from-right-4 duration-200"
         >
           {/* Cabecera del Drawer */}
           <div>
             <div className="flex items-start justify-between gap-2 border-b border-zinc-800/80 pb-3">
               <div>
                 <div className="flex items-center gap-2 mb-1">
-                  <span className="rounded bg-amber-500/10 border border-amber-500/30 px-2 py-0.5 font-mono text-[10px] font-bold text-amber-400">
+                  <span className="rounded bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.5 font-mono text-[10px] font-bold text-emerald-400">
                     {simuladorSeleccionado.codigo}
                   </span>
                   <span className="text-[10px] uppercase tracking-wider text-zinc-400 font-mono">
@@ -320,17 +299,9 @@ export default function VisorNave3D({
                     </span>
                   </div>
                   {simuladorSeleccionado.instructor && (
-                    <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-zinc-400 border-t border-emerald-900/40 pt-1.5">
-                      <span className="flex items-center gap-1">
-                        <User className="h-3 w-3 text-emerald-400" />
-                        {simuladorSeleccionado.instructor}
-                      </span>
-                      {simuladorSeleccionado.horaInicio && (
-                        <span className="flex items-center gap-1">
-                          <Clock className="h-3 w-3 text-emerald-400" />
-                          Desde {simuladorSeleccionado.horaInicio}
-                        </span>
-                      )}
+                    <div className="mt-2 flex items-center gap-1.5 text-[11px] text-emerald-300/90 border-t border-emerald-900/40 pt-1.5 font-mono">
+                      <User className="h-3 w-3 text-emerald-400 shrink-0" />
+                      <span>{simuladorSeleccionado.instructor}</span>
                     </div>
                   )}
                 </div>
@@ -346,13 +317,13 @@ export default function VisorNave3D({
 
             {/* Bloque: Especificaciones de Hardware */}
             <div className="mt-4 space-y-3">
-              <div className="text-[11px] font-mono uppercase tracking-wider text-amber-400 font-semibold">
+              <div className="text-[11px] font-mono uppercase tracking-wider text-emerald-400 font-semibold">
                 Equipamiento de Cabina
               </div>
 
               <div className="space-y-2 text-xs">
                 <div className="flex items-start gap-2.5 rounded-lg bg-zinc-900/60 border border-zinc-800/80 p-2.5">
-                  <Tv className="h-4 w-4 text-zinc-400 mt-0.5 shrink-0" />
+                  <Tv className="h-4 w-4 text-emerald-400 mt-0.5 shrink-0" />
                   <div>
                     <div className="font-semibold text-zinc-200">Sistema Visual</div>
                     <div className="text-[11px] text-zinc-400 leading-relaxed">
@@ -362,7 +333,7 @@ export default function VisorNave3D({
                 </div>
 
                 <div className="flex items-start gap-2.5 rounded-lg bg-zinc-900/60 border border-zinc-800/80 p-2.5">
-                  <Gamepad2 className="h-4 w-4 text-zinc-400 mt-0.5 shrink-0" />
+                  <Gamepad2 className="h-4 w-4 text-emerald-400 mt-0.5 shrink-0" />
                   <div>
                     <div className="font-semibold text-zinc-200">Mandos & Controles</div>
                     <div className="text-[11px] text-zinc-400 leading-relaxed">
@@ -372,7 +343,7 @@ export default function VisorNave3D({
                 </div>
 
                 <div className="flex items-start gap-2.5 rounded-lg bg-zinc-900/60 border border-zinc-800/80 p-2.5">
-                  <Layers className="h-4 w-4 text-zinc-400 mt-0.5 shrink-0" />
+                  <Layers className="h-4 w-4 text-emerald-400 mt-0.5 shrink-0" />
                   <div>
                     <div className="font-semibold text-zinc-200">Plataforma Háptica</div>
                     <div className="text-[11px] text-zinc-400 leading-relaxed">
@@ -385,7 +356,7 @@ export default function VisorNave3D({
 
             {/* Bloque: Módulos Pedagógicos */}
             <div className="mt-4">
-              <div className="flex items-center gap-1.5 text-[11px] font-mono uppercase tracking-wider text-amber-400 font-semibold mb-2">
+              <div className="flex items-center gap-1.5 text-[11px] font-mono uppercase tracking-wider text-emerald-400 font-semibold mb-2">
                 <GraduationCap className="h-3.5 w-3.5" />
                 <span>Competencias que Entrena</span>
               </div>
@@ -404,7 +375,7 @@ export default function VisorNave3D({
           <div className="mt-5 border-t border-zinc-800/80 pt-3">
             <button
               onClick={handleCerrarDrawer}
-              className="w-full rounded-xl border border-zinc-700 bg-zinc-900 py-2.5 text-xs font-semibold text-zinc-200 transition hover:bg-zinc-800 hover:text-white active:scale-98"
+              className="w-full rounded-xl border border-zinc-700 bg-zinc-900 py-2.5 text-xs font-semibold text-zinc-200 transition hover:bg-emerald-950/30 hover:border-emerald-500/40 hover:text-emerald-300 active:scale-98"
             >
               Cerrar Ficha Técnica
             </button>

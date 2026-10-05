@@ -10,15 +10,15 @@ export default function Footer() {
           {/* Columna 1: Identidad Institucional */}
           <div className="space-y-4">
             <div className="flex items-center gap-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-amber-500/30 bg-amber-500/10">
-                <Cpu className="h-5 w-5 text-amber-400" />
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-emerald-500/30 bg-emerald-500/10">
+                <Cpu className="h-5 w-5 text-emerald-400" />
               </div>
-              <span className="font-mono text-sm font-bold text-white tracking-tight">
-                CENTRO DE SIMULADORES
+              <span className="font-mono text-xs sm:text-sm font-bold text-white tracking-tight">
+                CENTRO DE ENTRENAMIENTO EN SIMULADORES
               </span>
             </div>
             <p className="text-xs text-zinc-400 leading-relaxed">
-              Plataforma municipal de formación tecnológica avanzada para operarios de maquinaria pesada, transporte y logística.
+              Plataforma tecnológica municipal para el desarrollo de competencias operacionales seguras en maquinaria pesada, transporte de carga y pintura industrial.
             </p>
             <div className="flex items-center gap-2 text-xs font-mono text-emerald-400">
               <ShieldCheck className="h-4 w-4" />
@@ -29,14 +29,13 @@ export default function Footer() {
           {/* Columna 2: Ubicación e Infraestructura */}
           <div className="space-y-3">
             <h4 className="font-mono text-xs font-bold uppercase tracking-wider text-zinc-200">
-              Ubicación del Galpón
+              Ubicación Institucional
             </h4>
             <div className="space-y-2 text-xs leading-relaxed">
               <div className="flex items-start gap-2 text-zinc-300">
-                <MapPin className="h-4 w-4 text-amber-400 shrink-0 mt-0.5" />
+                <MapPin className="h-4 w-4 text-emerald-400 shrink-0 mt-0.5" />
                 <span>
-                  Galpón de Entrenamiento Técnico<br />
-                  Parque Industrial La Victoria<br />
+                  Centro Municipal de Simuladores<br />
                   Venado Tuerto, Santa Fe, Argentina
                 </span>
               </div>
@@ -53,27 +52,27 @@ export default function Footer() {
             </h4>
             <ul className="space-y-2 text-xs">
               <li>
-                <span className="text-zinc-300 hover:text-amber-400 transition cursor-default">
+                <span className="text-zinc-300 hover:text-emerald-400 transition cursor-default">
                   Operador Seguro de Autoelevadores
                 </span>
               </li>
               <li>
-                <span className="text-zinc-300 hover:text-amber-400 transition cursor-default">
+                <span className="text-zinc-300 hover:text-emerald-400 transition cursor-default">
                   Pala Cargadora y Movimiento de Suelos
                 </span>
               </li>
               <li>
-                <span className="text-zinc-300 hover:text-amber-400 transition cursor-default">
+                <span className="text-zinc-300 hover:text-emerald-400 transition cursor-default">
                   Conducción Profesional de Camiones
                 </span>
               </li>
               <li>
-                <span className="text-zinc-300 hover:text-amber-400 transition cursor-default">
+                <span className="text-zinc-300 hover:text-emerald-400 transition cursor-default">
                   SimSpray Pintura Industrial en VR
                 </span>
               </li>
               <li>
-                <span className="text-zinc-300 hover:text-amber-400 transition cursor-default">
+                <span className="text-zinc-300 hover:text-emerald-400 transition cursor-default">
                   Izaje y Seguridad en Grúas Telescópicas
                 </span>
               </li>
@@ -95,13 +94,13 @@ export default function Footer() {
               <div className="flex items-center gap-2">
                 <Phone className="h-4 w-4 text-zinc-400 shrink-0" />
                 <span className="text-zinc-300 font-mono text-[11px]">
-                  (03462) 421417 / Int. 240
+                  (03462) 421417 · Conmutador Oficial
                 </span>
               </div>
               <div className="pt-2">
                 <Link
                   href="/admin"
-                  className="inline-flex items-center gap-1.5 text-xs font-mono font-semibold text-amber-400 hover:underline"
+                  className="inline-flex items-center gap-1.5 text-xs font-mono font-semibold text-emerald-400 hover:text-emerald-300 hover:underline"
                 >
                   <span>Portal de Instructores y SCADA</span>
                   <ArrowUpRight className="h-3.5 w-3.5" />

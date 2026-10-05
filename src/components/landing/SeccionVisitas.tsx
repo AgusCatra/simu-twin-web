@@ -94,7 +94,7 @@ export default function SeccionVisitas() {
       <div className="mx-auto max-w-7xl">
         {/* Encabezado General */}
         <div className="mb-14 text-center max-w-3xl mx-auto">
-          <div className="inline-flex items-center gap-2 rounded-full border border-cyan-500/30 bg-cyan-500/10 px-3.5 py-1 text-xs font-mono font-semibold text-cyan-400 mb-3">
+          <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3.5 py-1 text-xs font-mono font-semibold text-emerald-400 mb-3">
             <GraduationCap className="h-3.5 w-3.5" />
             <span>PROGRAMA EDUCATIVO MUNICIPAL</span>
           </div>
@@ -139,7 +139,7 @@ export default function SeccionVisitas() {
                 </div>
 
                 <div className="flex items-start gap-3.5">
-                  <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 font-mono text-xs font-bold shrink-0 mt-0.5">
+                  <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-mono text-xs font-bold shrink-0 mt-0.5">
                     2
                   </div>
                   <div>
@@ -153,7 +153,7 @@ export default function SeccionVisitas() {
                 </div>
 
                 <div className="flex items-start gap-3.5">
-                  <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-purple-500/10 border border-purple-500/30 text-purple-400 font-mono text-xs font-bold shrink-0 mt-0.5">
+                  <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-teal-500/10 border border-teal-500/30 text-teal-400 font-mono text-xs font-bold shrink-0 mt-0.5">
                     3
                   </div>
                   <div>
@@ -175,7 +175,7 @@ export default function SeccionVisitas() {
                       Cierre y Orientación Laboral Municipal (10 min)
                     </h4>
                     <p className="text-xs text-zinc-400 mt-0.5">
-                      Presentación de cursos con salida laboral, articulación con empresas del Parque Industrial y preguntas abiertas.
+                      Presentación de cursos con salida laboral, articulación con empresas del sector productivo y preguntas abiertas.
                     </p>
                   </div>
                 </div>
@@ -186,7 +186,7 @@ export default function SeccionVisitas() {
             <div className="mt-8 border-t border-zinc-800/80 pt-6">
               <Link
                 href="/visitas"
-                className="inline-flex items-center justify-center gap-2 rounded-xl bg-amber-500 hover:bg-amber-400 px-6 py-3 text-xs sm:text-sm font-bold text-zinc-950 shadow-lg shadow-amber-500/20 transition active:scale-98"
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 px-6 py-3 text-xs sm:text-sm font-bold text-zinc-950 shadow-lg shadow-emerald-500/20 transition active:scale-98"
               >
                 <span>Solicitar Turno para Institución Educativa</span>
                 <ArrowRight className="h-4 w-4" />
@@ -200,7 +200,7 @@ export default function SeccionVisitas() {
           {/* Columna 2: Seguimiento de Visita con Código */}
           <div className="lg:col-span-5 flex flex-col justify-between rounded-2xl border border-zinc-800 bg-gradient-to-b from-zinc-900 to-zinc-950 p-6 sm:p-8 backdrop-blur shadow-xl">
             <div>
-              <div className="flex items-center gap-2 text-xs font-mono font-semibold text-cyan-400 uppercase tracking-wider mb-2">
+              <div className="flex items-center gap-2 text-xs font-mono font-semibold text-emerald-400 uppercase tracking-wider mb-2">
                 <FileCheck className="h-4 w-4" />
                 <span>Portal Docente</span>
               </div>
@@ -222,11 +222,11 @@ export default function SeccionVisitas() {
                       setErrorBusqueda(false);
                     }}
                     placeholder="Ej: ESC-2026-042"
-                    className="w-full rounded-xl border border-zinc-700 bg-zinc-950/80 px-4 py-3 text-sm font-mono text-white placeholder-zinc-500 focus:border-cyan-400 focus:outline-none focus:ring-1 focus:ring-cyan-400 shadow-inner uppercase tracking-wider"
+                    className="w-full rounded-xl border border-zinc-700 bg-zinc-950/80 px-4 py-3 text-sm font-mono text-white placeholder-zinc-500 focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400 shadow-inner uppercase tracking-wider"
                   />
                   <button
                     type="submit"
-                    className="absolute right-2 top-2 rounded-lg bg-cyan-500 hover:bg-cyan-400 p-2 text-zinc-950 transition"
+                    className="absolute right-2 top-2 rounded-lg bg-emerald-500 hover:bg-emerald-400 p-2 text-zinc-950 transition"
                     title="Buscar código de visita"
                   >
                     <Search className="h-4 w-4" />
@@ -278,11 +278,11 @@ export default function SeccionVisitas() {
 
                   <div className="space-y-1.5 border-t border-zinc-800/80 pt-2 text-zinc-300">
                     <div className="flex items-center gap-2">
-                      <CalendarCheck className="h-3.5 w-3.5 text-cyan-400 shrink-0" />
+                      <CalendarCheck className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
                       <span><strong>Fecha:</strong> {resultado.fecha}</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Clock className="h-3.5 w-3.5 text-cyan-400 shrink-0" />
+                      <Clock className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
                       <span><strong>Horario:</strong> {resultado.horario}</span>
                     </div>
                   </div>

@@ -12,18 +12,18 @@ export default function Navbar() {
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         {/* Logotipo e Isotipo Institucional */}
         <Link href="/" className="flex items-center gap-3 group">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-amber-500/30 bg-gradient-to-br from-amber-500/20 via-zinc-900 to-zinc-950 shadow-md group-hover:border-amber-400/50 transition">
-            <Cpu className="h-5 w-5 text-amber-400" />
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-emerald-500/30 bg-gradient-to-br from-emerald-500/20 via-zinc-900 to-zinc-950 shadow-md group-hover:border-emerald-400/50 transition">
+            <Cpu className="h-5 w-5 text-emerald-400" />
           </div>
           <div className="flex flex-col">
-            <span className="font-mono text-sm font-bold tracking-tight text-white flex items-center gap-1.5">
-              CENTRO DE SIMULADORES
+            <span className="font-mono text-xs sm:text-sm font-bold tracking-tight text-white flex items-center gap-1.5">
+              CENTRO DE ENTRENAMIENTO EN SIMULADORES
               <span className="text-[10px] font-mono font-semibold px-1.5 py-0.2 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
                 SCADA 3D
               </span>
             </span>
             <span className="text-[11px] font-mono text-zinc-400">
-              Gobierno de Venado Tuerto // Innovación & Empleo
+              Gobierno de Venado Tuerto
             </span>
           </div>
         </Link>
@@ -32,25 +32,25 @@ export default function Navbar() {
         <nav className="hidden md:flex items-center gap-6 text-sm font-medium text-zinc-300">
           <a
             href="#galpon-3d"
-            className="hover:text-amber-400 transition font-mono text-xs uppercase tracking-wider"
+            className="hover:text-emerald-400 transition font-mono text-xs uppercase tracking-wider"
           >
             Gemelo Digital
           </a>
           <a
             href="#metricas"
-            className="hover:text-amber-400 transition font-mono text-xs uppercase tracking-wider"
+            className="hover:text-emerald-400 transition font-mono text-xs uppercase tracking-wider"
           >
             Impacto
           </a>
           <a
             href="#visitas"
-            className="hover:text-amber-400 transition font-mono text-xs uppercase tracking-wider"
+            className="hover:text-emerald-400 transition font-mono text-xs uppercase tracking-wider"
           >
             Visitas Educativas
           </a>
           <a
             href="#capacitaciones"
-            className="hover:text-amber-400 transition font-mono text-xs uppercase tracking-wider"
+            className="hover:text-emerald-400 transition font-mono text-xs uppercase tracking-wider"
           >
             Programas
           </a>
@@ -60,7 +60,7 @@ export default function Navbar() {
         <div className="hidden md:flex items-center gap-3">
           <Link
             href="/admin"
-            className="flex items-center gap-2 rounded-xl border border-zinc-700 bg-zinc-900/80 px-4 py-2 text-xs font-semibold text-zinc-200 transition hover:border-zinc-500 hover:bg-zinc-800 hover:text-white shadow-sm"
+            className="flex items-center gap-2 rounded-xl border border-zinc-700 bg-zinc-900/80 px-4 py-2 text-xs font-semibold text-zinc-200 transition hover:border-emerald-500/50 hover:bg-emerald-950/20 hover:text-emerald-300 shadow-sm"
           >
             <UserCheck className="h-4 w-4 text-emerald-400" />
             <span>Acceso Instructores</span>
@@ -84,28 +84,28 @@ export default function Navbar() {
             <a
               href="#galpon-3d"
               onClick={() => setMobileMenuOpen(false)}
-              className="py-1 hover:text-amber-400 transition font-mono text-xs uppercase"
+              className="py-1 hover:text-emerald-400 transition font-mono text-xs uppercase"
             >
               Gemelo Digital 3D
             </a>
             <a
               href="#metricas"
               onClick={() => setMobileMenuOpen(false)}
-              className="py-1 hover:text-amber-400 transition font-mono text-xs uppercase"
+              className="py-1 hover:text-emerald-400 transition font-mono text-xs uppercase"
             >
               Impacto y Métricas
             </a>
             <a
               href="#visitas"
               onClick={() => setMobileMenuOpen(false)}
-              className="py-1 hover:text-amber-400 transition font-mono text-xs uppercase"
+              className="py-1 hover:text-emerald-400 transition font-mono text-xs uppercase"
             >
               Visitas Educativas y Consulta
             </a>
             <a
               href="#capacitaciones"
               onClick={() => setMobileMenuOpen(false)}
-              className="py-1 hover:text-amber-400 transition font-mono text-xs uppercase"
+              className="py-1 hover:text-emerald-400 transition font-mono text-xs uppercase"
             >
               Programas Técnicos
             </a>
@@ -114,7 +114,7 @@ export default function Navbar() {
             <Link
               href="/admin"
               onClick={() => setMobileMenuOpen(false)}
-              className="flex items-center justify-center gap-2 w-full rounded-xl border border-zinc-700 bg-zinc-900 py-2.5 text-xs font-semibold text-white"
+              className="flex items-center justify-center gap-2 w-full rounded-xl border border-zinc-700 bg-zinc-900 py-2.5 text-xs font-semibold text-white hover:border-emerald-500/50 hover:text-emerald-300"
             >
               <UserCheck className="h-4 w-4 text-emerald-400" />
               <span>Acceso Instructores</span>

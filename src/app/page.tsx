@@ -5,14 +5,14 @@ import SeccionVisitas from '@/components/landing/SeccionVisitas';
 import Footer from '@/components/landing/Footer';
 
 export const metadata = {
-  title: 'Centro de Simuladores — Municipalidad de Venado Tuerto',
+  title: 'Centro de Entrenamiento en Simuladores — Gobierno de Venado Tuerto',
   description:
-    'Centro Municipal de Entrenamiento en Maquinarias Pesadas y Simulación 3D. Capacitación para el empleo, seguridad laboral y visitas educativas escolares.',
+    'Centro Municipal de Entrenamiento en Simuladores de Venado Tuerto. Formación técnica en maquinaria pesada, transporte de cargas y seguridad operacional.',
 };
 
 export default function Home() {
   return (
-    <main className="min-h-screen bg-zinc-950 text-zinc-100 flex flex-col antialiased selection:bg-amber-500/20 selection:text-amber-300">
+    <main className="min-h-screen bg-zinc-950 text-zinc-100 flex flex-col antialiased selection:bg-emerald-500/20 selection:text-emerald-300">
       {/* 1. Barra de Navegación Institucional */}
       <Navbar />
 

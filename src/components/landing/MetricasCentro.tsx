@@ -23,9 +23,9 @@ const METRICAS: MetricaItem[] = [
     subtitulo: 'Tecnología Etech y SimSpray VR',
     descripcion:
       'Equipos de alta fidelidad física con pantallas envolventes de 135°, volante industrial y cascos VR de última generación.',
-    icono: <Monitor className="h-6 w-6 text-amber-400" />,
+    icono: <Monitor className="h-6 w-6 text-emerald-400" />,
     badge: 'Hardware Industrial',
-    colorAcento: 'from-amber-500/20 to-zinc-900',
+    colorAcento: 'from-emerald-500/20 to-zinc-900',
   },
   {
     id: 'horas',
@@ -35,9 +35,9 @@ const METRICAS: MetricaItem[] = [
     subtitulo: 'Capacitación operativa certificada',
     descripcion:
       'Horas acumuladas de maniobra efectiva en retroexcavadoras, grúas, autoelevadores y maquinaria pesada.',
-    icono: <Clock className="h-6 w-6 text-emerald-400" />,
+    icono: <Clock className="h-6 w-6 text-teal-400" />,
     badge: 'Horas Certificadas',
-    colorAcento: 'from-emerald-500/20 to-zinc-900',
+    colorAcento: 'from-teal-500/20 to-zinc-900',
   },
   {
     id: 'escuelas',
@@ -46,9 +46,9 @@ const METRICAS: MetricaItem[] = [
     subtitulo: 'Visitas educativas y vocación',
     descripcion:
       'Instituciones educativas de nivel secundario y técnico que experimentan el circuito pedagógico de simulación.',
-    icono: <School className="h-6 w-6 text-cyan-400" />,
+    icono: <School className="h-6 w-6 text-emerald-400" />,
     badge: 'Articulación Escolar',
-    colorAcento: 'from-cyan-500/20 to-zinc-900',
+    colorAcento: 'from-emerald-500/20 to-zinc-900',
   },
   {
     id: 'seguridad',
@@ -57,9 +57,9 @@ const METRICAS: MetricaItem[] = [
     subtitulo: 'Entrenamiento previo seguro',
     descripcion:
       'Entorno de aprendizaje de riesgo cero: los operarios cometen errores en simulación antes de subir a máquinas reales.',
-    icono: <ShieldCheck className="h-6 w-6 text-purple-400" />,
+    icono: <ShieldCheck className="h-6 w-6 text-amber-400" />,
     badge: 'Riesgo Cero',
-    colorAcento: 'from-purple-500/20 to-zinc-900',
+    colorAcento: 'from-amber-500/20 to-zinc-900',
   },
 ];
 
@@ -69,13 +69,13 @@ export default function MetricasCentro() {
       id="metricas"
       className="relative w-full border-b border-zinc-800 bg-zinc-950 py-20 px-4 sm:px-6 lg:px-8 overflow-hidden"
     >
-      {/* Fondo sutil con gradiente */}
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(245,158,11,0.08),rgba(255,255,255,0))]" />
+      {/* Fondo sutil con gradiente institucional esmeralda */}
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(16,185,129,0.08),rgba(255,255,255,0))]" />
 
       <div className="relative mx-auto max-w-7xl">
         {/* Encabezado de Sección */}
         <div className="text-center max-w-3xl mx-auto mb-14">
-          <div className="inline-flex items-center gap-2 rounded-full border border-amber-500/30 bg-amber-500/10 px-3.5 py-1 text-xs font-mono font-semibold text-amber-400 mb-3">
+          <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3.5 py-1 text-xs font-mono font-semibold text-emerald-400 mb-3">
             <Activity className="h-3.5 w-3.5" />
             <span>DATOS CLAVE // RENDIMIENTO OPERACIONAL</span>
           </div>
@@ -92,7 +92,7 @@ export default function MetricasCentro() {
           {METRICAS.map((m) => (
             <div
               key={m.id}
-              className="relative flex flex-col justify-between rounded-2xl border border-zinc-800/90 bg-gradient-to-b from-zinc-900/90 to-zinc-950/90 p-6 shadow-xl backdrop-blur transition hover:border-zinc-700 hover:shadow-2xl hover:-translate-y-1 duration-200"
+              className="relative flex flex-col justify-between rounded-2xl border border-zinc-800/90 bg-gradient-to-b from-zinc-900/90 to-zinc-950/90 p-6 shadow-xl backdrop-blur transition hover:border-emerald-500/40 hover:shadow-2xl hover:-translate-y-1 duration-200"
             >
               <div>
                 <div className="flex items-center justify-between mb-4">
@@ -118,7 +118,7 @@ export default function MetricasCentro() {
                 <h3 className="text-base font-bold text-zinc-100 mt-2">
                   {m.titulo}
                 </h3>
-                <div className="text-xs font-medium text-amber-400/90 mt-0.5 font-mono">
+                <div className="text-xs font-medium text-emerald-400/90 mt-0.5 font-mono">
                   {m.subtitulo}
                 </div>
               </div>
