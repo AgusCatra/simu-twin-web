@@ -1,6 +1,6 @@
 schema_version: 1
 module_path: ""
-title: Project Root & Build Configuration
+title: Simu-Twin Web Root
 scope:
     - README.md
     - .gitignore

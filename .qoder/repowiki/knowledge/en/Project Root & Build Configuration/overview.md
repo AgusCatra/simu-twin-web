@@ -1,1 +1,0 @@
-Root configuration for the simu-twin-web Next.js application, declaring dependencies, npm scripts, and tooling for TypeScript, ESLint, Tailwind CSS v4, and Turbopack.

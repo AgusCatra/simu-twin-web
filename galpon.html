@@ -8,71 +8,92 @@
   body { overflow:hidden; background:#111; font-family:'Segoe UI', Arial, sans-serif; }
   #ui {
     position:absolute; top:12px; left:12px; z-index:100;
-    background:rgba(15,15,18,.88); color:#eee; padding:12px 16px;
-    border-radius:8px; border:1px solid #333; font-size:13px; line-height:1.6;
-    backdrop-filter: blur(4px); max-width:270px;
+    background:rgba(15,15,18,.92); color:#eee; padding:14px 18px;
+    border-radius:9px; border:1px solid #383a45; font-size:13px; line-height:1.6;
+    backdrop-filter: blur(8px); max-width:310px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.6);
   }
-  #ui h3 { font-size:14px; margin-bottom:8px; color:#ffd75e; }
-  #ui .fila { margin-bottom:6px; }
+  #ui h3 { font-size:13.5px; margin-bottom:8px; color:#ffd75e; text-transform:uppercase; letter-spacing:0.5px; }
+  #ui .fila { margin-bottom:8px; display:flex; gap:6px; }
   #ui .fila button {
-    margin:2px 4px 2px 0; padding:6px 10px; cursor:pointer;
-    background:#2a2a30; color:#eee; border:1px solid #555; border-radius:5px;
-    font-size:11px; font-weight:bold;
+    flex:1; padding:7px 8px; cursor:pointer;
+    background:#222329; color:#eee; border:1px solid #4a4d58; border-radius:5px;
+    font-size:10.5px; font-weight:bold; transition:all 0.2s;
   }
-  #ui .fila button:hover { background:#3a3a44; }
+  #ui .fila button:hover { background:#32343e; }
   #ui .fila button.encender { border-color:#10b981; color:#10b981; }
-  #ui .fila button.apagar   { border-color:#888; }
+  #ui .fila button.encender:hover { background:rgba(16,185,129,0.18); }
+  #ui .fila button.apagar   { border-color:#ef4444; color:#ef4444; }
+  #ui .fila button.apagar:hover { background:rgba(239,68,68,0.18); }
+  #btnEst { margin-bottom:8px; display:flex; flex-direction:column; gap:4px; max-height:230px; overflow-y:auto; }
   #btnEst button {
-    margin:2px 4px 2px 0; padding:5px 10px; cursor:pointer;
-    background:#2a2a30; color:#ccc; border:1px solid #555; border-radius:5px;
-    font-size:11px; display:block; width:100%; text-align:left;
+    padding:6px 10px; cursor:pointer;
+    background:#1b1c21; color:#ccc; border:1px solid #363942; border-radius:5px;
+    font-size:11px; display:flex; align-items:center; justify-content:space-between;
+    width:100%; text-align:left; transition:all 0.2s;
   }
-  #btnEst button:hover { background:#3a3a44; }
-  #btnEst button.activo { border-color:#10b981; color:#10b981; }
-  #ui label { display:inline-flex; align-items:center; gap:5px; margin-right:12px; font-size:12px; color:#bbb; }
-  #ui .ayuda { color:#888; font-size:11px; margin-top:6px; }
+  #btnEst button:hover { background:#2a2b34; color:#fff; border-color:#5c6070; }
+  #btnEst button.activo { border-color:#10b981; color:#10b981; background:rgba(16,185,129,0.14); font-weight:600; }
+  #btnEst button.en-camino { border-color:#f59e0b; color:#f59e0b; background:rgba(245,158,11,0.14); }
+  #ui label { display:inline-flex; align-items:center; gap:5px; margin-right:12px; font-size:11.5px; color:#bbb; cursor:pointer; }
+  #opStatus {
+    margin:8px 0; padding:6px 10px; background:#16171d; border-radius:5px;
+    border-left:3px solid #10b981; font-size:11px; color:#10b981; font-weight:600;
+  }
+  #ui .ayuda { color:#828796; font-size:10.5px; margin-top:8px; line-height:1.4; border-top:1px solid #282a32; padding-top:6px; }
+  #badgeInfo {
+    position:absolute; bottom:12px; right:12px; z-index:100;
+    background:rgba(15,15,18,0.88); color:#f59e0b; font-size:11.5px; font-weight:600;
+    padding:8px 14px; border-radius:6px; border:1px solid #f59e0b; pointer-events:none;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.5);
+  }
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 </head>
 <body>
 <div id="ui">
-  <h3>Centro de Simuladores — Gemelo Digital SCADA</h3>
+  <h3>Centro de Simuladores SCADA</h3>
   <div class="fila">
-    <button id="btnAllOn" class="encender">[ ENCENDER TODA LA NAVE ]</button>
-    <button id="btnAllOff" class="apagar">[ APAGAR TODA LA NAVE ]</button>
+    <button id="btnAllOn" class="encender">[ ENCENDER TODOS ]</button>
+    <button id="btnAllOff" class="apagar">[ APAGAR TODOS ]</button>
   </div>
   <div id="btnEst"></div>
+  <div id="opStatus">🚪 Operarios: En espera en puerta de acceso</div>
   <div>
-    <label><input type="checkbox" id="chkGirar"> Rotación continua</label>
-    <label><input type="checkbox" id="chkRejilla"> Grilla técnica</label>
+    <label><input type="checkbox" id="chkSeguir" checked> Seguir operario</label>
+    <label><input type="checkbox" id="chkGirar"> Girar vista</label>
+    <label><input type="checkbox" id="chkRejilla"> Grilla</label>
   </div>
-  <div class="ayuda">Arrastrar: orbitar · Rueda: zoom · Clic derecho: mover</div>
+  <div class="ayuda">
+    💡 Clic en botón o directamente en el puesto 3D. El operario ingresa por la puerta, cruza la línea amarilla y se sube al simulador.
+  </div>
 </div>
+<div id="badgeInfo">⚠️ Línea Amarilla: Zona de Visitantes (No Pasar) · Simuladores en Sector Operativo</div>
 
 <script>
 // ═══════════════════════════════════════════════════════════════════
-// 1. CONSTANTES DE COTAS (calibradas sobre index.html) Y MATERIALES
+// 1. CONSTANTES DE COTAS Y MATERIALES SCADA
 // ═══════════════════════════════════════════════════════════════════
 const COTA = {
-  SUELO:      0.000,   // Piso base del galpón
-  REJILLA:    0.003,   // GridHelper (+3 mm sobre el piso)
-  LINEA:      0.005,   // Demarcación vial amarilla (+5 mm)
-  CHAPA:      0.540,   // Tapa superior del chasis metálico
-  ALFOMBRA:   0.543,   // Alfombra antideslizante (+3 mm sobre la chapa)
-  COJIN:      0.850,   // Cara superior del cojín de la butaca
-  BUTACA_Z:   0.220,   // Centro de butaca y pods en Z
-  COL_Z:     -0.460,   // Columna hacia los monitores, sin bloquear los pies
-  PEDAL_Z:   -0.150,   // Pedalera entre la columna y la butaca (lado del conductor)
-  POD_X:      0.360,   // Pods de joystick simétricos en X = ±0.360
-  MON_Y:      1.300,   // Altura de centros de monitores (nivel de ojos)
-  MON_FZ:    -1.450,   // Monitor frontal en Z (SPEC nave)
-  MON_RZ:     1.150,   // Monitor trasero bi-pantalla en Z
-  MON_LX:     0.980,   // Monitores laterales en X = ±0.980
-  MON_LZ:    -1.350,   // Monitores laterales en Z
-  MON_ROTY:   0.550,   // Rotación Y de monitores laterales (±0.55 rad ≈ 32°)
-  DISPLAY_Z:  0.027,   // Display: ≥ +0.004 por delante del bisel frontal
-  DELTA:      0.003    // Tolerancia mínima anti Z-fighting (3 mm)
+  SUELO:      0.000,
+  REJILLA:    0.003,
+  LINEA:      0.005,
+  CHAPA:      0.540,
+  ALFOMBRA:   0.543,
+  COJIN:      0.850,
+  BUTACA_Z:   0.220,
+  COL_Z:     -0.460,
+  PEDAL_Z:   -0.150,
+  POD_X:      0.360,
+  MON_Y:      1.300,
+  MON_FZ:    -1.450,
+  MON_RZ:     1.150,
+  MON_LX:     0.980,
+  MON_LZ:    -1.350,
+  MON_ROTY:   0.550,
+  DISPLAY_Z:  0.027,
+  DELTA:      0.003
 };
 
 const M = {
@@ -88,22 +109,25 @@ const M = {
   estop:      new THREE.MeshStandardMaterial({color:0xef4444, roughness:0.4}),
   alfombra:   new THREE.MeshStandardMaterial({color:0x1a1a1c, roughness:1.0}),
   hormigon:   new THREE.MeshStandardMaterial({color:0x222327, roughness:0.95}),
-  vial:       new THREE.MeshStandardMaterial({color:0xd8a012, roughness:0.8}),
-  chaleco:    new THREE.MeshStandardMaterial({color:0xea580c, roughness:0.7}),      // Chaleco reflectivo naranja
-  reflectivo: new THREE.MeshStandardMaterial({color:0x9ca3af, metalness:0.4, roughness:0.3}),
-  cascoOp:    new THREE.MeshStandardMaterial({color:0xeab308, roughness:0.5}),      // Casco del operario
+  sueloVisit: new THREE.MeshStandardMaterial({color:0x2c2d35, roughness:0.92}),
+  sueloOper:  new THREE.MeshStandardMaterial({color:0x1a1b20, roughness:0.96}),
+  vial:       new THREE.MeshStandardMaterial({color:0xf59e0b, roughness:0.65}),
+  vialNegro:  new THREE.MeshStandardMaterial({color:0x151518, roughness:0.85}),
+  chaleco:    new THREE.MeshStandardMaterial({color:0xea580c, roughness:0.7}),
+  reflectivo: new THREE.MeshStandardMaterial({color:0xd1d5db, metalness:0.5, roughness:0.25}),
+  cascoOp:    new THREE.MeshStandardMaterial({color:0xfacc15, roughness:0.45}),
   piel:       new THREE.MeshStandardMaterial({color:0xb97a56, roughness:0.8})
 };
 
 // ═══════════════════════════════════════════════════════════════════
-// 2. ESCENA, CÁMARA, RENDERER Y CONTROLES ORBITALES
+// 2. ESCENA, CÁMARA, RENDERER Y CONTROLES
 // ═══════════════════════════════════════════════════════════════════
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x191a1e);
-scene.fog = new THREE.Fog(0x191a1e, 25, 70);
+scene.background = new THREE.Color(0x17181c);
+scene.fog = new THREE.Fog(0x17181c, 25, 75);
 
 const camera = new THREE.PerspectiveCamera(45, innerWidth/innerHeight, 0.1, 200);
-camera.position.set(12, 10, 14);
+camera.position.set(10.5, 9.5, 12.5);
 
 const renderer = new THREE.WebGLRenderer({antialias:true});
 renderer.setSize(innerWidth, innerHeight);
@@ -117,12 +141,12 @@ controls.target.set(0, 1.0, 0);
 controls.enableDamping = true;
 controls.maxPolarAngle = Math.PI/2 - 0.02;
 controls.minDistance = 2;
-controls.maxDistance = 45;
+controls.maxDistance = 50;
 
 // ═══════════════════════════════════════════════════════════════════
-// 3. ILUMINACIÓN GENERAL DEL GALPÓN
+// 3. ILUMINACIÓN GENERAL
 // ═══════════════════════════════════════════════════════════════════
-scene.add(new THREE.AmbientLight(0x9aa5b5, 0.45));
+scene.add(new THREE.AmbientLight(0x9aa5b5, 0.50));
 
 const key = new THREE.DirectionalLight(0xffffff, 0.95);
 key.position.set(10, 14, 7);
@@ -133,12 +157,12 @@ key.shadow.camera.top = 16;   key.shadow.camera.bottom = -16;
 key.shadow.bias = -0.0004;
 scene.add(key);
 
-const fill = new THREE.DirectionalLight(0x8899bb, 0.30);
+const fill = new THREE.DirectionalLight(0x8899bb, 0.35);
 fill.position.set(-8, 6, -6);
 scene.add(fill);
 
 // ═══════════════════════════════════════════════════════════════════
-// 4. HELPERS GEOMÉTRICOS (idénticos a index.html)
+// 4. HELPERS GEOMÉTRICOS
 // ═══════════════════════════════════════════════════════════════════
 function mesh(geo, mat, x=0, y=0, z=0, cast=true, recv=true){
   const m = new THREE.Mesh(geo, mat);
@@ -149,7 +173,6 @@ function mesh(geo, mat, x=0, y=0, z=0, cast=true, recv=true){
 function box(w,h,d,mat,x,y,z){ return mesh(new THREE.BoxGeometry(w,h,d), mat, x,y,z); }
 function cyl(rt,rb,h,mat,x,y,z,seg=24){ return mesh(new THREE.CylinderGeometry(rt,rb,h,seg), mat, x,y,z); }
 
-// PATRÓN BISAGRA: grupo en el punto de giro; la malla interna a h/2 apoya en Y local = 0.
 function hinge(px, py, pz, rotX){
   const g = new THREE.Group();
   g.position.set(px, py, pz);
@@ -158,51 +181,113 @@ function hinge(px, py, pz, rotX){
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// 5. ENTORNO — PISO DE HORMIGÓN, GRILLA, LÍNEA VIAL Y PUERTA
+// 5. ENTORNO — PISO, GRILLA Y LA LÍNEA AMARILLA CONTINUA DE SEGURIDAD
 // ═══════════════════════════════════════════════════════════════════
-const piso = mesh(new THREE.PlaneGeometry(26, 20), M.hormigon, 0, COTA.SUELO, 0, false, true);
+const piso = mesh(new THREE.PlaneGeometry(28, 22), M.hormigon, 0, COTA.SUELO, 0, false, true);
 piso.rotation.x = -Math.PI/2;
 scene.add(piso);
 
-const grid = new THREE.GridHelper(26, 26, 0x777777, 0x3a3a3d);
+const grid = new THREE.GridHelper(28, 28, 0x555558, 0x2c2c30);
 grid.position.y = COTA.REJILLA;
 grid.visible = false;
 scene.add(grid);
 
-// — Línea de seguridad amarilla que delimita el pasillo central —
-function lineaVial(w, d, x, z){
-  const l = mesh(new THREE.PlaneGeometry(w, d), M.vial, x, COTA.LINEA, z, false, true);
-  l.rotation.x = -Math.PI/2;
-  scene.add(l);
-}
-lineaVial(8.0, 0.12, 0, -6.0);    // Tramo norte del pasillo
-lineaVial(8.0, 0.12, 0,  6.0);    // Tramo sur del pasillo
-lineaVial(0.12, 12.12, -4.0, 0);  // Tramo oeste
-lineaVial(0.12, 12.12,  4.0, 0);  // Tramo este
-lineaVial(2.8, 0.12, 5.4, 5.5);   // Guía hacia la puerta de acceso
+// Helper para trazar texto stencileado en el suelo
+function crearTextoPiso(texto, x, z, rotZ, w, h){
+  const canvas = document.createElement('canvas');
+  canvas.width = 1024; canvas.height = 128;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#f59e0b';
+  ctx.font = 'bold 44px "Segoe UI", Arial, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(texto, 512, 64);
 
-// — Demarcación de puerta de acceso en [6.8, 0, 5.5] —
-lineaVial(0.90, 0.12, 6.8, 5.5);    // Umbral
-lineaVial(0.12, 0.80, 6.35, 5.5);   // Jamba izquierda
-lineaVial(0.12, 0.80, 7.25, 5.5);   // Jamba derecha
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.anisotropy = 4;
+  const m = mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshStandardMaterial({
+    map: tex, transparent: true, opacity: 0.88, roughness: 0.8,
+    polygonOffset: true, polygonOffsetFactor: -1
+  }), x, COTA.LINEA + 0.001, z, false, true);
+  m.rotation.x = -Math.PI/2;
+  m.rotation.z = rotZ;
+  scene.add(m);
+}
+
+// LÍNEA AMARILLA ÚNICA CONTINUA QUE DELIMITA LA ZONA OPERATIVA
+function crearLineaSeguridadUnica(){
+  const g = new THREE.Group();
+  scene.add(g);
+  const esp = 0.14; // 14 cm de ancho
+
+  // Helper para trazar un segmento sólido entre dos puntos (x1,z1) y (x2,z2)
+  function tramo(x1, z1, x2, z2){
+    const dx = x2 - x1;
+    const dz = z2 - z1;
+    const len = Math.hypot(dx, dz);
+    const mx = (x1 + x2) / 2;
+    const mz = (z1 + z2) / 2;
+
+    const b = box(esp, 0.005, len, M.vial, mx, COTA.LINEA, mz);
+    b.rotation.y = -Math.atan2(dz, dx) + Math.PI / 2;
+    g.add(b);
+
+    // Vértice redondeado para empalme perfecto en esquinas
+    const cap = cyl(esp/2, esp/2, 0.005, M.vial, x1, COTA.LINEA, z1, 16);
+    g.add(cap);
+    return b;
+  }
+
+  // Vértices de la línea amarilla continua que bordea TODOS los simuladores
+  const pts = [
+    [ 4.8,  5.8],  // Inicio frente a la puerta de ingreso
+    [ 4.8, -2.4],  // Recto frente a Autoelevador
+    [ 3.4, -3.8],  // Chaflán 45° frente a Pala Frontal
+    [-3.4, -3.8],  // Recto frente a Retroexcavadora
+    [-4.6, -2.4],  // Chaflán 45° frente a Grúa Telescópica
+    [-4.6,  2.8],  // Recto frente a Tractor y Camión
+    [-4.6,  5.8],  // Lateral de SimSpray
+    [-0.6,  5.8]   // Frente de SimSpray
+  ];
+
+  for(let i = 0; i < pts.length - 1; i++){
+    tramo(pts[i][0], pts[i][1], pts[i+1][0], pts[i+1][1]);
+  }
+  // Cap final
+  const last = pts[pts.length - 1];
+  g.add(cyl(esp/2, esp/2, 0.005, M.vial, last[0], COTA.LINEA, last[1], 16));
+
+  // Textos pintados en el suelo para visitantes
+  crearTextoPiso("⚠️ LÍNEA DE SEGURIDAD — ÁREA DE SIMULADORES (PROHIBIDO PASAR)", 0.2, 6.7, 0, 7.8, 0.35);
+
+  // Puerta de acceso peatonal en [6.8, 5.8]
+  const lUmbral = box(1.2, 0.005, esp, M.vial, 6.8, COTA.LINEA, 5.8);
+  g.add(lUmbral);
+  const jambaI = box(esp, 0.005, 0.6, M.vial, 6.2, COTA.LINEA, 5.8);
+  g.add(jambaI);
+  const jambaD = box(esp, 0.005, 0.6, M.vial, 7.4, COTA.LINEA, 5.8);
+  g.add(jambaD);
+
+  crearTextoPiso("ACCESO EXCLUSIVO OPERARIOS", 6.8, 5.2, 0, 1.8, 0.25);
+
+  return g;
+}
 
 // ═══════════════════════════════════════════════════════════════════
-// 6. CONSTRUCTOR DE ESTACIÓN DE CABINA — crearEstacion(config)
-//    Geometría base calibrada de index.html (chasis, butaca, pedales,
-//    volante corregido, pods). Mandos y pantallas según config.
+// 6. CONSTRUCTOR DE CABINA DE SIMULADOR
 // ═══════════════════════════════════════════════════════════════════
 function crearEstacion(cfg){
   const E = new THREE.Group();
+  E.name = 'Estacion_' + cfg.nombre;
   E.position.set(cfg.pos[0], cfg.pos[1], cfg.pos[2]);
   E.rotation.y = cfg.rotY;
   scene.add(E);
 
-  const estStatic = new THREE.Group();   // Torres de monitores + luz (NO vibran)
+  const estStatic = new THREE.Group();
   E.add(estStatic);
-  const DC = new THREE.Group();          // Plataforma móvil: ÚNICA rama que vibra
+  const DC = new THREE.Group();
   E.add(DC);
 
-  // Material de pantalla PROPIO de la estación (estado SCADA libre / en_operacion)
   const matPantalla = new THREE.MeshStandardMaterial({
     color:0x0a0a0a, roughness:0.25, emissive:0x000000, emissiveIntensity:0.0
   });
@@ -233,7 +318,7 @@ function crearEstacion(cfg){
   function torreTrasera(){
     const t = new THREE.Group();
     t.position.set(0, 0, COTA.MON_RZ);
-    t.rotation.y = Math.PI;              // Display orientado hacia la espalda del operario
+    t.rotation.y = Math.PI;
     t.add(box(0.50, 0.04, 0.40, M.negro, 0, 0.02, 0));
     t.add(cyl(0.035, 0.035, 0.98, M.negro, 0, 0.53, 0));
     const m = monitor(0.96, 0.56);
@@ -255,7 +340,6 @@ function crearEstacion(cfg){
     return p;
   }
 
-  // — a) Configuración de pantallas —
   estStatic.add(torreFrontal());
   if(cfg.pantallas === 'bi_pantalla'){ estStatic.add(torreTrasera()); }
   if(cfg.pantallas === 'triple'){
@@ -263,29 +347,26 @@ function crearEstacion(cfg){
     estStatic.add(pedestalLateral( COTA.MON_LX, -COTA.MON_ROTY));
   }
 
-  // — Chasis base plateado con zócalo, ruedas y alfombra (idéntico a index.html) —
+  // Chasis base con alfombra y ruedas
   const chasis = new THREE.Group();
   DC.add(chasis);
   chasis.add(box(1.50, 0.38, 1.40, M.metalClaro, 0, 0.31, 0));
   chasis.add(box(1.58, 0.04, 1.48, M.metalMedio, 0, 0.52, 0));
   chasis.add(box(1.42, 0.10, 1.32, M.metalOscuro, 0, 0.07, 0));
   [[-0.65, 0.60], [0.65, 0.60], [-0.65, -0.60], [0.65, -0.60]].forEach(([x, z]) => {
-    chasis.add(cyl(0.045, 0.045, 0.12, M.metalOscuro, x, 0.06, z));  // Amortiguadores
-    chasis.add(cyl(0.060, 0.060, 0.02, M.goma,        x, 0.01, z));  // Apoyos de goma
+    chasis.add(cyl(0.045, 0.045, 0.12, M.metalOscuro, x, 0.06, z));
+    chasis.add(cyl(0.060, 0.060, 0.02, M.goma,        x, 0.01, z));
   });
-  // Ruedas de transporte (eje X) en los cuatro laterales del zócalo
   [[-0.76,  0.55], [0.76, 0.55], [-0.76, -0.55], [0.76, -0.55]].forEach(([x, z]) => {
     const rueda = cyl(0.070, 0.070, 0.055, M.goma, x, 0.070, z, 20);
-    rueda.rotation.z = Math.PI/2;
-    chasis.add(rueda);
+    rueda.rotation.z = Math.PI/2; chasis.add(rueda);
     const llanta = cyl(0.036, 0.036, 0.062, M.metalOscuro, x, 0.070, z, 14);
-    llanta.rotation.z = Math.PI/2;
-    chasis.add(llanta);
+    llanta.rotation.z = Math.PI/2; chasis.add(llanta);
   });
-  chasis.add(box(0.42, 0.09, 0.006, M.plastico, 0, 0.32, 0.706));    // Panel frontal +3 mm
+  chasis.add(box(0.42, 0.09, 0.006, M.plastico, 0, 0.32, 0.706));
   DC.add(box(1.30, 0.003, 1.20, M.alfombra, 0, COTA.ALFOMBRA - COTA.DELTA/2, 0));
 
-  // — Butaca con fuelle y cinturón (idéntica a index.html) —
+  // Butaca con fuelle y cinturón
   const butaca = new THREE.Group();
   butaca.position.set(0, 0, COTA.BUTACA_Z);
   DC.add(butaca);
@@ -304,7 +385,7 @@ function crearEstacion(cfg){
   cinturon.rotation.z = 0.32;
   bisagraRespaldo.add(cinturon);
 
-  // — Pedalera con bisagra inferior (matemática corregida de index.html) —
+  // Pedalera
   const pedalera = new THREE.Group();
   pedalera.position.set(0, 0, COTA.PEDAL_Z);
   DC.add(pedalera);
@@ -317,40 +398,41 @@ function crearEstacion(cfg){
     pedalera.add(box(0.03, 0.05, 0.02, M.metalOscuro, x, pedalBaseY + 0.02, 0.10));
   });
 
-  // — b) Configuración de mandos —
+  // Mandos según máquina
+  let volanteObj = null;
   if(cfg.mandos === 'volante_industrial'){
     const moduloVolante = new THREE.Group();
     moduloVolante.position.set(0, 0, COTA.COL_Z);
     DC.add(moduloVolante);
     const bisagraCol = hinge(0, COTA.CHAPA, 0, 0.24);
     moduloVolante.add(bisagraCol);
-    bisagraCol.add(box(0.24, 0.72, 0.16, M.metalMedio, 0, 0.36, 0));                  // Mástil
+    bisagraCol.add(box(0.24, 0.72, 0.16, M.metalMedio, 0, 0.36, 0));
     const consola = box(0.44, 0.08, 0.28, M.plastico, 0, 0.51, -0.02);
     bisagraCol.add(consola);
     consola.add(box(0.40, 0.015, 0.22, M.metalOscuro, 0, 0.0475, 0));
     for(let i = 0; i < 5; i++){
       consola.add(cyl(0.018, 0.018, 0.025, M.goma, -0.14 + i*0.07, 0.0675, 0.00, 12));
     }
-    consola.add(cyl(0.036, 0.042, 0.018, M.negro, 0.14, 0.064, -0.07, 16));           // E-stop base
-    consola.add(cyl(0.026, 0.026, 0.028, M.estop, 0.14, 0.087, -0.07, 16));           // E-stop hongo
-    const volante = new THREE.Group();
-    volante.position.set(0, 0.80, 0.28);
-    volante.rotation.x = -0.55;
-    bisagraCol.add(volante);
-    volante.add(mesh(new THREE.TorusGeometry(0.19, 0.022, 12, 40), M.goma));
-    volante.add(cyl(0.055, 0.055, 0.04, M.plastico, 0, 0, 0).rotateX(Math.PI/2));
+    consola.add(cyl(0.036, 0.042, 0.018, M.negro, 0.14, 0.064, -0.07, 16));
+    consola.add(cyl(0.026, 0.026, 0.028, M.estop, 0.14, 0.087, -0.07, 16));
+    
+    volanteObj = new THREE.Group();
+    volanteObj.position.set(0, 0.80, 0.28);
+    volanteObj.rotation.x = -0.55;
+    bisagraCol.add(volanteObj);
+    volanteObj.add(mesh(new THREE.TorusGeometry(0.19, 0.022, 12, 40), M.goma));
+    volanteObj.add(cyl(0.055, 0.055, 0.04, M.plastico, 0, 0, 0).rotateX(Math.PI/2));
     for(let k = 0; k < 3; k++){
       const a = Math.PI + k * Math.PI*2/3;
       const radio = box(0.028, 0.15, 0.03, M.plastico, Math.sin(a)*0.12, Math.cos(a)*0.12, 0);
       radio.rotation.z = -a;
-      volante.add(radio);
+      volanteObj.add(radio);
     }
     const tramoColumna = cyl(0.028, 0.028, 0.22, M.metalMedio, 0, 0, -0.13, 16);
     tramoColumna.rotation.x = Math.PI/2;
-    volante.add(tramoColumna);
-    volante.add(mesh(new THREE.SphereGeometry(0.03, 14, 10), M.negro, 0, 0.19, 0));   // Perilla de agarre
+    volanteObj.add(tramoColumna);
+    volanteObj.add(mesh(new THREE.SphereGeometry(0.03, 14, 10), M.negro, 0, 0.19, 0));
 
-    // Bloque de 4 palancas hidráulicas laterales (lado derecho del asiento)
     const bloque = box(0.16, 0.08, 0.34, M.metalOscuro, 0.34, COTA.ALFOMBRA + 0.04, 0.10);
     DC.add(bloque);
     for(let i = 0; i < 4; i++){
@@ -383,9 +465,9 @@ function crearEstacion(cfg){
     const moduloVolante = new THREE.Group();
     moduloVolante.position.set(0, 0, COTA.COL_Z);
     DC.add(moduloVolante);
-    const bisagraCol = hinge(0, COTA.CHAPA, 0, 0.45);                                 // Columna más acostada
+    const bisagraCol = hinge(0, COTA.CHAPA, 0, 0.45);
     moduloVolante.add(bisagraCol);
-    bisagraCol.add(box(0.24, 0.55, 0.16, M.metalMedio, 0, 0.275, 0));                 // Mástil corto
+    bisagraCol.add(box(0.24, 0.55, 0.16, M.metalMedio, 0, 0.275, 0));
     const consola = box(0.44, 0.08, 0.28, M.plastico, 0, 0.53, -0.02);
     bisagraCol.add(consola);
     consola.add(box(0.40, 0.015, 0.22, M.metalOscuro, 0, 0.0475, 0));
@@ -394,94 +476,51 @@ function crearEstacion(cfg){
     }
     consola.add(cyl(0.036, 0.042, 0.018, M.negro, 0.14, 0.064, -0.07, 16));
     consola.add(cyl(0.026, 0.026, 0.028, M.estop, 0.14, 0.087, -0.07, 16));
-    // Volante de gran diámetro (R = 0.24) casi horizontal, centro bajo Y ≈ 1.02
-    const volante = new THREE.Group();
-    volante.position.set(0, 0.62, 0.18);
-    volante.rotation.x = -0.12;
-    bisagraCol.add(volante);
-    volante.add(mesh(new THREE.TorusGeometry(0.24, 0.026, 12, 44), M.goma));
-    volante.add(cyl(0.06, 0.06, 0.05, M.plastico, 0, 0, 0).rotateX(Math.PI/2));
+
+    volanteObj = new THREE.Group();
+    volanteObj.position.set(0, 0.62, 0.18);
+    volanteObj.rotation.x = -0.12;
+    bisagraCol.add(volanteObj);
+    volanteObj.add(mesh(new THREE.TorusGeometry(0.24, 0.026, 12, 44), M.goma));
+    volanteObj.add(cyl(0.06, 0.06, 0.05, M.plastico, 0, 0, 0).rotateX(Math.PI/2));
     for(let k = 0; k < 4; k++){
       const a = k * Math.PI/2;
       const radio = box(0.030, 0.20, 0.03, M.plastico, Math.sin(a)*0.155, Math.cos(a)*0.155, 0);
       radio.rotation.z = -a;
-      volante.add(radio);
+      volanteObj.add(radio);
     }
     const ejeCamion = cyl(0.030, 0.030, 0.28, M.metalMedio, 0, 0, -0.16, 16);
     ejeCamion.rotation.x = Math.PI/2;
-    volante.add(ejeCamion);
-    volante.add(mesh(new THREE.SphereGeometry(0.034, 14, 10), M.negro, 0, 0.24, 0));   // Perilla de agarre
+    volanteObj.add(ejeCamion);
+    volanteObj.add(mesh(new THREE.SphereGeometry(0.034, 14, 10), M.negro, 0, 0.24, 0));
 
-    // Palanca de cambios vertical al piso (lado derecho)
     const bisagraCambio = hinge(0.30, COTA.ALFOMBRA, 0.05, 0.10);
     DC.add(bisagraCambio);
-    bisagraCambio.add(cyl(0.045, 0.060, 0.10, M.goma, 0, 0.05, 0, 14));               // Fuelle de piso
-    bisagraCambio.add(cyl(0.020, 0.020, 0.42, M.metalClaro, 0, 0.28, 0, 12));         // Palo
-    bisagraCambio.add(mesh(new THREE.SphereGeometry(0.038, 14, 10), M.negro, 0, 0.50, 0)); // Pomo
+    bisagraCambio.add(cyl(0.045, 0.060, 0.10, M.goma, 0, 0.05, 0, 14));
+    bisagraCambio.add(cyl(0.020, 0.020, 0.42, M.metalClaro, 0, 0.28, 0, 12));
+    bisagraCambio.add(mesh(new THREE.SphereGeometry(0.038, 14, 10), M.negro, 0, 0.50, 0));
   }
 
-  // — Operario low-poly (hijo de la butaca: vibra sentado con el cockpit) —
-  const operario = new THREE.Group();
-  operario.visible = false;
-  butaca.add(operario);
-  operario.add(box(0.14, 0.10, 0.36, M.negro, -0.09, 0.90, 0.02));                  // Muslos
-  operario.add(box(0.14, 0.10, 0.36, M.negro,  0.09, 0.90, 0.02));
-  operario.add(box(0.12, 0.30, 0.12, M.negro, -0.09, 0.70, -0.22));                  // Pantorrillas
-  operario.add(box(0.12, 0.30, 0.12, M.negro,  0.09, 0.70, -0.22));
-  operario.add(box(0.12, 0.06, 0.24, M.goma, -0.09, 0.585, -0.30));                  // Zapatos
-  operario.add(box(0.12, 0.06, 0.24, M.goma,  0.09, 0.585, -0.30));
-  operario.add(box(0.34, 0.44, 0.22, M.chaleco, 0, 1.06, 0.13));                     // Tronco con chaleco
-  operario.add(box(0.35, 0.035, 0.225, M.reflectivo, 0, 0.98, 0.13));                // Cinta reflectiva 1
-  operario.add(box(0.35, 0.035, 0.225, M.reflectivo, 0, 1.10, 0.13));                // Cinta reflectiva 2
-  operario.add(box(0.16, 0.15, 0.15, M.piel, 0, 1.335, 0.13));                       // Cabeza
-  operario.add(mesh(new THREE.SphereGeometry(0.095, 18, 12, 0, Math.PI*2, 0, Math.PI/2), M.cascoOp, 0, 1.41, 0.13));
-  operario.add(box(0.13, 0.012, 0.06, M.cascoOp, 0, 1.378, 0.215));                  // Visera del casco
-
-  // Brazos inclinados hacia los mandos de la máquina (manos al mando en el extremo +Y)
-  if(cfg.mandos === 'joysticks_duales'){
-    // Mangos en (±0.36, Y≈1.16): brazos hacia afuera y abajo hasta el mango del pod
-    [-1, 1].forEach((s) => {
-      const brazo = box(0.09, 0.26, 0.09, M.chaleco, s*0.275, 1.19, 0.033);
-      brazo.rotation.set(-1.99, 0, -s*0.85);
-      brazo.add(box(0.08, 0.05, 0.10, M.piel, 0, 0.115, 0));                       // Mano al mango
-      operario.add(brazo);
-    });
-  } else if(cfg.mandos === 'volante_camion'){
-    // Volante horizontal grande y bajo (Y ≈ 1.02): brazos descendiendo al aro
-    [-1, 1].forEach((s) => {
-      const brazo = box(0.09, 0.37, 0.09, M.chaleco, s*0.20, 1.17, -0.08);
-      brazo.rotation.set(-1.85, 0, -s*0.055);
-      brazo.add(box(0.08, 0.05, 0.10, M.piel, 0, 0.175, 0));                        // Mano al aro
-      operario.add(brazo);
-    });
-  } else {
-    // Volante industrial alto (Y ≈ 1.25): manos al aro en posición 10 y 2
-    [-1, 1].forEach((s) => {
-      const brazo = box(0.09, 0.36, 0.09, M.chaleco, s*0.18, 1.27, -0.07);
-      brazo.rotation.set(-1.29, 0, s*0.06);
-      brazo.add(box(0.08, 0.05, 0.10, M.piel, 0, 0.175, 0));                        // Mano al aro
-      operario.add(brazo);
-    });
-  }
-
-  // — Casco descansando sobre el asiento (estado 'libre') —
+  // Casco descansando en la butaca cuando la máquina está libre
   const cascoButaca = new THREE.Group();
   cascoButaca.position.set(0.06, COTA.COJIN, 0.06);
   butaca.add(cascoButaca);
   cascoButaca.add(mesh(new THREE.SphereGeometry(0.105, 20, 14, 0, Math.PI*2, 0, Math.PI/2), M.cascoOp));
-  cascoButaca.add(box(0.16, 0.012, 0.08, M.cascoOp, 0, -0.002, 0.095));              // Visera
+  cascoButaca.add(box(0.16, 0.012, 0.08, M.cascoOp, 0, -0.002, 0.095));
 
   return {
-    nombre: cfg.nombre, grupo: E, DC: DC, matPantalla: matPantalla, luz: luz,
-    operario: operario, cascoButaca: cascoButaca, seed: cfg.seed, enOperacion: false
+    nombre: cfg.nombre, cfg: cfg, grupo: E, DC: DC, butaca: butaca,
+    matPantalla: matPantalla, luz: luz, volanteObj: volanteObj,
+    cascoButaca: cascoButaca, seed: cfg.seed, enOperacion: false
   };
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// 7. ESTACIÓN 7 — PUESTO ESPECIAL SIMSPRAY PINTURA VR (de pie)
+// 7. ESTACIÓN 7 — SIMSPRAY PINTURA VR (CON CASCO VR Y PISTOLA)
 // ═══════════════════════════════════════════════════════════════════
 function crearSimspray(cfg){
   const E = new THREE.Group();
+  E.name = 'Estacion_' + cfg.nombre;
   E.position.set(cfg.pos[0], cfg.pos[1], cfg.pos[2]);
   E.rotation.y = cfg.rotY;
   scene.add(E);
@@ -493,37 +532,37 @@ function crearSimspray(cfg){
   luz.position.set(0.4, 1.9, 0.6);
   E.add(luz);
 
-  // Tótem vertical metálico estilizado 0.45 × 1.65 × 0.30, color oscuro
-  E.add(box(0.55, 0.04, 0.40, M.metalOscuro, 0, 0.02, 0));                // Base
-  E.add(box(0.45, 1.65, 0.30, M.metalOscuro, 0, 0.865, 0));               // Cuerpo del tótem
-  E.add(box(0.47, 0.03, 0.32, M.plastico, 0, 1.70, 0));                   // Remate superior
+  // Tótem instructor vertical
+  E.add(box(0.55, 0.04, 0.40, M.metalOscuro, 0, 0.02, 0));
+  E.add(box(0.45, 1.65, 0.30, M.metalOscuro, 0, 0.865, 0));
+  E.add(box(0.47, 0.03, 0.32, M.plastico, 0, 1.70, 0));
 
-  // Pantalla táctil vertical del instructor en la cara frontal superior
-  E.add(box(0.40, 0.56, 0.015, M.negro, 0, 1.26, 0.150));                 // Marco: cara frontal 0.1575
-  const tactil = box(0.36, 0.50, 0.02, matPantalla, 0, 1.26, 0.168);      // Display a contacto exacto
+  // Pantalla táctil vertical del instructor
+  E.add(box(0.40, 0.56, 0.015, M.negro, 0, 1.26, 0.150));
+  const tactil = box(0.36, 0.50, 0.02, matPantalla, 0, 1.26, 0.168);
   tactil.rotation.x = -0.12;
   E.add(tactil);
 
-  // Soporte lateral (derecha) para visor VR colgado
-  E.add(box(0.30, 0.03, 0.05, M.metalMedio, 0.37, 1.15, 0.05));          // Brazo
-  E.add(box(0.17, 0.02, 0.03, M.metalClaro, 0.50, 1.12, 0.05));          // Gancho
-  const visor = box(0.18, 0.11, 0.09, M.negro, 0.50, 1.03, 0.05);        // Visor VR
+  // Soporte lateral para visor VR
+  E.add(box(0.30, 0.03, 0.05, M.metalMedio, 0.37, 1.15, 0.05));
+  E.add(box(0.17, 0.02, 0.03, M.metalClaro, 0.50, 1.12, 0.05));
+  const visor = box(0.18, 0.11, 0.09, M.negro, 0.50, 1.03, 0.05);
   visor.rotation.y = 0.10;
   E.add(visor);
-  E.add(box(0.19, 0.015, 0.02, M.goma, 0.50, 1.095, 0.05));              // Correa superior
-  E.add(box(0.15, 0.06, 0.008, M.plastico, 0.50, 1.03, 0.096));          // Frente óptico
+  E.add(box(0.19, 0.015, 0.02, M.goma, 0.50, 1.095, 0.05));
+  E.add(box(0.15, 0.06, 0.008, M.plastico, 0.50, 1.03, 0.096));
 
-  // Pistola aerográfica colgada del lateral izquierdo
-  E.add(box(0.05, 0.02, 0.12, M.metalClaro, -0.245, 1.16, 0.08));        // Gancho de la pistola
+  // Pistola aerográfica colgada
+  E.add(box(0.05, 0.02, 0.12, M.metalClaro, -0.245, 1.16, 0.08));
   const pistola = new THREE.Group();
   pistola.position.set(-0.245, 1.05, 0.08);
   E.add(pistola);
-  pistola.add(box(0.05, 0.14, 0.05, M.metalClaro, 0, 0, 0));             // Cuerpo
-  pistola.add(cyl(0.012, 0.016, 0.08, M.metalMedio, 0, -0.10, 0, 12));   // Boquilla airless
-  pistola.add(box(0.02, 0.05, 0.03, M.negro, 0, 0.04, -0.035));          // Gatillo
-  pistola.add(cyl(0.018, 0.018, 0.05, M.goma, 0, 0.095, 0, 12));         // Empuñadura superior
+  pistola.add(box(0.05, 0.14, 0.05, M.metalClaro, 0, 0, 0));
+  pistola.add(cyl(0.012, 0.016, 0.08, M.metalMedio, 0, -0.10, 0, 12));
+  pistola.add(box(0.02, 0.05, 0.03, M.negro, 0, 0.04, -0.035));
+  pistola.add(cyl(0.018, 0.018, 0.05, M.goma, 0, 0.095, 0, 12));
 
-  // Manguera curva: del pie del tótem a la pistola (curva Catmull-Rom)
+  // Manguera flexible
   const puntos = [
     new THREE.Vector3(-0.20, 0.05, 0.14),
     new THREE.Vector3(-0.34, 0.05, 0.10),
@@ -533,57 +572,479 @@ function crearSimspray(cfg){
   ];
   E.add(mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(puntos), 40, 0.014, 10), M.goma));
 
-  // Caballete frontal a 1.0 m del tótem con probeta de chapa
+  // Caballete con probeta de chapa frente al tótem
   const caballete = new THREE.Group();
   caballete.position.set(0, 0, -1.0);
   E.add(caballete);
   const pataI = box(0.05, 0.78, 0.05, M.metalMedio, -0.24, 0.39, -0.10);
-  pataI.rotation.x = 0.18;
-  caballete.add(pataI);
+  pataI.rotation.x = 0.18; caballete.add(pataI);
   const pataD = box(0.05, 0.78, 0.05, M.metalMedio, 0.24, 0.39, -0.10);
-  pataD.rotation.x = 0.18;
-  caballete.add(pataD);
+  pataD.rotation.x = 0.18; caballete.add(pataD);
   caballete.add(box(0.05, 0.78, 0.05, M.metalMedio, -0.24, 0.39, 0.10));
   caballete.add(box(0.05, 0.78, 0.05, M.metalMedio, 0.24, 0.39, 0.10));
-  caballete.add(box(0.60, 0.04, 0.42, M.metalOscuro, 0, 0.76, 0));       // Tablero
-  const probeta = box(0.45, 0.60, 0.008, M.metalClaro, 0, 1.08, 0.05);   // Chapa de práctica
+  caballete.add(box(0.60, 0.04, 0.42, M.metalOscuro, 0, 0.76, 0));
+  const probeta = box(0.45, 0.60, 0.008, M.metalClaro, 0, 1.08, 0.05);
   probeta.rotation.x = -0.03;
   caballete.add(probeta);
 
   return {
-    nombre: cfg.nombre, grupo: E, DC: null, matPantalla: matPantalla, luz: luz,
-    operario: null, cascoButaca: null, seed: cfg.seed, enOperacion: false
+    nombre: cfg.nombre, cfg: cfg, grupo: E, DC: null, butaca: null,
+    matPantalla: matPantalla, luz: luz, volanteObj: null,
+    visorColgado: visor, pistolaColgada: pistola,
+    cascoButaca: null, seed: cfg.seed, enOperacion: false
   };
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// 8. MATRIZ DE LA NAVE — INSTANCIACIÓN DE LAS 7 ESTACIONES
+// 8. CONFIGURACIÓN Y REPOSICIONAMIENTO EXACTO DE SIMULADORES
 // ═══════════════════════════════════════════════════════════════════
+// 1. Autoelevador: apaisado paralelo a pared este
+// 2. Pala Frontal: en esquina noreste a 45°, 3 teles dan espalda a la esquina
+// 3. Retroexcavadora: en pared norte, monitor espalda a la pared, asiento espalda al centro
+// 4. Grúa Telescópica: en esquina noroeste a 45°, 3 monitores espalda a la esquina
+// 5. Tractor Agrícola: apaisado paralelo a pared oeste (misma manera que autoelevador)
+// 6. Camión Pesado: en pared oeste tal como estaba perfecto
+// 7. SimSpray: realidad virtual con visor y pistola
 const ESTACIONES = [
-  {nombre:'Autoelevador',        pos:[ 6.2, 0,  0.5], rotY:-Math.PI/2,     pantallas:'bi_pantalla',       mandos:'volante_industrial'},
-  {nombre:'Pala Frontal',        pos:[ 5.5, 0, -4.2], rotY:-3*Math.PI/4,   pantallas:'triple',           mandos:'joysticks_duales'},
-  {nombre:'Retroexcavadora',     pos:[ 0.0, 0, -4.8], rotY:Math.PI,        pantallas:'mono',             mandos:'volante_industrial'},
-  {nombre:'Grúa Telescópica',    pos:[-5.5, 0, -4.2], rotY: 3*Math.PI/4,   pantallas:'triple',           mandos:'joysticks_duales'},
-  {nombre:'Tractor Agrícola',    pos:[-6.2, 0,  0.5], rotY: Math.PI/2,     pantallas:'bi_pantalla',       mandos:'volante_industrial'},
-  {nombre:'Camión Pesado',       pos:[-6.0, 0,  4.0], rotY: Math.PI/2,     pantallas:'triple',           mandos:'volante_camion'},
-  {nombre:'SimSpray Pintura VR', pos:[-2.5, 0,  5.0], rotY: 0,             tipo:'simspray'}
+  {nombre:'Autoelevador',        pos:[ 6.4, 0, -0.5], rotY: 0,              pantallas:'bi_pantalla', mandos:'volante_industrial'},
+  {nombre:'Pala Frontal',        pos:[ 5.5, 0, -4.8], rotY:-Math.PI/4,      pantallas:'triple',      mandos:'joysticks_duales'},
+  {nombre:'Retroexcavadora',     pos:[ 0.0, 0, -5.4], rotY: 0,              pantallas:'mono',        mandos:'volante_industrial'},
+  {nombre:'Grúa Telescópica',    pos:[-5.5, 0, -4.8], rotY: Math.PI/4,      pantallas:'triple',      mandos:'joysticks_duales'},
+  {nombre:'Tractor Agrícola',    pos:[-6.4, 0, -0.5], rotY: 0,              pantallas:'bi_pantalla', mandos:'volante_industrial'},
+  {nombre:'Camión Pesado',       pos:[-6.0, 0,  3.8], rotY: Math.PI/2,      pantallas:'triple',      mandos:'volante_camion'},
+  {nombre:'SimSpray Pintura VR', pos:[-2.5, 0,  4.8], rotY: 0,              tipo:'simspray'}
 ];
 
+// Dibujar la única línea amarilla continua de seguridad
+crearLineaSeguridadUnica();
+
+// Instanciar los 7 simuladores
 const INSTANCIAS = ESTACIONES.map((cfg, i) => {
   const c = Object.assign({seed: i * 1.7}, cfg);
   return c.tipo === 'simspray' ? crearSimspray(c) : crearEstacion(c);
 });
-
-// Exposición para inspección en consola del navegador
 window.nave = INSTANCIAS;
 
 // ═══════════════════════════════════════════════════════════════════
-// 9. ESTADOS SCADA Y PANEL HUD
+// 9. OPERARIOS MÓVILES INDIVIDUALES (SISTEMA MULTI-OPERARIO)
+//    Cuando se enciende un simulador, entra un operario desde la puerta,
+//    cruza la línea amarilla, se sube correctamente orientado y opera.
 // ═══════════════════════════════════════════════════════════════════
-function setEstado(inst, enOperacion){
+function crearOperario(id, colorChaleco=0xea580c){
+  const root = new THREE.Group();
+  root.name = 'Operario_' + id;
+  root.visible = false;
+  scene.add(root);
+
+  // Ubicación inicial en el umbral de la puerta
+  root.position.set(6.8, 0, 6.0);
+  root.rotation.y = -Math.PI/2;
+
+  const pelvis = new THREE.Group();
+  pelvis.position.y = 0.92;
+  root.add(pelvis);
+
+  // Tronco con chaleco reflectivo
+  const matChaleco = new THREE.MeshStandardMaterial({color: colorChaleco, roughness: 0.7});
+  const torso = new THREE.Group();
+  pelvis.add(torso);
+  const pecho = box(0.34, 0.44, 0.22, matChaleco, 0, 0.22, 0);
+  torso.add(pecho);
+  torso.add(box(0.35, 0.035, 0.225, M.reflectivo, 0, 0.14, 0));
+  torso.add(box(0.35, 0.035, 0.225, M.reflectivo, 0, 0.28, 0));
+
+  // Cabeza y casco
+  // NOTA: El frente de la persona mira hacia +Z local (visera en +0.085)
+  const cuello = cyl(0.05, 0.05, 0.08, M.piel, 0, 0.48, 0);
+  torso.add(cuello);
+  const cabeza = box(0.16, 0.15, 0.15, M.piel, 0, 0.58, 0);
+  torso.add(cabeza);
+  const casco = mesh(new THREE.SphereGeometry(0.098, 18, 12, 0, Math.PI*2, 0, Math.PI/2), M.cascoOp, 0, 0.65, 0);
+  torso.add(casco);
+  const visera = box(0.13, 0.012, 0.06, M.cascoOp, 0, 0.62, 0.085);
+  torso.add(visera);
+
+  // Visor VR en la cabeza (para SimSpray)
+  const visorVR = box(0.18, 0.10, 0.09, M.negro, 0, 0.58, 0.09);
+  visorVR.visible = false;
+  torso.add(visorVR);
+
+  // Brazos
+  function crearBrazo(esIzq){
+    const s = esIzq ? -1 : 1;
+    const hombro = new THREE.Group();
+    hombro.position.set(s * 0.21, 0.38, 0);
+    torso.add(hombro);
+
+    const brazoSup = box(0.085, 0.22, 0.085, matChaleco, 0, -0.11, 0);
+    hombro.add(brazoSup);
+
+    const codo = new THREE.Group();
+    codo.position.set(0, -0.22, 0);
+    hombro.add(codo);
+
+    const antebrazo = box(0.075, 0.20, 0.075, M.piel, 0, -0.10, 0);
+    codo.add(antebrazo);
+    const mano = box(0.065, 0.065, 0.065, M.piel, 0, -0.21, 0);
+    codo.add(mano);
+
+    return { hombro, codo, antebrazo, mano };
+  }
+  const brazoIzq = crearBrazo(true);
+  const brazoDer = crearBrazo(false);
+
+  // Pistola aerográfica en mano derecha (para SimSpray)
+  const pistolaMano = new THREE.Group();
+  pistolaMano.position.set(0, -0.21, 0.08);
+  pistolaMano.add(box(0.04, 0.12, 0.04, M.metalClaro, 0, 0, 0));
+  pistolaMano.add(cyl(0.010, 0.014, 0.07, M.metalMedio, 0, -0.08, 0, 10));
+  pistolaMano.visible = false;
+  brazoDer.codo.add(pistolaMano);
+
+  // Piernas
+  function crearPierna(esIzq){
+    const s = esIzq ? -1 : 1;
+    const cadera = new THREE.Group();
+    cadera.position.set(s * 0.10, 0, 0);
+    pelvis.add(cadera);
+
+    const muslo = box(0.12, 0.42, 0.12, M.negro, 0, -0.21, 0);
+    cadera.add(muslo);
+
+    const rodilla = new THREE.Group();
+    rodilla.position.set(0, -0.42, 0);
+    cadera.add(rodilla);
+
+    const pantorrilla = box(0.10, 0.40, 0.10, M.negro, 0, -0.20, 0);
+    rodilla.add(pantorrilla);
+
+    const bota = box(0.11, 0.08, 0.22, M.goma, 0, -0.41, 0.05);
+    rodilla.add(bota);
+
+    return { cadera, rodilla, bota };
+  }
+  const piernaIzq = crearPierna(true);
+  const piernaDer = crearPierna(false);
+
+  return {
+    id, root, pelvis, torso, brazoIzq, brazoDer, piernaIzq, piernaDer,
+    pistolaMano, visorVR,
+    estado: 'inactivo',       // 'inactivo' | 'caminando' | 'subiendo' | 'operando' | 'bajando' | 'saliendo'
+    estacion: null,
+    ruta: [],
+    idxRuta: 0,
+    fasePaso: 0,
+    progresoSubida: 0,
+    progresoBajada: 0,
+    posInicioAccion: new THREE.Vector3(),
+    rotInicioAccion: 0
+  };
+}
+
+// Creamos un operario individual para cada una de las 7 estaciones
+const OPERARIOS = INSTANCIAS.map((inst, i) => {
+  return crearOperario(i);
+});
+
+// Puntos clave de acceso con rotación correcta para que la persona mire hacia el frente (volante y pantallas)
+function getPuntosEstacion(cfg){
+  const aMundo = (lx, ly, lz) => {
+    const v = new THREE.Vector3(lx, ly, lz);
+    v.applyAxisAngle(new THREE.Vector3(0, 1, 0), cfg.rotY);
+    v.add(new THREE.Vector3(cfg.pos[0], cfg.pos[1], cfg.pos[2]));
+    return v;
+  };
+
+  if(cfg.tipo === 'simspray'){
+    return {
+      acceso: aMundo(0, 0, 1.2),       // Frente a la probeta
+      subida: aMundo(0, 0, 0.5),       // Entrada al puesto
+      plataforma: aMundo(0, 0, -0.2),  // De pie frente a la probeta de práctica
+      rotFinal: cfg.rotY + Math.PI     // Mirando hacia la probeta (+Z local apunta a -Z de la máquina)
+    };
+  }
+
+  return {
+    acceso: aMundo(-1.20, 0, 0.25),               // Al costado de la butaca
+    subida: aMundo(-0.60, 0, 0.25),               // En el escalón de la alfombra del chasis
+    plataforma: aMundo(0, 0, COTA.BUTACA_Z),      // Centro de la butaca
+    rotFinal: cfg.rotY + Math.PI                  // ¡MIRANDO DIRECTO A LOS MONITORES Y VOLANTE!
+  };
+}
+
+// Ruta desde la puerta, cruzando la línea amarilla hacia el simulador
+function planificarRutaDesdePuerta(destinoAcceso){
+  const wps = [];
+  wps.push(new THREE.Vector3(6.8, 0, 6.0));  // Umbral puerta
+  wps.push(new THREE.Vector3(4.5, 0, 5.2));  // Zona visitantes frente a la puerta
+  wps.push(new THREE.Vector3(2.0, 0, 4.0));  // Cruce de la línea amarilla hacia el centro
+  if(destinoAcceso.z < 0){
+    wps.push(new THREE.Vector3(0.0, 0, destinoAcceso.z + 1.5)); // Eje central
+  }
+  wps.push(new THREE.Vector3(destinoAcceso.x, 0, destinoAcceso.z)); // Acceso al simulador
+  return wps;
+}
+
+// Ruta de regreso hacia la puerta para salir
+function planificarRutaHaciaPuerta(origen){
+  const wps = [];
+  wps.push(new THREE.Vector3(origen.x, 0, origen.z));
+  wps.push(new THREE.Vector3(2.0, 0, 4.0));
+  wps.push(new THREE.Vector3(4.5, 0, 5.2));
+  wps.push(new THREE.Vector3(6.8, 0, 6.0));
+  return wps;
+}
+
+// Motor de animación para un operario específico
+function actualizarOperarioIndividual(op, dt, t){
+  if(!op || !op.root.visible) return;
+
+  if(op.estado === 'caminando' || op.estado === 'saliendo'){
+    op.root.position.y = 0;
+    if(op.idxRuta < op.ruta.length){
+      const targetWP = op.ruta[op.idxRuta];
+      const dx = targetWP.x - op.root.position.x;
+      const dz = targetWP.z - op.root.position.z;
+      const dist = Math.hypot(dx, dz);
+
+      if(dist < 0.25){
+        op.idxRuta++;
+      } else {
+        const targetAngle = Math.atan2(dx, dz);
+        let diff = targetAngle - op.root.rotation.y;
+        while(diff < -Math.PI) diff += Math.PI * 2;
+        while(diff > Math.PI) diff -= Math.PI * 2;
+        op.root.rotation.y += diff * Math.min(1, dt * 9);
+
+        const speed = 2.5;
+        const stepDist = Math.min(dist, speed * dt);
+        op.root.position.x += Math.sin(op.root.rotation.y) * stepDist;
+        op.root.position.z += Math.cos(op.root.rotation.y) * stepDist;
+
+        // Marcha articulada
+        op.fasePaso += dt * 9.5;
+        const swing = Math.sin(op.fasePaso);
+        op.piernaIzq.cadera.rotation.x = swing * 0.60;
+        op.piernaDer.cadera.rotation.x = -swing * 0.60;
+        op.piernaIzq.rodilla.rotation.x = Math.max(0, -swing) * 0.70;
+        op.piernaDer.rodilla.rotation.x = Math.max(0, swing) * 0.70;
+
+        op.brazoIzq.hombro.rotation.x = -swing * 0.50;
+        op.brazoDer.hombro.rotation.x = swing * 0.50;
+        op.brazoIzq.codo.rotation.set(-0.25, 0, 0);
+        op.brazoDer.codo.rotation.set(-0.25, 0, 0);
+
+        op.pelvis.position.y = 0.92 + Math.abs(Math.sin(op.fasePaso)) * 0.04;
+      }
+    } else {
+      if(op.estado === 'caminando'){
+        // Llegó al acceso de la estación -> comenzar a subirse
+        op.estado = 'subiendo';
+        op.progresoSubida = 0.0;
+        op.posInicioAccion.copy(op.root.position);
+        op.rotInicioAccion = op.root.rotation.y;
+      } else {
+        // Llegó a la puerta -> salir del galpón
+        op.estado = 'inactivo';
+        op.root.visible = false;
+        actualizarTextoEstadoGlobal();
+      }
+    }
+  }
+  else if(op.estado === 'subiendo'){
+    op.progresoSubida += dt * 0.95;
+    const p = Math.min(1.0, op.progresoSubida);
+    const puntos = getPuntosEstacion(op.estacion.cfg);
+
+    if(op.estacion.cfg.tipo === 'simspray'){
+      op.root.position.lerpVectors(op.posInicioAccion, puntos.plataforma, p);
+      op.root.position.y = 0;
+      op.root.rotation.y = THREE.MathUtils.lerp(op.rotInicioAccion, puntos.rotFinal, p);
+      op.pelvis.position.y = 0.92;
+      op.brazoDer.hombro.rotation.set(-1.4 * p, 0, 0.2 * p);
+      op.brazoDer.codo.rotation.set(-0.3 * p, 0, 0);
+      op.brazoIzq.hombro.rotation.set(-0.6 * p, 0, -0.3 * p);
+      if(p > 0.5){
+        op.pistolaMano.visible = true;
+        op.visorVR.visible = true;
+        if(op.estacion.visorColgado) op.estacion.visorColgado.visible = false;
+        if(op.estacion.pistolaColgada) op.estacion.pistolaColgada.visible = false;
+      }
+    } else {
+      if(p < 0.45){
+        // Fase 1: Subir escalón
+        const t1 = p / 0.45;
+        op.root.position.lerpVectors(op.posInicioAccion, puntos.subida, t1);
+        op.root.position.y = COTA.ALFOMBRA * t1;
+        op.pelvis.position.y = 0.92;
+        op.piernaIzq.cadera.rotation.x = -0.7 * Math.sin(t1 * Math.PI);
+        op.piernaIzq.rodilla.rotation.x = 0.8 * Math.sin(t1 * Math.PI);
+        op.piernaDer.cadera.rotation.x = 0;
+        op.piernaDer.rodilla.rotation.x = 0;
+      } else {
+        // Fase 2: Girar hacia el volante y sentarse mirando al frente
+        const t2 = (p - 0.45) / 0.55;
+        const ease = t2 * t2 * (3 - 2 * t2);
+        op.root.position.lerpVectors(puntos.subida, puntos.plataforma, ease);
+        op.root.position.y = COTA.ALFOMBRA;
+
+        let diff = puntos.rotFinal - op.rotInicioAccion;
+        while(diff < -Math.PI) diff += Math.PI * 2;
+        while(diff > Math.PI) diff -= Math.PI * 2;
+        op.root.rotation.y = op.rotInicioAccion + diff * ease;
+
+        op.pelvis.position.y = THREE.MathUtils.lerp(0.92, 0.32, ease);
+
+        // Piernas sentadas mirando hacia los pedales y pantallas
+        op.piernaIzq.cadera.rotation.set((-Math.PI/2 + 0.08) * ease, -0.05 * ease, 0);
+        op.piernaDer.cadera.rotation.set((-Math.PI/2 + 0.08) * ease,  0.05 * ease, 0);
+        op.piernaIzq.rodilla.rotation.set((Math.PI/2 - 0.08) * ease, 0, 0);
+        op.piernaDer.rodilla.rotation.set((Math.PI/2 - 0.08) * ease, 0, 0);
+
+        // Brazos hacia los mandos
+        const cfg = op.estacion.cfg;
+        const angArm = cfg.mandos === 'volante_camion' ? -1.05 : -1.25;
+        op.brazoIzq.hombro.rotation.set(angArm * ease, 0.15 * ease, -0.15 * ease);
+        op.brazoDer.hombro.rotation.set(angArm * ease, -0.15 * ease, 0.15 * ease);
+        op.brazoIzq.codo.rotation.set(-0.35 * ease, 0, 0);
+        op.brazoDer.codo.rotation.set(-0.35 * ease, 0, 0);
+      }
+    }
+
+    if(p >= 1.0){
+      op.estado = 'operando';
+      setEstadoInterno(op.estacion, true);
+      if(op.estacion.cascoButaca) op.estacion.cascoButaca.visible = false;
+      actualizarTextoEstadoGlobal();
+    }
+  }
+  else if(op.estado === 'operando'){
+    if(op.estacion){
+      const puntos = getPuntosEstacion(op.estacion.cfg);
+      const vib = (op.estacion.DC && op.estacion.enOperacion) ? op.estacion.DC.position.y : 0;
+
+      if(op.estacion.cfg.tipo === 'simspray'){
+        op.root.position.copy(puntos.plataforma);
+        op.root.position.y = 0;
+        op.root.rotation.y = puntos.rotFinal;
+        op.pelvis.position.y = 0.92;
+        const pintando = Math.sin(t * 3.0) * 0.12;
+        op.brazoDer.hombro.rotation.y = pintando;
+        op.brazoDer.hombro.rotation.x = -1.4 + Math.cos(t * 3.0) * 0.08;
+      } else {
+        op.root.position.copy(puntos.plataforma);
+        op.root.position.y = COTA.ALFOMBRA + vib;
+        op.root.rotation.y = puntos.rotFinal;
+        op.pelvis.position.y = 0.32;
+
+        const giro = Math.sin(t * 3.5 + op.estacion.seed) * 0.08;
+        op.brazoIzq.hombro.rotation.z = -0.15 + giro;
+        op.brazoDer.hombro.rotation.z =  0.15 + giro;
+        if(op.estacion.volanteObj){
+          op.estacion.volanteObj.rotation.z = -giro * 1.5;
+        }
+      }
+    }
+  }
+  else if(op.estado === 'bajando'){
+    op.progresoBajada += dt * 1.1;
+    const p = Math.min(1.0, op.progresoBajada);
+    const puntos = getPuntosEstacion(op.estacion.cfg);
+
+    if(op.estacion.cfg.tipo === 'simspray'){
+      op.root.position.lerpVectors(puntos.plataforma, puntos.acceso, p);
+      op.root.position.y = 0;
+      op.brazoDer.hombro.rotation.set(-1.4 * (1 - p), 0, 0.2 * (1 - p));
+      if(p > 0.4){
+        op.pistolaMano.visible = false;
+        op.visorVR.visible = false;
+        if(op.estacion.visorColgado) op.estacion.visorColgado.visible = true;
+        if(op.estacion.pistolaColgada) op.estacion.pistolaColgada.visible = true;
+      }
+    } else {
+      const ease = p * p * (3 - 2 * p);
+      op.root.position.lerpVectors(puntos.plataforma, puntos.acceso, ease);
+      op.root.position.y = COTA.ALFOMBRA * (1 - ease);
+      op.pelvis.position.y = THREE.MathUtils.lerp(0.32, 0.92, ease);
+
+      op.piernaIzq.cadera.rotation.x = (-Math.PI/2 + 0.08) * (1 - ease);
+      op.piernaDer.cadera.rotation.x = (-Math.PI/2 + 0.08) * (1 - ease);
+      op.piernaIzq.rodilla.rotation.x = (Math.PI/2 - 0.08) * (1 - ease);
+      op.piernaDer.rodilla.rotation.x = (Math.PI/2 - 0.08) * (1 - ease);
+
+      op.brazoIzq.hombro.rotation.set(0.08 * ease, 0, 0.05);
+      op.brazoDer.hombro.rotation.set(0.08 * ease, 0, -0.05);
+      op.brazoIzq.codo.rotation.set(-0.15, 0, 0);
+      op.brazoDer.codo.rotation.set(-0.15, 0, 0);
+    }
+
+    if(p >= 1.0){
+      if(op.estacion.cascoButaca) op.estacion.cascoButaca.visible = true;
+      // Iniciar regreso a la puerta para salir
+      op.ruta = planificarRutaHaciaPuerta(puntos.acceso);
+      op.idxRuta = 0;
+      op.estado = 'saliendo';
+      actualizarTextoEstadoGlobal();
+    }
+  }
+}
+
+let ultimoOperarioActivo = null;
+function actualizarTodosLosOperarios(dt, t){
+  OPERARIOS.forEach(op => actualizarOperarioIndividual(op, dt, t));
+
+  // Cámara sigue suavemente al último operario activo
+  if(document.getElementById('chkSeguir')?.checked && ultimoOperarioActivo && ultimoOperarioActivo.root.visible){
+    controls.target.lerp(new THREE.Vector3(ultimoOperarioActivo.root.position.x, 1.1, ultimoOperarioActivo.root.position.z), 0.04);
+  }
+}
+
+function actualizarTextoEstadoGlobal(){
+  const uiStatus = document.getElementById('opStatus');
+  if(!uiStatus) return;
+  const activos = OPERARIOS.filter(o => o.estado === 'operando').length;
+  const enCamino = OPERARIOS.filter(o => o.estado === 'caminando' || o.estado === 'subiendo').length;
+
+  if(activos > 0 || enCamino > 0){
+    uiStatus.innerHTML = `👤 Operarios activos: <strong>${activos}</strong> en cabina · <strong>${enCamino}</strong> ingresando`;
+    uiStatus.style.color = '#10b981';
+  } else {
+    uiStatus.textContent = `🚪 Operarios: En espera en puerta de acceso`;
+    uiStatus.style.color = '#9ca3af';
+  }
+}
+
+// Activar o desactivar un simulador individual despachando a su operario
+function toggleSimulador(instIndex){
+  const inst = INSTANCIAS[instIndex];
+  const op = OPERARIOS[instIndex];
+  ultimoOperarioActivo = op;
+
+  if(inst.enOperacion || op.estado === 'operando' || op.estado === 'subiendo'){
+    // Apagar simulador: el operario se baja y regresa a la puerta
+    setEstadoInterno(inst, false);
+    op.estado = 'bajando';
+    op.progresoBajada = 0;
+    if(inst.btn) inst.btn.classList.remove('activo', 'en-camino');
+  } else {
+    // Encender simulador: el operario ingresa por la puerta y va hacia el simulador
+    op.estacion = inst;
+    const puntos = getPuntosEstacion(inst.cfg);
+    op.root.visible = true;
+    op.root.position.set(6.8, 0, 6.0);
+    op.ruta = planificarRutaDesdePuerta(puntos.acceso);
+    op.idxRuta = 0;
+    op.estado = 'caminando';
+    if(inst.btn) inst.btn.classList.add('en-camino');
+  }
+  actualizarTextoEstadoGlobal();
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// 10. ESTADOS SCADA Y PANEL HUD
+// ═══════════════════════════════════════════════════════════════════
+function setEstadoInterno(inst, enOperacion){
   inst.enOperacion = enOperacion;
-  if(inst.operario)   inst.operario.visible   =  enOperacion;
-  if(inst.cascoButaca) inst.cascoButaca.visible = !enOperacion;
   if(enOperacion){
     inst.matPantalla.color.setHex(0x0d3327);
     inst.matPantalla.emissive.setHex(0x10b981);
@@ -595,41 +1056,91 @@ function setEstado(inst, enOperacion){
     inst.matPantalla.emissiveIntensity = 0.0;
     inst.luz.intensity = 0.0;
   }
-  if(inst.btn) inst.btn.classList.toggle('activo', enOperacion);
+  if(inst.btn){
+    inst.btn.classList.toggle('activo', enOperacion);
+    inst.btn.classList.remove('en-camino');
+  }
 }
 
 const contBtn = document.getElementById('btnEst');
 INSTANCIAS.forEach((inst, i) => {
   const b = document.createElement('button');
-  b.textContent = (i + 1) + ' · ' + inst.nombre;
-  b.onclick = () => setEstado(inst, !inst.enOperacion);
+  b.innerHTML = `<span><strong>0${i + 1}</strong> · ${inst.nombre}</span> <span style="font-size:10px; opacity:0.8;">▶</span>`;
+  b.onclick = () => toggleSimulador(i);
   contBtn.appendChild(b);
   inst.btn = b;
-  setEstado(inst, false);   // Estado inicial: toda la nave libre
+  setEstadoInterno(inst, false);
 });
 
-document.getElementById('btnAllOn').onclick  = () => INSTANCIAS.forEach(i => setEstado(i, true));
-document.getElementById('btnAllOff').onclick = () => INSTANCIAS.forEach(i => setEstado(i, false));
+// Encender toda la nave: entran los 7 operarios escalonadamente
+document.getElementById('btnAllOn').onclick = () => {
+  INSTANCIAS.forEach((inst, i) => {
+    if(!inst.enOperacion){
+      setTimeout(() => {
+        toggleSimulador(i);
+      }, i * 280);
+    }
+  });
+};
+
+// Apagar toda la nave: todos los operarios se bajan y salen
+document.getElementById('btnAllOff').onclick = () => {
+  INSTANCIAS.forEach((inst, i) => {
+    if(inst.enOperacion || OPERARIOS[i].estado === 'operando' || OPERARIOS[i].estado === 'subiendo'){
+      toggleSimulador(i);
+    }
+  });
+};
 
 let rotar = false, ang = 0;
 document.getElementById('chkGirar').onchange   = e => rotar = e.target.checked;
 document.getElementById('chkRejilla').onchange = e => grid.visible = e.target.checked;
 
+// Clic interactivo en el entorno 3D para activar simulador
+const raycaster = new THREE.Raycaster();
+const mouse = new THREE.Vector2();
+renderer.domElement.addEventListener('pointerdown', (e) => {
+  const startX = e.clientX, startY = e.clientY;
+  function onPointerUp(eUp){
+    renderer.domElement.removeEventListener('pointerup', onPointerUp);
+    if(Math.hypot(eUp.clientX - startX, eUp.clientY - startY) > 6) return;
+    mouse.x = (eUp.clientX / innerWidth) * 2 - 1;
+    mouse.y = -(eUp.clientY / innerHeight) * 2 + 1;
+    raycaster.setFromCamera(mouse, camera);
+    const hits = raycaster.intersectObjects(scene.children, true);
+    for(const hit of hits){
+      let obj = hit.object;
+      while(obj && obj !== scene){
+        const idx = INSTANCIAS.findIndex(inst => inst.grupo === obj);
+        if(idx !== -1){
+          toggleSimulador(idx);
+          return;
+        }
+        obj = obj.parent;
+      }
+    }
+  }
+  renderer.domElement.addEventListener('pointerup', onPointerUp);
+});
+
 // ═══════════════════════════════════════════════════════════════════
-// 10. BUCLE DE RENDER Y RESIZE
-//     La vibración se aplica SOLO sobre el DynamicCockpit de cada
-//     simulador en operación: sin(t·22 + seed) · 0.002
+// 11. BUCLE DE RENDER Y RESIZE
 // ═══════════════════════════════════════════════════════════════════
 const clock = new THREE.Clock();
 function animate(){
   requestAnimationFrame(animate);
+  const dt = Math.min(clock.getDelta(), 0.08);
   const t = clock.getElapsedTime();
 
+  // Vibración física DynamicCockpit
   INSTANCIAS.forEach((inst) => {
     if(inst.DC){
       inst.DC.position.y = inst.enOperacion ? Math.sin(t * 22 + inst.seed) * 0.002 : 0;
     }
   });
+
+  // Cinemática en tiempo real de todos los operarios
+  actualizarTodosLosOperarios(dt, t);
 
   if(rotar){
     ang += 0.0022;

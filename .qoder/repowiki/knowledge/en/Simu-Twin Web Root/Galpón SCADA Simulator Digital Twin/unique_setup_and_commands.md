@@ -1,0 +1,1 @@
+Open `galpon.html` directly in a browser; requires internet access to fetch the Three.js r128 CDN assets. No server, build, or install step.

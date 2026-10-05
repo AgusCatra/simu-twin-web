@@ -1,0 +1,1 @@
+Project root for the simu-twin-web Next.js application, wiring TypeScript, ESLint, Tailwind CSS v4, and Turbopack around the Galpón SCADA simulator child module.

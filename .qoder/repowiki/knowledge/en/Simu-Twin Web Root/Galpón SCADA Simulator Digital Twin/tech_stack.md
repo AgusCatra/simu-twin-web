@@ -1,0 +1,1 @@
+Three.js r128 + OrbitControls loaded from CDN (cdnjs/jsdelivr); vanilla JS in a single `<script>` block with no bundler or framework.

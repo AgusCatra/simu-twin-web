@@ -3,11 +3,11 @@ schema_version: 1
 locale: en-US
 branch: main
 nodes_managed: true
-exported_at: "2026-09-19T14:04:40Z"
+exported_at: "2026-10-05T12:39:26Z"
 modules:
     "":
-        dir_name: Project Root & Build Configuration
-        title: Project Root & Build Configuration
+        dir_name: Simu-Twin Web Root
+        title: Simu-Twin Web Root
         scope:
             - README.md
             - .gitignore
@@ -17,6 +17,16 @@ modules:
             - eslint.config.mjs
             - postcss.config.mjs
             - package-lock.json
+        source_files: []
+        children:
+            - galpon
+        depends_on: []
+        related_to: []
+    galpon:
+        dir_name: Galpón SCADA Simulator Digital Twin
+        title: Galpón SCADA Simulator Digital Twin
+        scope:
+            - galpon.html
         source_files: []
         children: []
         depends_on: []

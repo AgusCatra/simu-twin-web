@@ -1,0 +1,1 @@
+Single-page Three.js visualization of a warehouse containing seven configurable heavy-equipment simulator stations, with SCADA-like on/off state toggling and vibration animation.

@@ -1,0 +1,6 @@
+- Calibrated real-world dimensions are centralized in the `COTA` constant object and referenced by every geometry call instead of inline numbers.
+- Shared PBR materials live in the `M` object keyed by semantic names (e.g. `metalClaro`, `goma`, `chaleco`) rather than being constructed at each use site.
+- Animated pivot points are created through the `hinge(px, py, pz, rotX)` helper so child meshes sit at local Y=0 and rotate around the hinge axis.
+- Each station is built by a constructor returning a uniform descriptor object (`nombre`, `grupo`, `DC`, `matPantalla`, `luz`, `operario`, `cascoButaca`, `seed`, `enOperacion`) so the state layer can treat all stations uniformly.
+- Station configuration is declarative: a plain `ESTACIONES` array of config objects drives instantiation via `ESTACIONES.map(...)`, keeping layout separate from construction logic.
+- SCADA state changes are applied through a single `setEstado(inst, enOperacion)` function that synchronizes screen emissivity, point-light intensity, operator/helmet visibility, and button CSS class.
