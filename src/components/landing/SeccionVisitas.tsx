@@ -66,20 +66,6 @@ export default function SeccionVisitas() {
     if (VISITAS_DEMO[codigoLimpio]) {
       setResultado(VISITAS_DEMO[codigoLimpio]);
       setErrorBusqueda(false);
-    } else if (codigoLimpio.startsWith('ESC')) {
-      // Mock dinámico para cualquier código que comience con ESC
-      setResultado({
-        codigo: codigoLimpio,
-        colegio: 'Escuela Técnica Solicitante',
-        curso: 'Ciclo Superior de Formación Técnica',
-        cantAlumnos: 25,
-        fecha: 'A confirmar con el equipo pedagógico',
-        horario: 'Horario matutino a coordinar',
-        estadoSeguro: 'aprobado',
-        transporteTUP: 'asignado',
-        estadoVisita: 'confirmada',
-      });
-      setErrorBusqueda(false);
     } else {
       setResultado(null);
       setErrorBusqueda(true);
@@ -232,20 +218,6 @@ export default function SeccionVisitas() {
                     <Search className="h-4 w-4" />
                   </button>
                 </div>
-
-                <div className="flex items-center justify-between text-[11px] text-zinc-500">
-                  <span>¿Querés probar?</span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setCodigoInput('ESC-2026-042');
-                      setErrorBusqueda(false);
-                    }}
-                    className="text-amber-400 hover:underline font-mono"
-                  >
-                    Cargar código demo: ESC-2026-042
-                  </button>
-                </div>
               </form>
 
               {/* Error si no encuentra */}
@@ -253,7 +225,7 @@ export default function SeccionVisitas() {
                 <div className="mt-4 rounded-xl border border-rose-500/40 bg-rose-950/20 p-3.5 text-xs text-rose-300 flex items-start gap-2.5">
                   <AlertCircle className="h-4 w-4 text-rose-400 shrink-0 mt-0.5" />
                   <div>
-                    <strong>Código no encontrado.</strong> Verificá el identificador recibido por correo electrónico (ej: ESC-2026-042) o comunicate con la Dirección de Educación municipal.
+                    <strong>Código no encontrado.</strong> Verifique el identificador asignado a su institución.
                   </div>
                 </div>
               )}

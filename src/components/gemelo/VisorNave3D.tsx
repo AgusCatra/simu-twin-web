@@ -20,7 +20,7 @@ const GemeloGalponCanvas = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="flex h-full min-h-[600px] w-full flex-col items-center justify-center bg-zinc-950 text-emerald-400">
+      <div className="flex h-full min-h-[480px] w-full flex-col items-center justify-center bg-zinc-950 text-emerald-400">
         <div className="relative flex items-center justify-center mb-4">
           <div className="h-16 w-16 animate-spin rounded-full border-4 border-emerald-400/20 border-t-emerald-400" />
           <Radio className="absolute h-6 w-6 animate-pulse text-emerald-400" />
@@ -61,7 +61,7 @@ export const SIMULADORES_DEFAULT: FichaTecnicaSimulador[] = [
     codigo: 'SIM-02',
     nombre: 'Pala Cargadora Frontal / Excavadora Hidráulica',
     tipo: 'pala-frontal',
-    estado: 'operando',
+    estado: 'libre',
     especificacionesHardware: {
       pantallas: 'Triple pantalla envolvente de 135° con campo visual periférico inmersivo',
       mandos: 'Joysticks dobles proporcionales servo-asistidos y selectores de transmisión electrohidráulica',
@@ -74,7 +74,6 @@ export const SIMULADORES_DEFAULT: FichaTecnicaSimulador[] = [
       'Protocolos de parada de emergencia y control de estabilidad bajo carga máxima',
     ],
     detalles: 'Puesto de alta demanda para obras viales municipales, movimientos de suelo y canteras.',
-    instructor: 'Instructor en turno: Práctica formativa activa',
   },
   {
     id: 'retroexcavadora',
@@ -138,7 +137,7 @@ export const SIMULADORES_DEFAULT: FichaTecnicaSimulador[] = [
     codigo: 'SIM-06',
     nombre: 'Camión Pesado de Cargas',
     tipo: 'camion',
-    estado: 'operando',
+    estado: 'libre',
     especificacionesHardware: {
       pantallas: 'Triple pantalla panorámica envolvente con retrovisores digitales gran angular',
       mandos: 'Volante de gran diámetro con retarder, selector de transmisión sincronizada y pedalera completa',
@@ -151,7 +150,6 @@ export const SIMULADORES_DEFAULT: FichaTecnicaSimulador[] = [
       'Control y reacción del vehículo en calzada húmeda, aquaplaning y niebla densa',
     ],
     detalles: 'Formación profesional para choferes de transporte interurbano, cargas pesadas y sustancias peligrosas.',
-    instructor: 'Instructor en turno: Práctica formativa activa',
   },
   {
     id: 'simspray',
@@ -213,7 +211,7 @@ export default function VisorNave3D({
   }, []);
 
   return (
-    <div className="relative w-full h-full min-h-[600px] overflow-hidden bg-[#111216]">
+    <div className="relative w-full h-full min-h-[480px] overflow-hidden bg-[#111216]">
       {/* Canvas 3D de Three.js con Maqueta Isométrica Fija */}
       <GemeloGalponCanvas
         estados={estadosParaCanvas}
@@ -227,25 +225,28 @@ export default function VisorNave3D({
       ═══════════════════════════════════════════════════════════════════ */}
       <div className="absolute top-4 left-4 z-20 pointer-events-auto">
         <div className="flex items-center gap-3 rounded-xl border border-zinc-800 bg-zinc-950/85 px-4 py-2.5 shadow-2xl backdrop-blur-md">
-          <div className="relative flex h-3 w-3 items-center justify-center">
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-            <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-500" />
+          <div className="flex h-2.5 w-2.5 items-center justify-center">
+            <span
+              className={`h-2.5 w-2.5 rounded-full ${
+                puestosActivosCount > 0 ? 'bg-emerald-500' : 'bg-zinc-500'
+              }`}
+            />
           </div>
           <div>
-            <div className="flex items-center gap-2">
-              <span className="font-mono text-xs font-bold uppercase tracking-wider text-emerald-400">
-                SISTEMA EN VIVO // GEMELO DIGITAL SCADA
-              </span>
+            <div className="text-xs font-semibold text-zinc-200">
+              Centro de Monitoreo · Gemelo Digital
             </div>
-            <div className="text-[11px] font-mono text-zinc-400">
-              <strong className="text-emerald-400 font-semibold">{puestosActivosCount} de {simuladores.length}</strong> puestos en sesión activa de entrenamiento
+            <div className="text-[11px] text-zinc-400">
+              {puestosActivosCount === 0
+                ? 'Flota en espera · 0 de 7 puestos en sesión'
+                : `Operación activa · ${puestosActivosCount} de ${simuladores.length} puestos en sesión`}
             </div>
           </div>
         </div>
       </div>
 
       {/* Ayuda interactiva en esquina inferior izquierda */}
-      <div className="absolute bottom-4 left-4 z-20 pointer-events-none hidden md:flex items-center gap-2 rounded-lg border border-zinc-800/80 bg-zinc-950/75 px-3 py-1.5 text-[11px] font-mono text-zinc-400 backdrop-blur-sm">
+      <div className="absolute bottom-4 left-4 z-20 pointer-events-none hidden md:flex items-center gap-2 rounded-lg border border-zinc-800/80 bg-zinc-950/75 px-3 py-1.5 text-[11px] text-zinc-400 backdrop-blur-sm">
         <HelpCircle className="h-3.5 w-3.5 text-emerald-400" />
         <span>Hacé clic sobre cualquier máquina en la maqueta 3D para abrir su Ficha Técnica</span>
       </div>
@@ -267,7 +268,7 @@ export default function VisorNave3D({
                   <span className="rounded bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.5 font-mono text-[10px] font-bold text-emerald-400">
                     {simuladorSeleccionado.codigo}
                   </span>
-                  <span className="text-[10px] uppercase tracking-wider text-zinc-400 font-mono">
+                  <span className="text-[10px] uppercase tracking-wider text-zinc-400">
                     Puesto Especializado
                   </span>
                 </div>
@@ -291,15 +292,14 @@ export default function VisorNave3D({
                 <div className="rounded-xl border border-emerald-500/40 bg-emerald-950/20 p-2.5">
                   <div className="flex items-center gap-2">
                     <span className="relative flex h-2.5 w-2.5">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
                       <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500" />
                     </span>
-                    <span className="font-mono text-xs font-bold text-emerald-400">
+                    <span className="text-xs font-bold text-emerald-400">
                       EN PRÁCTICA FORMATIVA
                     </span>
                   </div>
                   {simuladorSeleccionado.instructor && (
-                    <div className="mt-2 flex items-center gap-1.5 text-[11px] text-emerald-300/90 border-t border-emerald-900/40 pt-1.5 font-mono">
+                    <div className="mt-2 flex items-center gap-1.5 text-[11px] text-emerald-300/90 border-t border-emerald-900/40 pt-1.5">
                       <User className="h-3 w-3 text-emerald-400 shrink-0" />
                       <span>{simuladorSeleccionado.instructor}</span>
                     </div>
@@ -308,7 +308,7 @@ export default function VisorNave3D({
               ) : (
                 <div className="flex items-center gap-2 rounded-xl border border-zinc-800 bg-zinc-900/60 p-2.5">
                   <span className="h-2.5 w-2.5 rounded-full bg-zinc-500" />
-                  <span className="font-mono text-xs font-medium text-zinc-300">
+                  <span className="text-xs font-medium text-zinc-300">
                     DISPONIBLE EN NAVE
                   </span>
                 </div>
@@ -317,7 +317,7 @@ export default function VisorNave3D({
 
             {/* Bloque: Especificaciones de Hardware */}
             <div className="mt-4 space-y-3">
-              <div className="text-[11px] font-mono uppercase tracking-wider text-emerald-400 font-semibold">
+              <div className="text-xs uppercase tracking-wider text-zinc-300 font-semibold">
                 Equipamiento de Cabina
               </div>
 
@@ -356,8 +356,8 @@ export default function VisorNave3D({
 
             {/* Bloque: Módulos Pedagógicos */}
             <div className="mt-4">
-              <div className="flex items-center gap-1.5 text-[11px] font-mono uppercase tracking-wider text-emerald-400 font-semibold mb-2">
-                <GraduationCap className="h-3.5 w-3.5" />
+              <div className="flex items-center gap-1.5 text-xs uppercase tracking-wider text-zinc-300 font-semibold mb-2">
+                <GraduationCap className="h-3.5 w-3.5 text-emerald-400" />
                 <span>Competencias que Entrena</span>
               </div>
               <ul className="space-y-1.5 text-xs text-zinc-300">

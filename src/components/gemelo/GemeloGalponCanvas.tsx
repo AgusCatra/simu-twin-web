@@ -247,8 +247,8 @@ export default function GemeloGalponCanvas({
     // ESCENA, CÁMARA Y RENDERER
     // ═══════════════════════════════════════════════════════════════════
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x17181c);
-    scene.fog = new THREE.Fog(0x17181c, 25, 75);
+    scene.background = new THREE.Color(0x111216);
+    scene.fog = new THREE.Fog(0x111216, 25, 75);
 
     const width = container.clientWidth || window.innerWidth;
     const height = container.clientHeight || window.innerHeight;
@@ -420,7 +420,7 @@ export default function GemeloGalponCanvas({
       const last = pts[pts.length - 1];
       g.add(cyl(esp / 2, esp / 2, 0.005, M.vial, last[0], COTA.LINEA, last[1], 16));
 
-      crearTextoPiso('⚠️ LÍNEA DE SEGURIDAD — ÁREA DE SIMULADORES (PROHIBIDO PASAR)', 0.2, 6.7, 0, 7.8, 0.35);
+      crearTextoPiso('LÍNEA DE SEGURIDAD · CIRCULACIÓN RESTRINGIDA A OPERADORES', 0.2, 6.7, 0, 7.8, 0.35);
 
       const lUmbral = box(1.2, 0.005, esp, M.vial, 6.8, COTA.LINEA, 5.8);
       g.add(lUmbral);
