@@ -23,13 +23,14 @@
 
 ## Update Summary
 **Changes Made**
-- Added comprehensive 3D simulator center scene implementation with Three.js
-- Implemented industrial simulator facility with concrete floor and technical grid overlay
-- Created professional lighting setup with directional and ambient lighting
-- Developed configurable simulator cabins with multiple control configurations
-- Added Simspray station for VR painting simulation
-- Integrated interactive HTML interface with station controls and orbit camera navigation
-- Updated architecture overview to include 3D rendering components
+- Updated galpon.html section to reflect complete safety boundary system redesign with continuous yellow perimeter
+- Enhanced operator tracking functionality documentation with multi-operator system details
+- Expanded facility dimensions documentation to 28x22m industrial space
+- Updated lighting and visual clarity improvements in the industrial facility
+- Added comprehensive 7-station simulator configuration details
+- Removed references to legacy modular safety line segments
+- Updated operator model system to reflect simplified animation architecture
+- Enhanced UI structure documentation with modern SCADA interface elements
 
 ## Table of Contents
 1. Introduction
@@ -83,7 +84,7 @@ K --> M["WebGL Renderer"]
 - [src/services/visitasService.ts:1-105](file://src/services/visitasService.ts#L1-L105)
 - [src/types/actividades.ts:1-177](file://src/types/actividades.ts#L1-L177)
 - [index.html:1-491](file://index.html#L1-L491)
-- [galpon.html:1-652](file://galpon.html#L1-L652)
+- [galpon.html:1-1163](file://galpon.html#L1-L1163)
 
 **Section sources**
 - [README.md:1-37](file://README.md#L1-L37)
@@ -322,77 +323,101 @@ end
 - [index.html:177-273](file://index.html#L177-L273)
 - [index.html:274-423](file://index.html#L274-L423)
 
-### Industrial Simulator Facility (galpon.html)
-The industrial facility implements a complete simulator center with seven distinct stations:
+### Industrial Simulator Facility (galpon.html) - **UPDATED**
+The industrial facility implements a complete simulator center with seven distinct stations, featuring a completely redesigned safety boundary system and enhanced operator tracking:
 
-- **Concrete Floor Environment**: Realistic industrial flooring with safety markings and door demarcations
-- **Professional Lighting**: Ambient lighting with shadow-casting directional lights and fill lighting
-- **Seven Simulator Stations**: Each with unique configurations and control schemes
-- **SCADA Integration**: Status indicators and operational state management
-- **Interactive Controls**: Station-specific controls with global on/off functionality
+**Major Enhancements:**
+- **Continuous Safety Perimeter**: Replaced modular safety line segments with a unified yellow boundary system that creates a continuous operational zone
+- **Multi-Operator Tracking System**: Advanced operator movement system with individual character animations and state management
+- **Expanded Facility Dimensions**: 28x22m industrial space with professional concrete flooring and technical grid overlay
+- **Enhanced Lighting System**: Improved ambient and directional lighting with shadow casting for better visual clarity
+- **Seven Complete Simulator Stations**: Each with unique configurations, control schemes, and specialized equipment
 
-**Station Configurations:**
-1. **Autoelevador** (Forklift): Industrial steering wheel, bi-screen setup
-2. **Pala Frontal** (Front Loader): Dual joysticks, triple screen configuration
-3. **Retroexcavadora** (Backhoe): Industrial steering wheel, single screen
-4. **Grúa Telescópica** (Telescopic Crane): Dual joysticks, triple screen setup
-5. **Tractor Agrícola** (Agricultural Tractor): Industrial steering wheel, bi-screen setup
-6. **Camión Pesado** (Heavy Truck): Large truck steering wheel, triple screen setup
-7. **SimSpray Pintura VR**: Specialized VR painting station with spray gun equipment
+**Safety Boundary System Redesign:**
+The new continuous yellow perimeter system replaces the previous modular approach:
+- Single continuous boundary line with rounded corners and chamfered transitions
+- Professional safety markings with stenciled text overlays
+- Dedicated pedestrian access door with threshold markers
+- Clear visitor vs. operator zone demarcation
+
+**Advanced Operator Movement System:**
+- Individual animated operators with articulated body parts (arms, legs, torso)
+- Realistic walking animations with joint articulation
+- State machine managing operator lifecycle (walking, climbing, operating, exiting)
+- Path planning from entrance door through safety boundary to simulator positions
+- Specialized VR operator for painting station with spray gun equipment
+
+**Station Configuration Details:**
+1. **Autoelevador** (Forklift): Industrial steering wheel, bi-screen setup at position [6.4, 0, -0.5]
+2. **Pala Frontal** (Front Loader): Dual joysticks, triple screen configuration at 45° angle [5.5, 0, -4.8]
+3. **Retroexcavadora** (Backhoe): Industrial steering wheel, single screen at [0.0, 0, -5.4]
+4. **Grúa Telescópica** (Telescopic Crane): Dual joysticks, triple screen setup at 45° angle [-5.5, 0, -4.8]
+5. **Tractor Agrícola** (Agricultural Tractor): Industrial steering wheel, bi-screen setup at [-6.4, 0, -0.5]
+6. **Camión Pesado** (Heavy Truck): Large truck steering wheel, triple screen setup at [-6.0, 0, 3.8]
+7. **SimSpray Pintura VR**: Specialized VR painting station with spray gun equipment at [-2.5, 0, 4.8]
 
 ```mermaid
 graph TB
-subgraph "Industrial Facility Layout"
-A["Concrete Floor"] --> B["Safety Markings"]
-A --> C["Technical Grid"]
-D["Station 1: Autoelevador"] --> E["Industrial Steering"]
-D --> F["Bi-Screen Setup"]
-G["Station 2: Pala Frontal"] --> H["Dual Joysticks"]
-G --> I["Triple Screen"]
-J["Station 3: Retroexcavadora"] --> K["Industrial Steering"]
-J --> L["Single Screen"]
-M["Station 4: Grúa Telescópica"] --> N["Dual Joysticks"]
-M --> O["Triple Screen"]
-P["Station 5: Tractor Agrícola"] --> Q["Industrial Steering"]
-P --> R["Bi-Screen Setup"]
-S["Station 6: Camión Pesado"] --> T["Large Truck Wheel"]
-S --> U["Triple Screen"]
-V["Station 7: SimSpray VR"] --> W["VR Equipment"]
-V --> X["Spray Gun Station"]
+subgraph "Enhanced Industrial Facility Layout"
+A["28x22m Concrete Floor"] --> B["Continuous Yellow Safety Perimeter"]
+A --> C["Technical Grid Overlay"]
+D["Safety Zone Markings"] --> E["Visitor Area"]
+D --> F["Operational Sector"]
+G["Station 1: Autoelevador"] --> H["Industrial Steering + Bi-Screen"]
+I["Station 2: Pala Frontal"] --> J["Dual Joysticks + Triple Screen"]
+K["Station 3: Retroexcavadora"] --> L["Industrial Steering + Single Screen"]
+M["Station 4: Grúa Telescópica"] --> N["Dual Joysticks + Triple Screen"]
+O["Station 5: Tractor Agrícola"] --> P["Industrial Steering + Bi-Screen"]
+Q["Station 6: Camión Pesado"] --> R["Large Truck Wheel + Triple Screen"]
+S["Station 7: SimSpray VR"] --> T["VR Equipment + Spray Gun Station"]
+U["Multi-Operator System"] --> V["Individual Character Animations"]
+U --> W["Path Planning & State Management"]
+X["Enhanced Lighting"] --> Y["Ambient + Directional + Fill Lights"]
+X --> Z["Shadow Casting for Visual Clarity"]
 end
 ```
 
 **Diagram sources**
-- [galpon.html:161-187](file://galpon.html#L161-L187)
-- [galpon.html:562-570](file://galpon.html#L562-L570)
+- [galpon.html:186-274](file://galpon.html#L186-L274)
+- [galpon.html:608-626](file://galpon.html#L608-L626)
+- [galpon.html:633-747](file://galpon.html#L633-L747)
 
 ### Advanced Features
 
-#### Geometry and Material System
-Both implementations use a sophisticated geometry creation system with reusable helper functions:
-- **mesh()**: Universal mesh creation with shadow casting/receiving
+#### Enhanced Geometry and Material System
+Both implementations use sophisticated geometry creation systems with reusable helper functions:
+- **mesh()**: Universal mesh creation with shadow casting/receiving capabilities
 - **box()**: Box geometry wrapper for rectangular objects
-- **cyl()**: Cylinder geometry wrapper for cylindrical components
+- **cyl()**: Cylinder geometry wrapper for cylindrical components  
 - **hinge()**: Hinge pattern implementation for articulated parts
 
-#### Material Library
-Comprehensive material definitions including:
-- Metallic surfaces with varying roughness and metalness
-- Plastic and rubber components
-- Safety equipment materials (reflective vests, helmets)
-- Display screen materials with emissive properties
+**Updated Material Library:**
+- Metallic surfaces with varying roughness and metalness properties
+- Plastic and rubber components with realistic textures
+- Safety equipment materials including reflective vests and helmets
+- Display screen materials with emissive properties for operational feedback
+- Concrete and floor materials optimized for industrial environments
 
-#### Animation and Interaction
-- **Vibration Simulation**: Dynamic cockpit platforms with sinusoidal vibration
-- **Camera Controls**: Orbit controls with damping and angle restrictions
-- **State Management**: Operational status tracking with visual feedback
-- **Responsive Design**: Automatic resize handling for different screen sizes
+#### Advanced Animation and Interaction Systems
+- **Multi-Operator Animation**: Complex character rigging with articulated limbs and realistic movement patterns
+- **State Machine Management**: Comprehensive operator lifecycle management with smooth transitions
+- **Path Planning Algorithms**: Intelligent route calculation from entrance to simulator positions
+- **Vibration Simulation**: Dynamic cockpit platforms with sinusoidal vibration effects
+- **Camera Controls**: Orbit controls with damping and angle restrictions for optimal viewing angles
+- **Responsive Design**: Automatic resize handling for different screen sizes and aspect ratios
+
+#### SCADA Integration and Status Management
+- **Real-time Status Indicators**: Visual feedback for operational states with color-coded indicators
+- **Global Control Interface**: Unified on/off controls for all simulator stations
+- **Operator Tracking Display**: Live status updates showing active operators and their locations
+- **Interactive UI Elements**: Button-based controls with visual state feedback
 
 **Section sources**
 - [index.html:42-153](file://index.html#L42-L153)
 - [index.html:155-491](file://index.html#L155-L491)
 - [galpon.html:53-158](file://galpon.html#L53-L158)
 - [galpon.html:159-652](file://galpon.html#L159-L652)
+- [galpon.html:633-1163](file://galpon.html#L633-L1163)
 
 ## Dependency Analysis
 - Routing and protection: Middleware depends on Supabase server client and environment variables; it matches specific paths and excludes static assets, including potential 3D model files.
@@ -425,7 +450,7 @@ THREE --> RENDER["WebGL Renderer"]
 - [src/services/visitasService.ts:1-105](file://src/services/visitasService.ts#L1-L105)
 - [src/types/actividades.ts:1-177](file://src/types/actividades.ts#L1-L177)
 - [index.html:25-26](file://index.html#L25-L26)
-- [galpon.html:35-36](file://galpon.html#L35-L36)
+- [galpon.html:51-52](file://galpon.html#L51-L52)
 
 **Section sources**
 - [src/middleware.ts:1-100](file://src/middleware.ts#L1-L100)
@@ -441,6 +466,8 @@ THREE --> RENDER["WebGL Renderer"]
 - **New**: 3D simulators use efficient geometry reuse and material sharing to optimize rendering performance.
 - **New**: WebGL renderer configured with appropriate pixel ratios and shadow map settings for balanced quality/performance.
 - **New**: Animation loops use requestAnimationFrame for smooth 60fps rendering with minimal CPU overhead.
+- **Updated**: Multi-operator system optimized with individual state management to prevent unnecessary recalculations.
+- **Updated**: Continuous safety perimeter system reduces geometric complexity compared to modular segment approach.
 
 ## Troubleshooting Guide
 Common issues and resolutions:
@@ -450,6 +477,8 @@ Common issues and resolutions:
 - Session sync: Logout triggers sign-out and navigates back to login; ensure router refresh occurs to clear cached state.
 - **New**: 3D simulator rendering issues: Verify WebGL support in browser console; check Three.js CDN availability; ensure proper canvas sizing and aspect ratio calculations.
 - **New**: Orbit controls not responding: Verify mouse event listeners are properly attached; check for CSS z-index conflicts with UI overlays.
+- **Updated**: Operator animation issues: Check path planning algorithms and state machine transitions; verify coordinate transformations for different station orientations.
+- **Updated**: Safety boundary visualization problems: Ensure continuous perimeter geometry is properly calculated; check material opacity and polygon offset settings.
 
 **Section sources**
 - [src/lib/supabase/client.ts:7-18](file://src/lib/supabase/client.ts#L7-L18)
@@ -459,4 +488,6 @@ Common issues and resolutions:
 - [src/components/admin/Topbar.tsx:62-72](file://src/components/admin/Topbar.tsx#L62-L72)
 
 ## Conclusion
-The application provides a robust foundation for managing simulation center operations, including secure admin access, navigation, and public visit bookings. The addition of comprehensive 3D simulator center implementations significantly enhances the platform's capabilities, offering realistic industrial training environments with detailed cockpit simulations and interactive control systems. The architecture cleanly separates concerns across routing, authentication, UI, data layers, and 3D rendering, making it straightforward to extend with additional modules such as real-time telemetry integration and immersive VR experiences while leveraging the existing session and data infrastructure.
+The application provides a robust foundation for managing simulation center operations, including secure admin access, navigation, and public visit bookings. The addition of comprehensive 3D simulator center implementations significantly enhances the platform's capabilities, offering realistic industrial training environments with detailed cockpit simulations and interactive control systems. 
+
+**Updated**: The recent enhancements to the industrial facility (galpon.html) represent a major architectural improvement with the complete redesign of the safety boundary system, advanced multi-operator tracking capabilities, and expanded facility dimensions. These changes provide a more professional and immersive simulation experience while maintaining clean separation of concerns across routing, authentication, UI, data layers, and 3D rendering. The architecture remains straightforward to extend with additional modules such as real-time telemetry integration and immersive VR experiences while leveraging the existing session and data infrastructure.
