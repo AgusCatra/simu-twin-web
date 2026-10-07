@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" width="1280" height="720">
+  <defs>
+    <linearGradient id="bgGrad2" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#091428"/>
+      <stop offset="50%" stop-color="#1e293b"/>
+      <stop offset="100%" stop-color="#0091B3"/>
+    </linearGradient>
+    <pattern id="grid2" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(255, 255, 255, 0.05)" stroke-width="1"/>
+    </pattern>
+  </defs>
+  <rect width="1280" height="720" fill="url(#bgGrad2)"/>
+  <rect width="1280" height="720" fill="url(#grid2)"/>
+  <circle cx="640" cy="300" r="160" fill="none" stroke="#6EC1E4" stroke-width="2" stroke-dasharray="8 8" opacity="0.4"/>
+  <circle cx="640" cy="300" r="120" fill="none" stroke="#0091B3" stroke-width="1.5" opacity="0.6"/>
+  <polygon points="640,240 680,310 600,310" fill="none" stroke="#ffffff" stroke-width="3"/>
+  <circle cx="640" cy="330" r="12" fill="#6EC1E4"/>
+  <text x="640" y="440" font-family="system-ui, -apple-system, sans-serif" font-size="28" font-weight="700" fill="#ffffff" text-anchor="middle" letter-spacing="1">Colegio Superior N° 50</text>
+  <text x="640" y="480" font-family="system-ui, -apple-system, sans-serif" font-size="18" font-weight="500" fill="#94a3b8" text-anchor="middle">Taller Vocacional · Planificá tu Futuro y Coaching</text>
+  <rect x="520" y="520" width="240" height="34" rx="17" fill="#6EC1E4" fill-opacity="0.2" stroke="#6EC1E4" stroke-width="1.5"/>
+  <text x="640" y="542" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="600" fill="#bae6fd" text-anchor="middle">REGISTRO DE VISITA ESCOLAR</text>
+</svg>

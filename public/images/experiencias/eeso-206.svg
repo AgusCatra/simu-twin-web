@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" width="1280" height="720">
+  <defs>
+    <linearGradient id="bgGrad3" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f172a"/>
+      <stop offset="60%" stop-color="#1e293b"/>
+      <stop offset="100%" stop-color="#3c8ac6"/>
+    </linearGradient>
+    <pattern id="grid3" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(255, 255, 255, 0.05)" stroke-width="1"/>
+    </pattern>
+  </defs>
+  <rect width="1280" height="720" fill="url(#bgGrad3)"/>
+  <rect width="1280" height="720" fill="url(#grid3)"/>
+  <circle cx="640" cy="300" r="160" fill="none" stroke="#3c8ac6" stroke-width="2" stroke-dasharray="8 8" opacity="0.4"/>
+  <circle cx="640" cy="300" r="120" fill="none" stroke="#60a5fa" stroke-width="1.5" opacity="0.6"/>
+  <rect x="610" y="270" width="60" height="60" rx="8" fill="none" stroke="#ffffff" stroke-width="3"/>
+  <path d="M625 300 L655 300 M640 285 L640 315" stroke="#3c8ac6" stroke-width="3" stroke-linecap="round"/>
+  <text x="640" y="440" font-family="system-ui, -apple-system, sans-serif" font-size="28" font-weight="700" fill="#ffffff" text-anchor="middle" letter-spacing="1">E.E.S.O. N° 206 "Rosa Turner"</text>
+  <text x="640" y="480" font-family="system-ui, -apple-system, sans-serif" font-size="18" font-weight="500" fill="#94a3b8" text-anchor="middle">Gestión Emocional · Trabajo en Equipo y Simulación</text>
+  <rect x="520" y="520" width="240" height="34" rx="17" fill="#3c8ac6" fill-opacity="0.2" stroke="#3c8ac6" stroke-width="1.5"/>
+  <text x="640" y="542" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="600" fill="#93c5fd" text-anchor="middle">REGISTRO DE VISITA ESCOLAR</text>
+</svg>

@@ -72,8 +72,8 @@ export default function MetricasCentro() {
       <div className="relative mx-auto max-w-7xl">
         {/* Encabezado de Sección */}
         <div className="text-center max-w-3xl mx-auto mb-14">
-          <div className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3.5 py-1 text-xs font-semibold text-emerald-800 mb-3">
-            <Activity className="h-3.5 w-3.5 text-emerald-700" />
+          <div className="inline-flex items-center gap-2 rounded-full border border-[#0091B3]/20 bg-[#0091B3]/10 px-3.5 py-1 text-xs font-semibold text-[#0091B3] mb-3">
+            <Activity className="h-3.5 w-3.5 text-[#0091B3]" />
             <span>INDICADORES OPERATIVOS</span>
           </div>
           <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">
@@ -89,11 +89,11 @@ export default function MetricasCentro() {
           {METRICAS.map((m) => (
             <div
               key={m.id}
-              className="relative flex flex-col justify-between rounded-2xl bg-slate-50 border border-slate-200 shadow-sm hover:border-emerald-500/50 hover:shadow-md transition-all p-6"
+              className="relative flex flex-col justify-between rounded-2xl bg-slate-50 border border-slate-200 shadow-sm hover:border-[#0091B3]/50 hover:shadow-md transition-all p-6"
             >
               <div>
                 <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center justify-center text-emerald-600 bg-emerald-100/50 p-2.5 rounded-lg border border-emerald-200/50">
+                  <div className="flex items-center justify-center text-[#0091B3] bg-[#0091B3]/10 p-2.5 rounded-lg border border-[#0091B3]/20">
                     {m.icono}
                   </div>
                   <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-600 rounded-md bg-white px-2 py-0.5 border border-slate-200">
@@ -115,7 +115,7 @@ export default function MetricasCentro() {
                 <h3 className="text-base font-semibold text-slate-800 mt-2">
                   {m.titulo}
                 </h3>
-                <div className="text-xs font-semibold text-emerald-700 mt-0.5">
+                <div className="text-xs font-semibold text-[#0091B3] mt-0.5">
                   {m.subtitulo}
                 </div>
               </div>
