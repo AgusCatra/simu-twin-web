@@ -9,23 +9,23 @@ export default function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-slate-200 bg-white/90 backdrop-blur-md">
-      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+    <header className="sticky top-0 z-50 w-full border-b border-slate-200 bg-white/95 backdrop-blur-md">
+      <div className="mx-auto flex h-24 sm:h-28 md:h-32 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         {/* Logotipo e Isotipo Institucional */}
-        <Link href="/" className="flex items-center gap-3 group">
+        <Link href="/" className="flex items-center gap-4 group">
           <Image
             src="/images/logo-gobierno-vt.png"
             alt="Gobierno de Venado Tuerto"
-            width={135}
-            height={40}
-            className="h-9 w-auto object-contain"
+            width={320}
+            height={160}
+            className="h-16 sm:h-20 md:h-24 lg:h-26 w-auto object-contain shrink-0 transition-transform group-hover:scale-105"
             priority
           />
-          <div className="flex flex-col">
-            <span className="font-bold text-slate-900 text-sm sm:text-base leading-tight">
+          <div className="flex flex-col justify-center">
+            <span className="text-sm sm:text-base md:text-lg font-extrabold text-slate-900 leading-tight">
               CENTRO DE ENTRENAMIENTO EN SIMULADORES
             </span>
-            <span className="font-semibold text-[#0091B3] text-xs">
+            <span className="text-xs sm:text-sm font-semibold text-[#0091B3] tracking-wide">
               Gobierno de Venado Tuerto
             </span>
           </div>

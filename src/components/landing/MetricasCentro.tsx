@@ -1,7 +1,8 @@
 'use client';
 
 import React from 'react';
-import { Monitor, Clock, School, ShieldCheck, Activity } from 'lucide-react';
+import Image from 'next/image';
+import { Monitor, Clock, School, ShieldCheck } from 'lucide-react';
 
 interface MetricaItem {
   id: string;
@@ -23,9 +24,9 @@ const METRICAS: MetricaItem[] = [
     subtitulo: 'Tecnología Etech y SimSpray VR',
     descripcion:
       'Equipos de alta fidelidad física con pantallas envolventes de 135°, volante industrial y cascos VR de última generación.',
-    icono: <Monitor className="h-6 w-6 text-emerald-700" />,
+    icono: <Monitor className="h-6 w-6 text-[#0091B3]" />,
     badge: 'Hardware Industrial',
-    colorAcento: 'from-emerald-500/20 to-zinc-900',
+    colorAcento: 'from-[#0091B3]/20 to-zinc-900',
   },
   {
     id: 'horas',
@@ -35,9 +36,9 @@ const METRICAS: MetricaItem[] = [
     subtitulo: 'Capacitación operativa certificada',
     descripcion:
       'Horas acumuladas de maniobra efectiva en retroexcavadoras, grúas, autoelevadores y maquinaria pesada.',
-    icono: <Clock className="h-6 w-6 text-emerald-700" />,
+    icono: <Clock className="h-6 w-6 text-[#0091B3]" />,
     badge: 'Horas Certificadas',
-    colorAcento: 'from-teal-500/20 to-zinc-900',
+    colorAcento: 'from-[#3C8AC6]/20 to-zinc-900',
   },
   {
     id: 'escuelas',
@@ -46,9 +47,9 @@ const METRICAS: MetricaItem[] = [
     subtitulo: 'Visitas educativas y vocación',
     descripcion:
       'Instituciones educativas de nivel secundario y técnico que experimentan el circuito pedagógico de simulación.',
-    icono: <School className="h-6 w-6 text-emerald-700" />,
+    icono: <School className="h-6 w-6 text-[#0091B3]" />,
     badge: 'Articulación Escolar',
-    colorAcento: 'from-emerald-500/20 to-zinc-900',
+    colorAcento: 'from-[#0091B3]/20 to-zinc-900',
   },
   {
     id: 'seguridad',
@@ -57,7 +58,7 @@ const METRICAS: MetricaItem[] = [
     subtitulo: 'Entrenamiento previo seguro',
     descripcion:
       'Entorno de aprendizaje de riesgo cero: los operarios cometen errores en simulación antes de subir a máquinas reales.',
-    icono: <ShieldCheck className="h-6 w-6 text-emerald-700" />,
+    icono: <ShieldCheck className="h-6 w-6 text-[#0091B3]" />,
     badge: 'Riesgo Cero',
     colorAcento: 'from-amber-500/20 to-zinc-900',
   },
@@ -72,9 +73,15 @@ export default function MetricasCentro() {
       <div className="relative mx-auto max-w-7xl">
         {/* Encabezado de Sección */}
         <div className="text-center max-w-3xl mx-auto mb-14">
-          <div className="inline-flex items-center gap-2 rounded-full border border-[#0091B3]/20 bg-[#0091B3]/10 px-3.5 py-1 text-xs font-semibold text-[#0091B3] mb-3">
-            <Activity className="h-3.5 w-3.5 text-[#0091B3]" />
-            <span>INDICADORES OPERATIVOS</span>
+          <div className="inline-flex items-center gap-2 rounded-full border border-[#0091B3]/30 bg-[#0091B3]/10 px-4 py-1.5 text-xs font-semibold text-[#0091B3] mb-3 shadow-xs">
+            <Image
+              src="/images/icono-gobierno-vt.png"
+              alt="Gobierno de Venado Tuerto"
+              width={16}
+              height={16}
+              className="h-4 w-4 rounded-xs object-contain"
+            />
+            <span>INDICADORES OPERATIVOS · GOBIERNO DE VENADO TUERTO</span>
           </div>
           <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">
             Impacto del Centro de Simulación en la Formación Laboral

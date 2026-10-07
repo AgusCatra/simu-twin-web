@@ -265,11 +265,39 @@ export default function GemeloGalponCanvas({
 
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.target.set(0.0, 0.4, 0.5);
-    controls.enableRotate = false;
+    controls.enableRotate = true;
+    controls.enableZoom = true;
     controls.enablePan = false;
-    controls.enableZoom = false;
-    controls.enableDamping = false;
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.05;
+    controls.maxPolarAngle = Math.PI / 2.2;
+    controls.minPolarAngle = Math.PI / 6;
+    controls.minDistance = 9.0;
+    controls.maxDistance = 24.0;
     controls.update();
+
+    const HOME_POS = new THREE.Vector3(11.8, 12.2, 13.6);
+    const HOME_TARGET = new THREE.Vector3(0.0, 0.4, 0.5);
+    let isAutoReturning = false;
+    let returnTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const onControlsStart = () => {
+      isAutoReturning = false;
+      if (returnTimer) {
+        clearTimeout(returnTimer);
+        returnTimer = null;
+      }
+    };
+
+    const onControlsEnd = () => {
+      if (returnTimer) clearTimeout(returnTimer);
+      returnTimer = setTimeout(() => {
+        isAutoReturning = true;
+      }, 3500);
+    };
+
+    controls.addEventListener('start', onControlsStart);
+    controls.addEventListener('end', onControlsEnd);
 
     // ═══════════════════════════════════════════════════════════════════
     // ILUMINACIÓN AMBIENTE Y DIRECCIONAL
@@ -1456,10 +1484,7 @@ export default function GemeloGalponCanvas({
     }
 
     function resetCamera() {
-      camera.position.set(11.8, 12.2, 13.6);
-      controls.target.set(0.0, 0.4, 0.5);
-      controls.update();
-      handleResize();
+      isAutoReturning = true;
     }
 
     controlSceneRef.current = {
@@ -1606,6 +1631,20 @@ export default function GemeloGalponCanvas({
         camera.position.z = Math.cos(ang) * 15;
       }
 
+      // Retorno suave automático a la vista inicial (Auto-Home)
+      if (isAutoReturning) {
+        camera.position.lerp(HOME_POS, 0.04);
+        controls.target.lerp(HOME_TARGET, 0.04);
+        if (
+          camera.position.distanceTo(HOME_POS) < 0.05 &&
+          controls.target.distanceTo(HOME_TARGET) < 0.05
+        ) {
+          camera.position.copy(HOME_POS);
+          controls.target.copy(HOME_TARGET);
+          isAutoReturning = false;
+        }
+      }
+
       controls.update();
       renderer.render(scene, camera);
     };
@@ -1652,6 +1691,9 @@ export default function GemeloGalponCanvas({
     // ═══════════════════════════════════════════════════════════════════
     return () => {
       cancelAnimationFrame(animId);
+      if (returnTimer) clearTimeout(returnTimer);
+      controls.removeEventListener('start', onControlsStart);
+      controls.removeEventListener('end', onControlsEnd);
       resizeObserver.disconnect();
       window.removeEventListener('resize', handleResize);
       renderer.domElement.removeEventListener('pointermove', onPointerMove);

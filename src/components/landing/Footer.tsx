@@ -10,16 +10,16 @@ export default function Footer() {
         <div className="grid grid-cols-1 gap-10 md:grid-cols-2 lg:grid-cols-4 pb-12 border-b border-slate-800">
           {/* Columna 1: Identidad Institucional y Logo */}
           <div className="space-y-4">
-            <div className="inline-block bg-white/95 px-3 py-1.5 rounded-xl shadow-sm">
+            <div className="inline-block bg-white/95 px-6 py-4 rounded-2xl shadow-lg mb-4">
               <Image
                 src="/images/logo-gobierno-vt.png"
                 alt="Gobierno de Venado Tuerto"
-                width={150}
-                height={45}
-                className="h-10 w-auto object-contain"
+                width={360}
+                height={180}
+                className="h-20 sm:h-24 md:h-28 lg:h-32 w-auto object-contain shrink-0"
               />
             </div>
-            <div className="text-xs font-bold text-white tracking-tight">
+            <div className="text-sm font-bold text-white tracking-tight">
               CENTRO DE ENTRENAMIENTO EN SIMULADORES
             </div>
             <p className="text-xs text-slate-400 leading-relaxed">
@@ -103,13 +103,22 @@ export default function Footer() {
 
         {/* Barra de Copyright */}
         <div className="mt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500">
-          <div>
-            © 2026 Gobierno de Venado Tuerto · Secretaría de Desarrollo Productivo e Innovación.
+          <div className="flex items-center gap-2.5">
+            <Image
+              src="/images/icono-gobierno-vt.png"
+              alt="Isotipo Gobierno de Venado Tuerto"
+              width={24}
+              height={24}
+              className="h-5 w-5 rounded-xs object-contain"
+            />
+            <span>
+              © 2026 Gobierno de Venado Tuerto · Secretaría de Desarrollo Productivo e Innovación.
+            </span>
           </div>
           <div className="flex items-center gap-4 text-[11px]">
             <span>Gemelo Digital v2.4</span>
             <span>·</span>
-            <span>Tecnología Three.js & SCADA</span>
+            <span>Tecnología Three.js &amp; SCADA</span>
           </div>
         </div>
       </div>

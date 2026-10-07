@@ -1,3 +1,4 @@
+import Image from 'next/image';
 import Navbar from '@/components/landing/Navbar';
 import VisorNave3D, { SIMULADORES_DEFAULT } from '@/components/gemelo/VisorNave3D';
 import MetricasCentro from '@/components/landing/MetricasCentro';
@@ -20,8 +21,15 @@ export default function Home() {
       {/* Encabezado Institucional Previo al Visor */}
       <section className="w-full bg-slate-50 pt-10 pb-4">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="inline-flex items-center gap-2 rounded-full border border-[#0091B3]/20 bg-[#0091B3]/10 px-3.5 py-1 text-xs font-semibold text-[#0091B3] mb-3">
-            <span>SISTEMA MUNICIPAL DE SIMULACIÓN</span>
+          <div className="inline-flex items-center gap-2.5 rounded-full border border-[#0091B3]/30 bg-[#0091B3]/10 px-4 py-1.5 text-xs sm:text-sm font-semibold text-[#0091B3] mb-3 shadow-xs">
+            <Image
+              src="/images/icono-gobierno-vt.png"
+              alt="Gobierno de Venado Tuerto"
+              width={20}
+              height={20}
+              className="h-4 w-4 rounded-xs object-contain"
+            />
+            <span>SISTEMA MUNICIPAL DE SIMULACIÓN · GOBIERNO DE VENADO TUERTO</span>
           </div>
           <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-slate-900">
             Centro de Entrenamiento en Simuladores

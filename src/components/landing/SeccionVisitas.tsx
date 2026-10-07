@@ -2,8 +2,8 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import {
-  GraduationCap,
   Bus,
   ShieldCheck,
   CalendarCheck,
@@ -84,9 +84,15 @@ export default function SeccionVisitas() {
       <div className="mx-auto max-w-7xl">
         {/* Encabezado General */}
         <div className="mb-14 text-center max-w-3xl mx-auto">
-          <div className="inline-flex items-center gap-2 rounded-full border border-[#0091B3]/20 bg-[#0091B3]/10 px-3.5 py-1 text-xs font-semibold text-[#0091B3] mb-3">
-            <GraduationCap className="h-3.5 w-3.5 text-[#0091B3]" />
-            <span>PROGRAMA EDUCATIVO MUNICIPAL · DÍAS VIERNES</span>
+          <div className="inline-flex items-center gap-2 rounded-full border border-[#0091B3]/30 bg-[#0091B3]/10 px-4 py-1.5 text-xs font-semibold text-[#0091B3] mb-3 shadow-xs">
+            <Image
+              src="/images/icono-gobierno-vt.png"
+              alt="Gobierno de Venado Tuerto"
+              width={16}
+              height={16}
+              className="h-4 w-4 rounded-xs object-contain"
+            />
+            <span>PROGRAMA EDUCATIVO MUNICIPAL · GOBIERNO DE VENADO TUERTO</span>
           </div>
           <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">
             Jornadas Escolares en el Centro de Simuladores

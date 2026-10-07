@@ -258,31 +258,31 @@ export default function VisorNave3D({
         <aside
           role="dialog"
           aria-label={`Ficha Técnica ${simuladorSeleccionado.nombre}`}
-          className="absolute top-4 right-4 bottom-4 z-30 w-96 max-w-[calc(100vw-32px)] flex flex-col justify-between rounded-2xl border border-zinc-800/90 bg-zinc-950/95 p-5 text-zinc-100 shadow-2xl backdrop-blur-xl animate-in slide-in-from-right-4 duration-200"
+          className="absolute top-4 right-4 z-30 w-full max-w-sm sm:max-w-md max-h-[calc(100%-2rem)] overflow-y-auto flex flex-col justify-between rounded-2xl border border-zinc-800/90 bg-zinc-950/95 p-5 sm:p-6 text-zinc-100 shadow-2xl backdrop-blur-xl animate-in slide-in-from-right-4 duration-200 space-y-4"
         >
           {/* Cabecera del Drawer */}
           <div>
-            <div className="flex items-start justify-between gap-2 border-b border-zinc-800/80 pb-3">
-              <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="rounded bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.5 font-mono text-[10px] font-bold text-emerald-400">
+            <div className="flex items-start justify-between gap-3 border-b border-zinc-800/80 pb-3.5">
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-2 mb-1.5">
+                  <span className="rounded bg-[#0091B3]/10 border border-[#0091B3]/30 px-2 py-0.5 font-mono text-[10px] font-bold text-[#6EC1E4]">
                     {simuladorSeleccionado.codigo}
                   </span>
-                  <span className="text-[10px] uppercase tracking-wider text-zinc-400">
+                  <span className="text-[10px] uppercase tracking-wider text-zinc-400 font-medium">
                     Puesto Especializado
                   </span>
                 </div>
-                <h3 className="text-base font-bold text-white tracking-tight leading-snug">
+                <h3 className="text-base sm:text-lg font-bold text-white tracking-tight leading-snug break-words">
                   {simuladorSeleccionado.nombre}
                 </h3>
               </div>
 
               <button
                 onClick={handleCerrarDrawer}
-                className="rounded-lg p-1.5 text-zinc-400 hover:bg-zinc-800 hover:text-white transition"
+                className="rounded-lg p-1.5 text-zinc-400 hover:bg-zinc-800 hover:text-white transition shrink-0 cursor-pointer"
                 title="Cerrar Ficha Técnica"
               >
-                <X className="h-4 w-4" />
+                <X className="h-5 w-5" />
               </button>
             </div>
 
@@ -290,25 +290,25 @@ export default function VisorNave3D({
             <div className="mt-3.5">
               {simuladorSeleccionado.estado === 'operando' ? (
                 <div className="rounded-xl border border-emerald-500/40 bg-emerald-950/20 p-2.5">
-                  <div className="flex items-center gap-2">
-                    <span className="relative flex h-2.5 w-2.5">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="relative flex h-2.5 w-2.5 shrink-0">
                       <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500" />
                     </span>
-                    <span className="text-xs font-bold text-emerald-400">
+                    <span className="text-xs font-bold text-emerald-400 break-words">
                       EN PRÁCTICA FORMATIVA
                     </span>
                   </div>
                   {simuladorSeleccionado.instructor && (
-                    <div className="mt-2 flex items-center gap-1.5 text-[11px] text-emerald-300/90 border-t border-emerald-900/40 pt-1.5">
+                    <div className="mt-2 flex items-center gap-1.5 text-[11px] text-emerald-300/90 border-t border-emerald-900/40 pt-1.5 break-words">
                       <User className="h-3 w-3 text-emerald-400 shrink-0" />
-                      <span>{simuladorSeleccionado.instructor}</span>
+                      <span className="break-words">{simuladorSeleccionado.instructor}</span>
                     </div>
                   )}
                 </div>
               ) : (
-                <div className="flex items-center gap-2 rounded-xl border border-zinc-800 bg-zinc-900/60 p-2.5">
-                  <span className="h-2.5 w-2.5 rounded-full bg-zinc-500" />
-                  <span className="text-xs font-medium text-zinc-300">
+                <div className="flex flex-wrap items-center gap-2 rounded-xl border border-zinc-800 bg-zinc-900/60 p-2.5">
+                  <span className="h-2.5 w-2.5 rounded-full bg-zinc-500 shrink-0" />
+                  <span className="text-xs font-medium text-zinc-300 break-words">
                     DISPONIBLE EN NAVE
                   </span>
                 </div>
@@ -316,37 +316,37 @@ export default function VisorNave3D({
             </div>
 
             {/* Bloque: Especificaciones de Hardware */}
-            <div className="mt-4 space-y-3">
+            <div className="mt-4 space-y-2.5">
               <div className="text-xs uppercase tracking-wider text-zinc-300 font-semibold">
                 Equipamiento de Cabina
               </div>
 
-              <div className="space-y-2 text-xs">
-                <div className="flex items-start gap-2.5 rounded-lg bg-zinc-900/60 border border-zinc-800/80 p-2.5">
-                  <Tv className="h-4 w-4 text-emerald-400 mt-0.5 shrink-0" />
-                  <div>
-                    <div className="font-semibold text-zinc-200">Sistema Visual</div>
-                    <div className="text-[11px] text-zinc-400 leading-relaxed">
+              <div className="grid grid-cols-1 gap-2.5">
+                <div className="flex items-start gap-3 rounded-lg bg-zinc-900/60 border border-zinc-800/80 p-3.5">
+                  <Tv className="h-4 w-4 text-[#0091B3] mt-0.5 shrink-0" />
+                  <div className="min-w-0 flex-1">
+                    <div className="font-semibold text-zinc-200 text-xs break-words">Sistema Visual</div>
+                    <div className="text-xs text-zinc-400 leading-relaxed break-words mt-0.5">
                       {simuladorSeleccionado.especificacionesHardware.pantallas}
                     </div>
                   </div>
                 </div>
 
-                <div className="flex items-start gap-2.5 rounded-lg bg-zinc-900/60 border border-zinc-800/80 p-2.5">
-                  <Gamepad2 className="h-4 w-4 text-emerald-400 mt-0.5 shrink-0" />
-                  <div>
-                    <div className="font-semibold text-zinc-200">Mandos & Controles</div>
-                    <div className="text-[11px] text-zinc-400 leading-relaxed">
+                <div className="flex items-start gap-3 rounded-lg bg-zinc-900/60 border border-zinc-800/80 p-3.5">
+                  <Gamepad2 className="h-4 w-4 text-[#0091B3] mt-0.5 shrink-0" />
+                  <div className="min-w-0 flex-1">
+                    <div className="font-semibold text-zinc-200 text-xs break-words">Mandos & Controles</div>
+                    <div className="text-xs text-zinc-400 leading-relaxed break-words mt-0.5">
                       {simuladorSeleccionado.especificacionesHardware.mandos}
                     </div>
                   </div>
                 </div>
 
-                <div className="flex items-start gap-2.5 rounded-lg bg-zinc-900/60 border border-zinc-800/80 p-2.5">
-                  <Layers className="h-4 w-4 text-emerald-400 mt-0.5 shrink-0" />
-                  <div>
-                    <div className="font-semibold text-zinc-200">Plataforma Háptica</div>
-                    <div className="text-[11px] text-zinc-400 leading-relaxed">
+                <div className="flex items-start gap-3 rounded-lg bg-zinc-900/60 border border-zinc-800/80 p-3.5">
+                  <Layers className="h-4 w-4 text-[#0091B3] mt-0.5 shrink-0" />
+                  <div className="min-w-0 flex-1">
+                    <div className="font-semibold text-zinc-200 text-xs break-words">Plataforma Háptica</div>
+                    <div className="text-xs text-zinc-400 leading-relaxed break-words mt-0.5">
                       {simuladorSeleccionado.especificacionesHardware.plataforma}
                     </div>
                   </div>
@@ -357,14 +357,14 @@ export default function VisorNave3D({
             {/* Bloque: Módulos Pedagógicos */}
             <div className="mt-4">
               <div className="flex items-center gap-1.5 text-xs uppercase tracking-wider text-zinc-300 font-semibold mb-2">
-                <GraduationCap className="h-3.5 w-3.5 text-emerald-400" />
+                <GraduationCap className="h-3.5 w-3.5 text-[#0091B3]" />
                 <span>Competencias que Entrena</span>
               </div>
-              <ul className="space-y-1.5 text-xs text-zinc-300">
+              <ul className="space-y-2 text-xs text-zinc-300">
                 {simuladorSeleccionado.modulosPedagogicos.map((modulo, i) => (
-                  <li key={i} className="flex items-start gap-2 leading-relaxed">
-                    <CheckCircle className="h-3.5 w-3.5 text-emerald-400 shrink-0 mt-0.5" />
-                    <span>{modulo}</span>
+                  <li key={i} className="flex items-start gap-2.5 leading-relaxed break-words">
+                    <CheckCircle className="h-3.5 w-3.5 text-[#0091B3] shrink-0 mt-0.5" />
+                    <span className="break-words">{modulo}</span>
                   </li>
                 ))}
               </ul>
@@ -375,7 +375,7 @@ export default function VisorNave3D({
           <div className="mt-5 border-t border-zinc-800/80 pt-3">
             <button
               onClick={handleCerrarDrawer}
-              className="w-full rounded-xl border border-zinc-700 bg-zinc-900 py-2.5 text-xs font-semibold text-zinc-200 transition hover:bg-emerald-950/30 hover:border-emerald-500/40 hover:text-emerald-300 active:scale-98"
+              className="w-full rounded-xl border border-zinc-700 bg-zinc-900 py-2.5 text-xs font-semibold text-zinc-200 transition hover:bg-zinc-800 hover:border-[#0091B3]/50 hover:text-white active:scale-98 cursor-pointer"
             >
               Cerrar Ficha Técnica
             </button>
