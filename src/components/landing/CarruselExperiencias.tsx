@@ -76,15 +76,17 @@ export default function CarruselExperiencias({
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         {/* Encabezado */}
         <div className="text-center max-w-3xl mx-auto mb-12">
-          <div className="inline-flex items-center gap-2 rounded-full border border-[#0091B3]/30 bg-[#0091B3]/10 px-4 py-1.5 text-xs font-semibold text-[#0091B3] mb-3 shadow-xs">
+          <div className="inline-flex items-center gap-2 rounded-full border border-[#0091B3]/30 bg-[#0091B3]/10 px-3.5 py-1 sm:px-4 sm:py-1.5 text-[11px] sm:text-xs font-semibold text-[#0091B3] mb-3 shadow-xs max-w-full">
             <Image
               src="/images/icono-gobierno-vt.png"
               alt="Gobierno de Venado Tuerto"
               width={16}
               height={16}
-              className="h-4 w-4 rounded-xs object-contain"
+              className="h-3.5 w-3.5 sm:h-4 sm:w-4 rounded-xs object-contain shrink-0"
             />
-            <span>EXPERIENCIAS EN PRIMERA PERSONA · GOBIERNO DE VENADO TUERTO</span>
+            <span>
+              EXPERIENCIAS EN PRIMERA PERSONA<span className="hidden sm:inline"> · GOBIERNO DE VENADO TUERTO</span>
+            </span>
           </div>
           <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">
             Las Escuelas en el Centro de Entrenamiento

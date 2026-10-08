@@ -21,15 +21,17 @@ export default function Home() {
       {/* Encabezado Institucional Previo al Visor */}
       <section className="w-full bg-slate-50 pt-10 pb-4">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="inline-flex items-center gap-2.5 rounded-full border border-[#0091B3]/30 bg-[#0091B3]/10 px-4 py-1.5 text-xs sm:text-sm font-semibold text-[#0091B3] mb-3 shadow-xs">
+          <div className="inline-flex items-center gap-2 rounded-full border border-[#0091B3]/30 bg-[#0091B3]/10 px-3.5 py-1 sm:px-4 sm:py-1.5 text-[11px] sm:text-xs md:text-sm font-semibold text-[#0091B3] mb-3 shadow-xs max-w-full">
             <Image
               src="/images/icono-gobierno-vt.png"
               alt="Gobierno de Venado Tuerto"
-              width={20}
-              height={20}
-              className="h-4 w-4 rounded-xs object-contain"
+              width={18}
+              height={18}
+              className="h-3.5 w-3.5 sm:h-4 sm:w-4 rounded-xs object-contain shrink-0"
             />
-            <span>SISTEMA MUNICIPAL DE SIMULACIÓN · GOBIERNO DE VENADO TUERTO</span>
+            <span>
+              SISTEMA MUNICIPAL DE SIMULACIÓN<span className="hidden sm:inline"> · GOBIERNO DE VENADO TUERTO</span>
+            </span>
           </div>
           <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-slate-900">
             Centro de Entrenamiento en Simuladores

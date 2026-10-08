@@ -10,13 +10,13 @@ export default function Footer() {
         <div className="grid grid-cols-1 gap-10 md:grid-cols-2 lg:grid-cols-4 pb-12 border-b border-slate-800">
           {/* Columna 1: Identidad Institucional y Logo */}
           <div className="space-y-4">
-            <div className="inline-block bg-white/95 px-6 py-4 rounded-2xl shadow-lg mb-4">
+            <div className="inline-block bg-white/95 px-4 py-2.5 sm:px-6 sm:py-4 rounded-2xl shadow-lg mb-4 max-w-full">
               <Image
                 src="/images/logo-gobierno-vt.png"
                 alt="Gobierno de Venado Tuerto"
                 width={360}
                 height={180}
-                className="h-20 sm:h-24 md:h-28 lg:h-32 w-auto object-contain shrink-0"
+                className="h-16 sm:h-22 md:h-26 lg:h-30 w-auto max-w-full object-contain shrink-0"
               />
             </div>
             <div className="text-sm font-bold text-white tracking-tight">

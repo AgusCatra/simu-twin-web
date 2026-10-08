@@ -258,7 +258,7 @@ export default function VisorNave3D({
         <aside
           role="dialog"
           aria-label={`Ficha Técnica ${simuladorSeleccionado.nombre}`}
-          className="absolute top-4 right-4 z-30 w-full max-w-sm sm:max-w-md max-h-[calc(100%-2rem)] overflow-y-auto flex flex-col justify-between rounded-2xl border border-zinc-800/90 bg-zinc-950/95 p-5 sm:p-6 text-zinc-100 shadow-2xl backdrop-blur-xl animate-in slide-in-from-right-4 duration-200 space-y-4"
+          className="absolute inset-x-3 top-3 sm:inset-x-auto sm:top-4 sm:right-4 z-30 w-auto sm:w-full sm:max-w-md max-h-[calc(100%-1.5rem)] sm:max-h-[calc(100%-2rem)] overflow-y-auto flex flex-col justify-between rounded-2xl border border-zinc-800/90 bg-zinc-950/95 p-4 sm:p-6 text-zinc-100 shadow-2xl backdrop-blur-xl animate-in slide-in-from-right-4 duration-200 space-y-4"
         >
           {/* Cabecera del Drawer */}
           <div>
