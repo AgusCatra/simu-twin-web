@@ -1,0 +1,1 @@
+Next.js 15 project root that configures the build, linting, and runtime environment for the Galpón SCADA simulator child module.

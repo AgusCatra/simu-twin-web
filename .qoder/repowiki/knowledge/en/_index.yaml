@@ -3,11 +3,11 @@ schema_version: 1
 locale: en-US
 branch: main
 nodes_managed: true
-exported_at: "2026-10-05T13:09:30Z"
+exported_at: "2026-10-17T22:51:08Z"
 modules:
     "":
-        dir_name: Simu-Twin Web Root
-        title: Simu-Twin Web Root
+        dir_name: simu-twin-web Next.js Project Root
+        title: simu-twin-web Next.js Project Root
         scope:
             - README.md
             - .gitignore

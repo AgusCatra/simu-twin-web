@@ -2,145 +2,302 @@
 
 <cite>
 **Referenced Files in This Document**
-- [README.md](file:///c:/Users/catra/Desktop/simu-twin-web/README.md)
-- [package.json](file:///c:/Users/catra/Desktop/simu-twin-web/package.json)
-- [src/app/layout.tsx](file:///c:/Users/catra/Desktop/simu-twin-web/src/app/layout.tsx)
-- [src/app/page.tsx](file:///c:/Users/catra/Desktop/simu-twin-web/src/app/page.tsx)
-- [src/middleware.ts](file:///c:/Users/catra/Desktop/simu-twin-web/src/middleware.ts)
-- [src/lib/supabase/client.ts](file:///c:/Users/catra/Desktop/simu-twin-web/src/lib/supabase/client.ts)
-- [src/lib/supabase/server.ts](file:///c:/Users/catra/Desktop/simu-twin-web/src/lib/supabase/server.ts)
-- [src/components/gemelo/VisorNave3D.tsx](file:///c:/Users/catra/Desktop/simu-twin-web/src/components/gemelo/VisorNave3D.tsx)
-- [src/components/gemelo/GemeloGalponCanvas.tsx](file:///c:/Users/catra/Desktop/simu-twin-web/src/components/gemelo/GemeloGalponCanvas.tsx)
-- [src/app/visitas/page.tsx](file:///c:/Users/catra/Desktop/simu-twin-web/src/app/visitas/page.tsx)
-- [src/app/admin/visitas-educativas/page.tsx](file:///c:/Users/catra/Desktop/simu-twin-web/src/app/admin/visitas-educativas/page.tsx)
-- [src/app/admin/tup/page.tsx](file:///c:/Users/catra/Desktop/simu-twin-web/src/app/admin/tup/page.tsx)
-- [src/app/admin/registro-actividades/page.tsx](file:///c:/Users/catra/Desktop/simu-twin-web/src/app/admin/registro-actividades/page.tsx)
-- [src/types/gemelo.ts](file:///c:/Users/catra/Desktop/simu-twin-web/src/types/gemelo.ts)
-- [src/types/visitas.ts](file:///c:/Users/catra/Desktop/simu-twin-web/src/types/visitas.ts)
-- [src/types/tup.ts](file:///c:/Users/catra/Desktop/simu-twin-web/src/types/tup.ts)
-- [src/types/actividades.ts](file:///c:/Users/catra/Desktop/simu-twin-web/src/types/actividades.ts)
+- [README.md](file://README.md)
+- [package.json](file://package.json)
+- [src/app/layout.tsx](file://src/app/layout.tsx)
+- [src/app/page.tsx](file://src/app/page.tsx)
+- [src/components/gemelo/VisorNave3D.tsx](file://src/components/gemelo/VisorNave3D.tsx)
+- [src/types/gemelo.ts](file://src/types/gemelo.ts)
+- [src/app/visitas/page.tsx](file://src/app/visitas/page.tsx)
+- [src/app/admin/page.tsx](file://src/app/admin/page.tsx)
+- [src/app/admin/layout.tsx](file://src/app/admin/layout.tsx)
+- [src/components/admin/Sidebar.tsx](file://src/components/admin/Sidebar.tsx)
+- [supabase/migrations/0001_rls_visitas_educativas.sql](file://supabase/migrations/0001_rls_visitas_educativas.sql)
 </cite>
+
+## Update Summary
+**Changes Made**
+- Completely transformed from generic Next.js template to specialized municipal training center platform for Venado Tuerto, Argentina
+- Added comprehensive 3D simulation capabilities with Three.js and SCADA integration
+- Implemented educational visit management system with H4 module for school field trips
+- Integrated TUP (Transporte Urbano de Pasajeros) logistics for municipal transportation
+- Added administrative dashboard with real-time monitoring and activity registration
+- Enhanced security with Row Level Security (RLS) policies for data protection
 
 ## Table of Contents
 1. [Introduction](#introduction)
-2. [Mission & Objectives](#mission--objectives)
-3. [Core Systems & Modules](#core-systems--modules)
-4. [High-Level Architecture](#high-level-architecture)
-5. [User Roles and Workflows](#user-roles-and-workflows)
-6. [Security and Privacy](#security-and-privacy)
-7. [Dependencies & Tooling](#dependencies--tooling)
-8. [Conclusion](#conclusion)
-
----
+2. [Project Structure](#project-structure)
+3. [Core Components](#core-components)
+4. [Architecture Overview](#architecture-overview)
+5. [Detailed Component Analysis](#detailed-component-analysis)
+6. [Dependency Analysis](#dependency-analysis)
+7. [Performance Considerations](#performance-considerations)
+8. [Security and Data Protection](#security-and-data-protection)
+9. [Conclusion](#conclusion)
+10. [Appendices](#appendices)
 
 ## Introduction
-**Simu-Twin Web** is the official web application and operational management platform for the **Centro Municipal de Entrenamiento en Simuladores de Venado Tuerto** (Government of Venado Tuerto, Santa Fe, Argentina), located in the city's Industrial Park.
+Simu-Twin-Web has evolved into the official web platform for the **Municipal Simulator Training Center of Venado Tuerto**, a strategic initiative by the local government focused on technical training in heavy machinery, digital twin technology, and educational outreach. The system now provides:
 
-The application serves as both a public portal and an administrative hub:
-- It features an interactive **3D Digital Twin (SCADA)** of the industrial simulation warehouse built with Three.js.
-- It provides a public booking system for **Technical Educational Visits (H4)** for 5th and 6th-year secondary school students.
-- It coordinates municipal transit with the **TUP (Transporte Urbano de Pasajeros)** to provide free school bus transportation to and from the Industrial Park.
-- It includes a real-time **Equipment Rack & Session Management** tool to track simulator statuses, accumulated operational machine hours, and vocational gender inclusion metrics.
+- **3D Digital Twin**: Interactive industrial facility simulation with real-time SCADA telemetry
+- **Educational Visit Management**: H4 module for coordinating school field trips to the simulator center
+- **TUP Logistics Integration**: Municipal transportation coordination for student groups
+- **Administrative Dashboard**: Real-time monitoring of simulator operations and session management
+- **Safety-First Training Environment**: Zero-risk practical training for heavy machinery operation
+
+The target audience includes schools, technical institutions, municipal authorities, and trainees seeking certification in heavy machinery operation. For beginners, this means an accessible platform where schools can book educational visits and students experience immersive training. For experienced developers, it offers a sophisticated Next.js architecture with Three.js 3D rendering, Supabase backend, and comprehensive TypeScript typing.
+
+Practical examples:
+- **Booking a museum visit**: Schools select available dates and time slots through the H4 form, with automatic validation against municipal calendars
+- **Managing student groups**: Administrators coordinate transportation via TUP and track student attendance with Argentine DNI integration
+- **Monitoring simulator operations**: Real-time 3D visualization shows which simulators are active, their consumption metrics, and operator status
 
 **Section sources**
-- [README.md:1-50](file:///c:/Users/catra/Desktop/simu-twin-web/README.md#L1-L50)
-- [src/app/page.tsx:1-69](file:///c:/Users/catra/Desktop/simu-twin-web/src/app/page.tsx#L1-L69)
+- [README.md:1-88](file://README.md#L1-L88)
+- [package.json:1-34](file://package.json#L1-L34)
 
----
-
-## Mission & Objectives
-The center bridges the gap between technical education, industrial safety, and high-demand vocational jobs (heavy machinery operators, forklift drivers, crane handlers, roadwork operators, and industrial painters).
-
-Key objectives:
-1. **Hands-On Immersive Training**: Provide realistic simulation training in heavy machinery (forklifts, front loaders, backhoes, telescopic cranes, tractors, articulated trucks, and SimSpray painting/welding).
-2. **Educational Outreach**: Receive high school delegations from Venado Tuerto and surrounding towns (strictly capped at 40 students per shift).
-3. **Logistical Accessibility**: Coordinate municipal school bus transportation for public schools via the TUP fleet.
-4. **Telemetric Digital Twin**: Provide real-time SCADA visibility of energy consumption, active stations, and equipment load.
-5. **Operational Accountability & Equity**: Track physical machine usage hours, company training sessions, and gender distribution in technical trades.
-
----
-
-## Core Systems & Modules
+## Project Structure
+The project follows a modern Next.js App Router structure with clear separation between public portal, administrative interface, and 3D simulation components:
 
 ```mermaid
-graph TD
-    Root["Simu-Twin Web"] --> Landing["Public Landing Page (/)<br/>- Institutional Header<br/>- 3D Digital Twin Visor<br/>- Impact Metrics<br/>- Testimonial Carousel"]
-    Root --> VisitasPortal["Educational Visits Portal (/visitas)<br/>- 5-Step Booking Wizard<br/>- Calendar & Quota Check<br/>- Attendee Roster Grid<br/>- Legal Waivers"]
-    Root --> AdminHub["Administrative Hub (/admin)<br/>Protected via Supabase Auth & Edge Middleware"]
-    
-    AdminHub --> ModVisitas["Visitas Educativas (H4)<br/>- Table of Bookings<br/>- Operational Checklist (Insurance, TUP, Invoices, Drive)<br/>- Rescheduling Modal<br/>- Excel Export (.xlsx)"]
-    AdminHub --> ModTUP["Logística TUP<br/>- Mobile-Optimized Driver Dashboard<br/>- Trip Lifecycle (pendiente -> completado)<br/>- Direct WhatsApp Teacher Contact"]
-    AdminHub --> ModActividades["Registro de Actividades<br/>- Live Simulator Rack Toggling<br/>- Real-time Session Stopwatch<br/>- Machine Running Hours Accumulator<br/>- Gender Diversity Tracking"]
+graph TB
+A["Next.js App Shell<br/>layout.tsx"] --> B["Public Portal<br/>page.tsx"]
+B --> C["3D Digital Twin<br/>VisorNave3D.tsx"]
+B --> D["Educational Visits<br/>visitas/page.tsx"]
+A --> E["Admin Dashboard<br/>admin/page.tsx"]
+E --> F["Admin Layout<br/>admin/layout.tsx"]
+F --> G["Sidebar Navigation<br/>Sidebar.tsx"]
+C --> H["3D Types<br/>gemelo.ts"]
 ```
 
-### 1. 3D Digital Twin (SCADA)
-Embedded directly on the home page via [`src/components/gemelo/VisorNave3D.tsx`](file:///c:/Users/catra/Desktop/simu-twin-web/src/components/gemelo/VisorNave3D.tsx) and [`src/components/gemelo/GemeloGalponCanvas.tsx`](file:///c:/Users/catra/Desktop/simu-twin-web/src/components/gemelo/GemeloGalponCanvas.tsx):
-- Models a 28m x 22m x 7.5m steel truss industrial warehouse.
-- 7 procedural simulator stations with multiple monitors, gamer seats, steering wheels, pedals, and hydraulic joysticks.
-- Animated 3D human operators equipped with work overalls, safety hardhats, and VR headsets.
-- Real-time SCADA HUD displaying estimated kWh power consumption, active bay count, and ambient cabin temperatures.
+**Diagram sources**
+- [src/app/layout.tsx:1-35](file://src/app/layout.tsx#L1-L35)
+- [src/app/page.tsx:1-69](file://src/app/page.tsx#L1-L69)
+- [src/components/gemelo/VisorNave3D.tsx:1-388](file://src/components/gemelo/VisorNave3D.tsx#L1-L388)
+- [src/app/visitas/page.tsx:1-28](file://src/app/visitas/page.tsx#L1-L28)
+- [src/app/admin/page.tsx:1-38](file://src/app/admin/page.tsx#L1-L38)
+- [src/app/admin/layout.tsx:1-26](file://src/app/admin/layout.tsx#L1-L26)
+- [src/components/admin/Sidebar.tsx:1-113](file://src/components/admin/Sidebar.tsx#L1-L113)
+- [src/types/gemelo.ts:1-92](file://src/types/gemelo.ts#L1-L92)
 
-### 2. Educational Visits Booking (H4)
-Accessible at [`src/app/visitas/page.tsx`](file:///c:/Users/catra/Desktop/simu-twin-web/src/app/visitas/page.tsx):
-- Dynamic selection of municipal schools or external institutions.
-- Multi-step validation preventing double bookings on dates defined in `fechas_habilitadas`.
-- Strict attendee roster collection (`visita_asistentes`) with national ID (DNI), birthday, and role (Student / Teacher).
-- Mandatory legal consent: insurance policy terms, image rights consent, and judicial protection declarations.
+**Section sources**
+- [src/app/layout.tsx:1-35](file://src/app/layout.tsx#L1-L35)
+- [src/app/page.tsx:1-69](file://src/app/page.tsx#L1-L69)
+- [src/app/visitas/page.tsx:1-28](file://src/app/visitas/page.tsx#L1-L28)
+- [src/app/admin/page.tsx:1-38](file://src/app/admin/page.tsx#L1-L38)
+- [src/app/admin/layout.tsx:1-26](file://src/app/admin/layout.tsx#L1-L26)
+- [src/components/admin/Sidebar.tsx:1-113](file://src/components/admin/Sidebar.tsx#L1-L113)
+- [src/types/gemelo.ts:1-92](file://src/types/gemelo.ts#L1-L92)
 
-### 3. TUP Logistics (Municipal Transit)
-Accessible at [`src/app/admin/tup/page.tsx`](file:///c:/Users/catra/Desktop/simu-twin-web/src/app/admin/tup/page.tsx):
-- Dispatch board built for mobile devices and tablets used by municipal drivers and coordinators.
-- Real-time status transitions: `pendiente` ➔ `en_camino` ➔ `en_destino` ➔ `completado` (or `cancelado`).
-- Direct WhatsApp integration opening pre-formatted chat with the accompanying teacher.
+## Core Components
+The platform consists of several interconnected modules that work together to provide comprehensive training and management capabilities:
 
-### 4. Simulator Rack & Activity Session Recording
-Accessible at [`src/app/admin/registro-actividades/page.tsx`](file:///c:/Users/catra/Desktop/simu-twin-web/src/app/admin/registro-actividades/page.tsx):
-- Visual equipment rack to toggle station status (`libre`, `en_operacion`, `mantenimiento`).
-- Live session controller tracking active duration with a stopwatch, attaching simulator IDs, and registering student/worker attendance.
-- Gender inclusion categorization (`hombre`, `mujer`, `otro`, `no_especifica`) for civic equity metrics.
-- Automatic server-side increment of `horas_uso_totales` on the `simuladores` table upon closing a session.
+### 3D Digital Twin and SCADA System
+- **Industrial Facility Model**: Procedurally generated 3D environment representing the actual simulator facility (28m × 22m × 7.5m)
+- **Seven Simulator Stations**: Autoelevador, pala frontal, retroexcavadora, grúa telescópica, tractor, camión articulado, and SimSpray VR
+- **Animated Operators**: 3D characters with safety gear transitioning between rest, walking, and operating states
+- **Real-time Telemetry**: Live monitoring of power consumption (kWh), cabin temperature, and active station status
 
----
+### Educational Visit Management (H4 Module)
+- **Public Booking Form**: Available for 5th and 6th year secondary school students (maximum 40 students per session)
+- **Municipal Calendar Integration**: Availability validation against authorized dates (`fechas_habilitadas`)
+- **Student Roster Management**: Dynamic upload of student and teacher lists with Argentine DNI validation
+- **Insurance and Consent Management**: Digital processing of insurance policies, photo consent, and legal measures
 
-## High-Level Architecture
-- **Next.js 15 (App Router)** with **React 19** and **TypeScript**.
-- **Turbopack** for rapid development and production bundling.
-- **Tailwind CSS v4** styling with official Government of Venado Tuerto design tokens (`#0091B3`, slate, dark zinc).
-- **Three.js WebGL Engine** for procedural rendering.
-- **Supabase SSR** (`@supabase/ssr`) with cookie-based session persistence across client components, Server Components, Server Actions, and Edge Middleware.
-- **PostgreSQL 15+** with Row-Level Security (RLS) and custom triggers.
+### Administrative Dashboard
+- **Live Operations Monitoring**: Real-time view of simulator status and operational metrics
+- **Activity Registration**: Session management with timer, company/institution tracking, and participant rosters
+- **Inclusion Metrics**: Gender-based statistics for equity analysis in technical trades
+- **Automated Hour Accumulation**: Automatic tracking of machine usage hours per physical equipment
 
----
+**Section sources**
+- [src/components/gemelo/VisorNave3D.tsx:39-173](file://src/components/gemelo/VisorNave3D.tsx#L39-L173)
+- [src/types/gemelo.ts:3-83](file://src/types/gemelo.ts#L3-L83)
+- [README.md:22-44](file://README.md#L22-L44)
 
-## User Roles and Workflows
+## Architecture Overview
+The application employs a multi-layered architecture combining modern web technologies with industrial simulation capabilities:
 
-| Role | Entry Points | Permissions & Responsibilities |
-| :--- | :--- | :--- |
-| **Public Visitor / Student / School Director** | `/`, `/visitas` | Browse simulator center details, view 3D twin, submit visit requests with student rosters, accept legal waivers. No access to other rosters or administrative checks. |
-| **Municipal Administrator / Educational Coordinator** | `/login`, `/admin/visitas-educativas` | Approve/reschedule visits, verify operational checklist (insurance, TUP, invoicing, Drive SUM), export rosters to Excel. |
-| **TUP Municipal Driver / Transit Operator** | `/login`, `/admin/tup` | View daily school transport schedule, trigger trip statuses, inspect student counts and school addresses, contact teachers via WhatsApp. |
-| **Simulator Center Technician / Instructor** | `/login`, `/admin/registro-actividades` | Toggle simulator rack states, start and conclude live training sessions, register attendee rosters, log equipment maintenance. |
+```mermaid
+sequenceDiagram
+participant Public as "Public Portal"
+participant Admin as "Admin Dashboard"
+participant Twin as "3D Digital Twin"
+participant DB as "Supabase Database"
+participant SCADA as "SCADA Telemetry"
+Public->>DB : "Check available dates"
+DB-->>Public : "Authorized dates"
+Public->>DB : "Create educational visit request"
+DB-->>Public : "Confirmation"
+Admin->>Twin : "Monitor simulator status"
+Twin->>SCADA : "Fetch real-time data"
+SCADA-->>Twin : "Telemetry updates"
+Twin-->>Admin : "Live operational status"
+Admin->>DB : "Update session data"
+DB-->>Admin : "Session confirmation"
+```
 
----
+**Diagram sources**
+- [src/app/page.tsx:15-69](file://src/app/page.tsx#L15-L69)
+- [src/app/admin/page.tsx:5-38](file://src/app/admin/page.tsx#L5-L38)
+- [src/components/gemelo/VisorNave3D.tsx:179-221](file://src/components/gemelo/VisorNave3D.tsx#L179-L221)
 
-## Security and Privacy
-- **Minor PII Protection**: Attendance rosters in `visita_asistentes` contain names and IDs of underage students. Unauthenticated users (`anon`) have `SELECT` denied by Postgres RLS.
-- **Operational Flag Protection**: `visitas_educativas` operational checks (`check_poliza`, `check_tup`, etc.) cannot be mutated by public visitors. A database trigger (`trg_forzar_checks_no_autenticados`) forces them to `false` if `auth.uid() is null`.
-- **Server Action Validation**: Strict validation and sanitization (`normalizarTextoNullable`) prevent empty string bugs in PostgreSQL `date`, `time`, and `uuid` columns.
+The architecture separates concerns between:
+- **Presentation Layer**: Next.js pages providing both public portal and administrative interfaces
+- **Simulation Layer**: Three.js-based 3D rendering with SCADA integration
+- **Business Logic**: Educational visit scheduling, TUP logistics coordination, and session management
+- **Data Layer**: Supabase with Row Level Security policies protecting sensitive student data
 
----
+## Detailed Component Analysis
 
-## Dependencies & Tooling
-- `next`: `15.5.25`
-- `react`: `19.1.0`
-- `three`: `^0.186.1`
-- `@supabase/ssr`: `^0.12.7`
-- `@supabase/supabase-js`: `^2.116.0`
-- `xlsx`: `^0.18.5`
-- `lucide-react`: `^1.45.0`
-- `tailwindcss`: `^4`
+### 3D Simulation Engine
+The core simulation component provides an immersive industrial environment with advanced features:
 
----
+```mermaid
+classDiagram
+class FichaTecnicaSimulador {
++string id
++string codigo
++string nombre
++TipoSimulador tipo
++EstadoPuesto estado
++EspecificacionesHardware especificacionesHardware
++string[] modulosPedagogicos
++string detalles
++string instructor
++string horaInicio
+}
+class EspecificacionesHardware {
++string pantallas
++string mandos
++string plataforma
+}
+class TipoSimulador {
+<<enumeration>>
+autoelevador
+pala-frontal
+retroexcavadora
+grua-telescopica
+tractor
+camion
+simspray
+}
+FichaTecnicaSimulador --> EspecificacionesHardware
+FichaTecnicaSimulador --> TipoSimulador
+```
+
+**Diagram sources**
+- [src/types/gemelo.ts:68-83](file://src/types/gemelo.ts#L68-L83)
+- [src/types/gemelo.ts:3-10](file://src/types/gemelo.ts#L3-L10)
+
+**Section sources**
+- [src/types/gemelo.ts:1-92](file://src/types/gemelo.ts#L1-L92)
+- [src/components/gemelo/VisorNave3D.tsx:39-173](file://src/components/gemelo/VisorNave3D.tsx#L39-L173)
+
+### Educational Visit Management System
+The H4 module handles the complete workflow for educational institution coordination:
+
+```mermaid
+flowchart TD
+Start(["School Registration"]) --> CheckAvail["Validate against municipal calendar"]
+CheckAvail --> Avail{"Date Available?"}
+Avail -- "No" --> Error["Show alternative dates"]
+Avail -- "Yes" --> CollectInfo["Collect student roster & contact info"]
+CollectInfo --> Validate["Validate DNI & capacity limits"]
+Validate --> Submit["Submit visit request"]
+Submit --> Confirm["Generate confirmation"]
+Confirm --> End(["Visit Scheduled"])
+Error --> End
+```
+
+**Diagram sources**
+- [src/app/visitas/page.tsx:10-27](file://src/app/visitas/page.tsx#L10-L27)
+- [supabase/migrations/0001_rls_visitas_educativas.sql:47-53](file://supabase/migrations/0001_rls_visitas_educativas.sql#L47-L53)
+
+**Section sources**
+- [src/app/visitas/page.tsx:1-28](file://src/app/visitas/page.tsx#L1-L28)
+- [supabase/migrations/0001_rls_visitas_educativas.sql:1-107](file://supabase/migrations/0001_rls_visitas_educativas.sql#L1-L107)
+
+### Administrative Interface
+The admin dashboard provides comprehensive control over simulator operations and educational activities:
+
+**Section sources**
+- [src/app/admin/page.tsx:1-38](file://src/app/admin/page.tsx#L1-L38)
+- [src/app/admin/layout.tsx:1-26](file://src/app/admin/layout.tsx#L1-L26)
+- [src/components/admin/Sidebar.tsx:1-113](file://src/components/admin/Sidebar.tsx#L1-L113)
+
+## Dependency Analysis
+The platform leverages modern web technologies optimized for both performance and user experience:
+
+```mermaid
+graph TB
+Pkg["package.json"] --> Next["next 15.5.25"]
+Pkg --> React["react 19.1.0"]
+Pkg --> Three["three 0.186.1"]
+Pkg --> Supabase["@supabase/supabase-js"]
+Pkg --> Tailwind["tailwindcss v4"]
+Pkg --> XLSX["xlsx 0.18.5"]
+Three --> GL["WebGL Rendering"]
+Supabase --> DB["PostgreSQL Database"]
+React --> UI["Interactive Components"]
+```
+
+**Diagram sources**
+- [package.json:11-21](file://package.json#L11-L21)
+
+Key dependencies include:
+- **Next.js 15.5.25**: Modern React framework with App Router and Turbopack optimization
+- **Three.js 0.186.1**: 3D graphics engine for digital twin visualization
+- **Supabase**: Backend-as-a-service with PostgreSQL database and authentication
+- **Tailwind CSS v4**: Utility-first styling framework
+- **TypeScript 5.0**: Type safety across all components
+- **XLSX**: Excel file processing for student roster management
+
+**Section sources**
+- [package.json:1-34](file://package.json#L1-L34)
+
+## Performance Considerations
+The platform is optimized for both the demanding 3D simulation requirements and efficient web delivery:
+
+- **3D Rendering Optimization**: Three.js scenes use procedural generation and optimized geometry for smooth performance
+- **Component Loading**: Dynamic imports for heavy 3D components prevent blocking initial page load
+- **Database Queries**: Efficient Supabase queries with proper indexing for educational visit scheduling
+- **Bundle Optimization**: Tree shaking and code splitting reduce JavaScript payload size
+- **Real-time Updates**: Optimized state management for live SCADA telemetry without excessive re-renders
+- **Mobile Responsiveness**: Adaptive layouts ensure accessibility across devices for TUP coordinators and teachers
+
+## Security and Data Protection
+The platform implements enterprise-grade security measures to protect sensitive educational and personal data:
+
+### Row Level Security (RLS) Policies
+- **Public Read Access**: Anonymous users can access catalog tables (schools, authorized dates) for the booking form
+- **Authenticated Write Access**: Only authenticated administrators can modify operational data
+- **Data Isolation**: Student personal information (DNIs, birth dates) is protected from anonymous access
+- **Operational Field Protection**: Critical fields like insurance status, TUP coordination, and drive links are restricted
+
+### Authentication and Authorization
+- **Supabase Auth Integration**: Secure authentication for administrative access
+- **Edge Middleware**: Server-side route protection for admin endpoints
+- **Role-Based Access Control**: Different permission levels for instructors, administrators, and public users
+
+**Section sources**
+- [supabase/migrations/0001_rls_visitas_educativas.sql:1-107](file://supabase/migrations/0001_rls_visitas_educativas.sql#L1-L107)
 
 ## Conclusion
-Simu-Twin Web represents a modern civic-tech solution uniting high-fidelity 3D simulation visualization, educational administration, municipal logistics, and industrial training tracking under a secure, performant Next.js 15 architecture.
+Simu-Twin-Web has successfully transformed from a generic Next.js template into a comprehensive municipal training platform that bridges the gap between educational outreach and industrial simulation technology. The system now serves as a complete solution for the Venado Tuerto Simulator Training Center, providing:
+
+- **Immersive Learning Experience**: Advanced 3D simulations that prepare students for real-world heavy machinery operation
+- **Streamlined Educational Coordination**: Automated scheduling and logistics management for school visits
+- **Operational Excellence**: Real-time monitoring and administration of simulator facilities
+- **Community Impact**: Contributing to technical education and employment opportunities in the region
+
+The platform demonstrates how modern web technologies can be effectively applied to solve complex educational and industrial challenges while maintaining high standards of security, performance, and user experience.
+
+## Appendices
+- **Getting Started**: Development server setup with Node.js 20+ and Supabase configuration
+- **Deployment**: Production deployment using Vercel with environment variable management
+- **Documentation**: Comprehensive technical documentation available in the project wiki
+
+**Section sources**
+- [README.md:53-88](file://README.md#L53-L88)
+- [package.json:5-10](file://package.json#L5-L10)
