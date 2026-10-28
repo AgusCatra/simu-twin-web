@@ -1,0 +1,2592 @@
+[
+  {
+    "archivo": "10.pdf",
+    "student_name": "Acosta Joana",
+    "student_id": "29",
+    "score": "93.75",
+    "penalties": "-6.25",
+    "exercise_duration": "00:08:59",
+    "exercise_duration_seg": 539,
+    "exercise_start_time": "19 October 2026 at 10:52 am",
+    "colisiones": [
+      {
+        "timestamp": "00:02:36",
+        "descripcion": "Collision Between ForkLift and palletBox"
+      }
+    ],
+    "n_colisiones": 1,
+    "infracciones_conduccion": [
+      {
+        "timestamp": "00:01:00",
+        "descripcion": "Minimum Fork Height(mtrs)"
+      },
+      {
+        "timestamp": "00:01:02",
+        "descripcion": "Park Brake used when machine in motion"
+      }
+    ],
+    "telemetria": {
+      "steering_serrucho_index": 0.789,
+      "steering_volantazos_extremos": 5,
+      "speed_max_estimada_kmh": 2.44,
+      "frenadas_panico_count": 10
+    },
+    "clasificacion": {
+      "riesgo": "Media",
+      "aptitud": "Apto / Observación"
+    }
+  },
+  {
+    "archivo": "11.pdf",
+    "student_name": "Nicolas Juarez",
+    "student_id": "34",
+    "score": "95.45",
+    "penalties": "-4.55",
+    "exercise_duration": "00:15:00",
+    "exercise_duration_seg": 900,
+    "exercise_start_time": "19 October 2026 at 11:02 am",
+    "colisiones": [
+      {
+        "timestamp": "00:07:55",
+        "descripcion": "Collision Between ForkLift and palletBox"
+      }
+    ],
+    "n_colisiones": 1,
+    "infracciones_conduccion": [
+      {
+        "timestamp": "00:00:59",
+        "descripcion": "Minimum Fork Height(mtrs)"
+      }
+    ],
+    "telemetria": {
+      "steering_serrucho_index": 0.0,
+      "steering_volantazos_extremos": 1,
+      "speed_max_estimada_kmh": 3.16,
+      "frenadas_panico_count": 1
+    },
+    "clasificacion": {
+      "riesgo": "Mínima (Autónomo)",
+      "aptitud": "Apto Directo"
+    }
+  },
+  {
+    "archivo": "12.pdf",
+    "student_name": "Campaniuchi Giuliano",
+    "student_id": "33",
+    "score": "93.61",
+    "penalties": "-6.39",
+    "exercise_duration": "00:09:08",
+    "exercise_duration_seg": 548,
+    "exercise_start_time": "19 October 2026 at 11:25 am",
+    "colisiones": [
+      {
+        "timestamp": "00:04:21",
+        "descripcion": "Collision Between ForkLift and palletBox"
+      },
+      {
+        "timestamp": "00:06:55",
+        "descripcion": "Collision Between ForkLift and PathPole"
+      }
+    ],
+    "n_colisiones": 2,
+    "infracciones_conduccion": [
+      {
+        "timestamp": "00:01:01",
+        "descripcion": "Minimum Fork Height(mtrs)"
+      }
+    ],
+    "telemetria": {
+      "steering_serrucho_index": 0.279,
+      "steering_volantazos_extremos": 6,
+      "speed_max_estimada_kmh": 5.01,
+      "frenadas_panico_count": 7
+    },
+    "clasificacion": {
+      "riesgo": "Media",
+      "aptitud": "Apto / Observación"
+    }
+  },
+  {
+    "archivo": "13.pdf",
+    "student_name": "Lopewz Matias Daniel",
+    "student_id": "32",
+    "score": "95.41",
+    "penalties": "-4.59",
+    "exercise_duration": "00:07:27",
+    "exercise_duration_seg": 447,
+    "exercise_start_time": "19 October 2026 at 11:36 am",
+    "colisiones": [
+      {
+        "timestamp": "00:06:34",
+        "descripcion": "Collision Between ForkLift and palletBox"
+      }
+    ],
+    "n_colisiones": 1,
+    "infracciones_conduccion": [
+      {
+        "timestamp": "00:01:01",
+        "descripcion": "Minimum Fork Height(mtrs)"
+      }
+    ],
+    "telemetria": {
+      "steering_serrucho_index": 0.863,
+      "steering_volantazos_extremos": 2,
+      "speed_max_estimada_kmh": 3.16,
+      "frenadas_panico_count": 0
+    },
+    "clasificacion": {
+      "riesgo": "Mínima (Autónomo)",
+      "aptitud": "Apto Directo"
+    }
+  },
+  {
+    "archivo": "14.pdf",
+    "student_name": "Nicolas Juarez",
+    "student_id": "34",
+    "score": "95.60",
+    "penalties": "-4.40",
+    "exercise_duration": "00:06:02",
+    "exercise_duration_seg": 362,
+    "exercise_start_time": "19 October 2026 at 11:47 am",
+    "colisiones": [
+      {
+        "timestamp": "00:05:08",
+        "descripcion": "Collision Between ForkLift and palletBox"
+      }
+    ],
+    "n_colisiones": 1,
+    "infracciones_conduccion": [
+      {
+        "timestamp": "00:01:00",
+        "descripcion": "Minimum Fork Height(mtrs)"
+      }
+    ],
+    "telemetria": {
+      "steering_serrucho_index": 0.0,
+      "steering_volantazos_extremos": 1,
+      "speed_max_estimada_kmh": 3.68,
+      "frenadas_panico_count": 0
+    },
+    "clasificacion": {
+      "riesgo": "Mínima (Autónomo)",
+      "aptitud": "Apto Directo"
+    }
+  },
+  {
+    "archivo": "15.pdf",
+    "student_name": "Campaniuchi Giuliano",
+    "student_id": "33",
+    "score": "93.66",
+    "penalties": "-6.34",
+    "exercise_duration": "00:05:26",
+    "exercise_duration_seg": 326,
+    "exercise_start_time": "19 October 2026 at 11:55 am",
+    "colisiones": [
+      {
+        "timestamp": "00:01:41",
+        "descripcion": "Collision Between ForkLift and palletBox"
+      },
+      {
+        "timestamp": "00:04:46",
+        "descripcion": "Collision Between ForkLift and palletBox"
+      }
+    ],
+    "n_colisiones": 2,
+    "infracciones_conduccion": [
+      {
+        "timestamp": "00:01:00",
+        "descripcion": "Minimum Fork Height(mtrs)"
+      }
+    ],
+    "telemetria": {
+      "steering_serrucho_index": 0.212,
+      "steering_volantazos_extremos": 3,
+      "speed_max_estimada_kmh": 3.36,
+      "frenadas_panico_count": 0
+    },
+    "clasificacion": {
+      "riesgo": "Media",
+      "aptitud": "Apto / Observación"
+    }
+  },
+  {
+    "archivo": "16.pdf",
+    "student_name": "Lopewz Matias Daniel",
+    "student_id": "32",
+    "score": "95.81",
+    "penalties": "-4.19",
+    "exercise_duration": "00:06:19",
+    "exercise_duration_seg": 379,
+    "exercise_start_time": "19 October 2026 at 12:02 pm",
+    "colisiones": [
+      {
+        "timestamp": "00:01:39",
+        "descripcion": "Collision Between ForkLift and palletBox"
+      }
+    ],
+    "n_colisiones": 1,
+    "infracciones_conduccion": [
+      {
+        "timestamp": "00:01:01",
+        "descripcion": "Minimum Fork Height(mtrs)"
+      }
+    ],
+    "telemetria": {
+      "steering_serrucho_index": 0.591,
+      "steering_volantazos_extremos": 11,
+      "speed_max_estimada_kmh": 3.57,
+      "frenadas_panico_count": 0
+    },
+    "clasificacion": {
+      "riesgo": "Mínima (Autónomo)",
+      "aptitud": "Apto Directo"
+    }
+  },
+  {
+    "archivo": "17.pdf",
+    "student_name": "Bonacorsi Carlos",
+    "student_id": "36",
+    "score": "87.80",
+    "penalties": "-12.20",
+    "exercise_duration": "00:12:12",
+    "exercise_duration_seg": 732,
+    "exercise_start_time": "19 October 2026 at 04:16 pm",
+    "colisiones": [
+      {
+        "timestamp": "00:06:23",
+        "descripcion": "Collision Between ForkLift and palletBox"
+      },
+      {
+        "timestamp": "00:08:47",
+        "descripcion": "Collision Between ForkLift and PathPole"
+      },
+      {
+        "timestamp": "00:08:53",
+        "descripcion": "Collision Between ForkLift and PathPole"
+      },
+      {
+        "timestamp": "00:10:41",
+        "descripcion": "Collision Between ForkLift and palletBox"
+      },
+      {
+        "timestamp": "00:11:14",
+        "descripcion": "Collision Between ForkLift and PathPole"
+      }
+    ],
+    "n_colisiones": 5,
+    "infracciones_conduccion": [
+      {
+        "timestamp": "00:01:00",
+        "descripcion": "Minimum Fork Height(mtrs)"
+      }
+    ],
+    "telemetria": {
+      "steering_serrucho_index": 0.31,
+      "steering_volantazos_extremos": 2,
+      "speed_max_estimada_kmh": 2.84,
+      "frenadas_panico_count": 0
+    },
+    "clasificacion": {
+      "riesgo": "Alta",
+      "aptitud": "Condicional"
+    }
+  },
+  {
+    "archivo": "18.pdf",
+    "student_name": "Agustin Grecco",
+    "student_id": "37",
+    "score": "91.21",
+    "penalties": "-8.79",
+    "exercise_duration": "00:08:42",
+    "exercise_duration_seg": 522,
+    "exercise_start_time": "19 October 2026 at 04:31 pm",
+    "colisiones": [
+      {
+        "timestamp": "00:01:47",
+        "descripcion": "Seat Belt Not Applied FaultEmergency -2.00 19 00:03:23"
+      },
+      {
+        "timestamp": "00:07:34",
+        "descripcion": "Collision Between ForkLift and palletBox"
+      }
+    ],
+    "n_colisiones": 2,
+    "infracciones_conduccion": [
+      {
+        "timestamp": "00:01:01",
+        "descripcion": "Minimum Fork Height(mtrs)"
+      }
+    ],
+    "telemetria": {
+      "steering_serrucho_index": 0.421,
+      "steering_volantazos_extremos": 0,
+      "speed_max_estimada_kmh": 2.32,
+      "frenadas_panico_count": 0
+    },
+    "clasificacion": {
+      "riesgo": "Media",
+      "aptitud": "Apto / Observación"
+    }
+  },
+  {
+    "archivo": "19.pdf",
+    "student_name": "Fernandez Cristian",
+    "student_id": "35",
+    "score": "93.31",
+    "penalties": "-6.69",
+    "exercise_duration": "00:11:03",
+    "exercise_duration_seg": 663,
+    "exercise_start_time": "19 October 2026 at 04:43 pm",
+    "colisiones": [
+      {
+        "timestamp": "00:09:06",
+        "descripcion": "Collision Between ForkLift and palletBox"
+      }
+    ],
+    "n_colisiones": 1,
+    "infracciones_conduccion": [
+      {
+        "timestamp": "00:01:00",
+        "descripcion": "Minimum Fork Height(mtrs)"
+      },
+      {
+        "timestamp": "00:03:39",
+        "descripcion": "Park Brake used when machine in motion"
+      }
+    ],
+    "telemetria": {
+      "steering_serrucho_index": 0.356,
+      "steering_volantazos_extremos": 4,
+      "speed_max_estimada_kmh": 2.46,
+      "frenadas_panico_count": 9
+    },
+    "clasificacion": {
+      "riesgo": "Media",
+      "aptitud": "Apto / Observación"
+    }
+  },
+  {
+    "archivo": "20.pdf",
+    "student_name": "Bonacorsi Carlos",
+    "student_id": "36",
+    "score": "95.58",
+    "penalties": "-4.42",
+    "exercise_duration": "00:06:07",
+    "exercise_duration_seg": 367,
+    "exercise_start_time": "19 October 2026 at 04:56 pm",
+    "colisiones": [],
+    "n_colisiones": 0,
+    "infracciones_conduccion": [
+      {
+        "timestamp": "00:01:01",
+        "descripcion": "Minimum Fork Height(mtrs)"
+      },
+      {
+        "timestamp": "00:04:12",
+        "descripcion": "Minimum Tilt Angle(deg)"
+      }
+    ],
+    "telemetria": {
+      "steering_serrucho_index": 0.919,
+      "steering_volantazos_extremos": 3,
+      "speed_max_estimada_kmh": 3.16,
+      "frenadas_panico_count": 0
+    },
+    "clasificacion": {
+      "riesgo": "Mínima (Autónomo)",
+      "aptitud": "Apto Directo"
+    }
+  },
+  {
+    "archivo": "21.pdf",
+    "student_name": "Agustin Grecco",
+    "student_id": "37",
+    "score": "93.46",
+    "penalties": "-6.54",
+    "exercise_duration": "00:05:33",
+    "exercise_duration_seg": 333,
+    "exercise_start_time": "19 October 2026 at 05:04 pm",
+    "colisiones": [
+      {
+        "timestamp": "00:02:00",
+        "descripcion": "Collision Between ForkLift and palletBox"
+      },
+      {
+        "timestamp": "00:04:51",
+        "descripcion": "Collision Between ForkLift and palletBox"
+      }
+    ],
+    "n_colisiones": 2,
+    "infracciones_conduccion": [
+      {
+        "timestamp": "00:01:01",
+        "descripcion": "Minimum Fork Height(mtrs)"
+      }
+    ],
+    "telemetria": {
+      "steering_serrucho_index": 0.203,
+      "steering_volantazos_extremos": 2,
+      "speed_max_estimada_kmh": 2.54,
+      "frenadas_panico_count": 0
+    },
+    "clasificacion": {
+      "riesgo": "Media",
+      "aptitud": "Apto / Observación"
+    }
+  },
+  {
+    "archivo": "22.pdf",
+    "student_name": "Lautaro Diaz",
+    "student_id": "38",
+    "score": "79.83",
+    "penalties": "-20.17",
+    "exercise_duration": "00:14:23",
+    "exercise_duration_seg": 863,
+    "exercise_start_time": "19 October 2026 at 05:11 pm",
+    "colisiones": [
+      {
+        "timestamp": "00:06:23",
+        "descripcion": "Collision Between ForkLift and palletBox"
+      },
+      {
+        "timestamp": "00:07:31",
+        "descripcion": "Collision Between ForkLift and PathPole"
+      },
+      {
+        "timestamp": "00:09:04",
+        "descripcion": "Collision Between ForkLift and PathPole"
+      },
+      {
+        "timestamp": "00:11:25",
+        "descripcion": "Collision Between ForkLift and palletBox"
+      },
+      {
+        "timestamp": "00:11:46",
+        "descripcion": "Collision Between ForkLift and palletBox"
+      },
+      {
+        "timestamp": "00:12:57",
+        "descripcion": "Collision Between ForkLift and palletBox"
+      },
+      {
+        "timestamp": "00:13:14",
+        "descripcion": "Collision Between ForkLift and palletBox"
+      }
+    ],
+    "n_colisiones": 7,
+    "infracciones_conduccion": [
+      {
+        "timestamp": "00:00:41",
+        "descripcion": "Minimum Fork Height(mtrs)"
+      },
+      {
+        "timestamp": "00:02:54",
+        "descripcion": "Park Brake used when machine in motion"
+      }
+    ],
+    "telemetria": {
+      "steering_serrucho_index": 0.217,
+      "steering_volantazos_extremos": 2,
+      "speed_max_estimada_kmh": 2.63,
+      "frenadas_panico_count": 6
+    },
+    "clasificacion": {
+      "riesgo": "Alta",
+      "aptitud": "Condicional"
+    }
+  },
+  {
+    "archivo": "23.pdf",
+    "student_name": "Lautaro Diaz",
+    "student_id": "38",
+    "score": "89.68",
+    "penalties": "-10.32",
+    "exercise_duration": "00:06:51",
+    "exercise_duration_seg": 411,
+    "exercise_start_time": "19 October 2026 at 05:33 pm",
+    "colisiones": [
+      {
+        "timestamp": "00:02:01",
+        "descripcion": "Collision Between ForkLift and palletBox"
+      },
+      {
+        "timestamp": "00:05:11",
+        "descripcion": "Collision Between ForkLift and PathPole"
+      },
+      {
+        "timestamp": "00:05:54",
+        "descripcion": "Collision Between ForkLift and palletBox"
+      },
+      {
+        "timestamp": "00:05:58",
+        "descripcion": "Collision Between ForkLift and palletBox"
+      }
+    ],
+    "n_colisiones": 4,
+    "infracciones_conduccion": [
+      {
+        "timestamp": "00:01:00",
+        "descripcion": "Minimum Fork Height(mtrs)"
+      }
+    ],
+    "telemetria": {
+      "steering_serrucho_index": 0.931,
+      "steering_volantazos_extremos": 9,
+      "speed_max_estimada_kmh": 3.73,
+      "frenadas_panico_count": 0
+    },
+    "clasificacion": {
+      "riesgo": "Alta",
+      "aptitud": "Condicional"
+    }
+  },
+  {
+    "archivo": "24.pdf",
+    "student_name": "Naiara Actis",
+    "student_id": "39",
+    "score": "95.68",
+    "penalties": "-4.32",
+    "exercise_duration": "00:15:27",
+    "exercise_duration_seg": 927,
+    "exercise_start_time": "19 October 2026 at 05:41 pm",
+    "colisiones": [
+      {
+        "timestamp": "00:15:10",
+        "descripcion": "Collision Between ForkLift and PathPole"
+      }
+    ],
+    "n_colisiones": 1,
+    "infracciones_conduccion": [
+      {
+        "timestamp": "00:01:00",
+        "descripcion": "Minimum Fork Height(mtrs)"
+      }
+    ],
+    "telemetria": {
+      "steering_serrucho_index": 0.309,
+      "steering_volantazos_extremos": 5,
+      "speed_max_estimada_kmh": 4.98,
+      "frenadas_panico_count": 0
+    },
+    "clasificacion": {
+      "riesgo": "Mínima (Autónomo)",
+      "aptitud": "Apto Directo"
+    }
+  },
+  {
+    "archivo": "25.pdf",
+    "student_name": "Naiara Actis",
+    "student_id": "39",
+    "score": "94.49",
+    "penalties": "-5.51",
+    "exercise_duration": "00:10:04",
+    "exercise_duration_seg": 604,
+    "exercise_start_time": "19 October 2026 at 06:03 pm",
+    "colisiones": [
+      {
+        "timestamp": "00:04:16",
+        "descripcion": "Collision Between ForkLift and land"
+      }
+    ],
+    "n_colisiones": 1,
+    "infracciones_conduccion": [
+      {
+        "timestamp": "00:01:01",
+        "descripcion": "Minimum Fork Height(mtrs)"
+      }
+    ],
+    "telemetria": {
+      "steering_serrucho_index": 1.031,
+      "steering_volantazos_extremos": 16,
+      "speed_max_estimada_kmh": 3.53,
+      "frenadas_panico_count": 0
+    },
+    "clasificacion": {
+      "riesgo": "Mínima (Autónomo)",
+      "aptitud": "Apto Directo"
+    }
+  },
+  {
+    "archivo": "26.pdf",
+    "student_name": "Erica Roca",
+    "student_id": "40",
+    "score": "59.24",
+    "penalties": "-10.76",
+    "exercise_duration": "00:14:39",
+    "exercise_duration_seg": 879,
+    "exercise_start_time": "19 October 2026 at 06:14 pm",
+    "colisiones": [
+      {
+        "timestamp": "00:08:04",
+        "descripcion": "Collision Between ForkLift and palletBox"
+      },
+      {
+        "timestamp": "00:13:09",
+        "descripcion": "Collision Between ForkLift and palletBox"
+      },
+      {
+        "timestamp": "00:13:13",
+        "descripcion": "Collision Between ForkLift and palletBox"
+      },
+      {
+        "timestamp": "00:14:05",
+        "descripcion": "Collision Between ForkLift and PathPole"
+      }
+    ],
+    "n_colisiones": 4,
+    "infracciones_conduccion": [
+      {
+        "timestamp": "00:01:01",
+        "descripcion": "Minimum Fork Height(mtrs)"
+      }
+    ],
+    "telemetria": {
+      "steering_serrucho_index": 0.296,
+      "steering_volantazos_extremos": 2,
+      "speed_max_estimada_kmh": 2.63,
+      "frenadas_panico_count": 5
+    },
+    "clasificacion": {
+      "riesgo": "Alta",
+      "aptitud": "Condicional"
+    }
+  },
+  {
+    "archivo": "27.pdf",
+    "student_name": "Agustin Ponce",
+    "student_id": "41",
+    "score": "97.41",
+    "penalties": "-2.59",
+    "exercise_duration": "00:11:12",
+    "exercise_duration_seg": 672,
+    "exercise_start_time": "19 October 2026 at 06:54 pm",
+    "colisiones": [],
+    "n_colisiones": 0,
+    "infracciones_conduccion": [
+      {
+        "timestamp": "00:01:00",
+        "descripcion": "Minimum Fork Height(mtrs)"
+      }
+    ],
+    "telemetria": {
+      "steering_serrucho_index": 0.19,
+      "steering_volantazos_extremos": 4,
+      "speed_max_estimada_kmh": 2.5,
+      "frenadas_panico_count": 18
+    },
+    "clasificacion": {
+      "riesgo": "Media",
+      "aptitud": "Apto / Observación"
+    }
+  },
+  {
+    "archivo": "28.pdf",
+    "student_name": "Erica Roca",
+    "student_id": "40",
+    "score": "95.96",
+    "penalties": "-4.04",
+    "exercise_duration": "00:07:44",
+    "exercise_duration_seg": 464,
+    "exercise_start_time": "19 October 2026 at 07:07 pm",
+    "colisiones": [
+      {
+        "timestamp": "00:06:24",
+        "descripcion": "Collision Between ForkLift and palletBox"
+      }
+    ],
+    "n_colisiones": 1,
+    "infracciones_conduccion": [
+      {
+        "timestamp": "00:01:01",
+        "descripcion": "Minimum Fork Height(mtrs)"
+      }
+    ],
+    "telemetria": {
+      "steering_serrucho_index": 0.114,
+      "steering_volantazos_extremos": 1,
+      "speed_max_estimada_kmh": 2.88,
+      "frenadas_panico_count": 0
+    },
+    "clasificacion": {
+      "riesgo": "Mínima (Autónomo)",
+      "aptitud": "Apto Directo"
+    }
+  },
+  {
+    "archivo": "29.pdf",
+    "student_name": "Agustin Ponce",
+    "student_id": "41",
+    "score": "93.68",
+    "penalties": "-6.32",
+    "exercise_duration": "00:07:30",
+    "exercise_duration_seg": 450,
+    "exercise_start_time": "19 October 2026 at 07:16 pm",
+    "colisiones": [
+      {
+        "timestamp": "00:06:39",
+        "descripcion": "Collision Between ForkLift and palletBox"
+      }
+    ],
+    "n_colisiones": 1,
+    "infracciones_conduccion": [
+      {
+        "timestamp": "00:01:01",
+        "descripcion": "Minimum Fork Height(mtrs)"
+      },
+      {
+        "timestamp": "00:07:24",
+        "descripcion": "Park Brake used when machine in motion"
+      }
+    ],
+    "telemetria": {
+      "steering_serrucho_index": 0.818,
+      "steering_volantazos_extremos": 2,
+      "speed_max_estimada_kmh": 2.63,
+      "frenadas_panico_count": 6
+    },
+    "clasificacion": {
+      "riesgo": "Media",
+      "aptitud": "Apto / Observación"
+    }
+  },
+  {
+    "archivo": "30.pdf",
+    "student_name": "Test",
+    "student_id": "Test",
+    "score": "59.71",
+    "penalties": "-10.29",
+    "exercise_duration": "00:14:26",
+    "exercise_duration_seg": 866,
+    "exercise_start_time": "20 October 2026 at 08:00 am",
+    "colisiones": [
+      {
+        "timestamp": "00:07:38",
+        "descripcion": "Collision Between ForkLift and palletBox"
+      },
+      {
+        "timestamp": "00:12:34",
+        "descripcion": "Collision Between ForkLift and palletBox"
+      },
+      {
+        "timestamp": "00:12:43",
+        "descripcion": "Collision Between ForkLift and palletBox"
+      }
+    ],
+    "n_colisiones": 3,
+    "infracciones_conduccion": [
+      {
+        "timestamp": "00:01:00",
+        "descripcion": "Minimum Fork Height(mtrs)"
+      },
+      {
+        "timestamp": "00:04:41",
+        "descripcion": "Park Brake used when machine in motion"
+      }
+    ],
+    "telemetria": {
+      "steering_serrucho_index": 0.102,
+      "steering_volantazos_extremos": 1,
+      "speed_max_estimada_kmh": 4.91,
+      "frenadas_panico_count": 1
+    },
+    "clasificacion": {
+      "riesgo": "Alta",
+      "aptitud": "Condicional"
+    }
+  },
+  {
+    "archivo": "31.pdf",
+    "student_name": "Test",
+    "student_id": "Test",
+    "score": "90.29",
+    "penalties": "-9.71",
+    "exercise_duration": "00:09:52",
+    "exercise_duration_seg": 592,
+    "exercise_start_time": "20 October 2026 at 08:28 am",
+    "colisiones": [
+      {
+        "timestamp": "00:04:30",
+        "descripcion": "Collision Between ForkLift and PathPole"
+      },
+      {
+        "timestamp": "00:08:28",
+        "descripcion": "Collision Between ForkLift and palletBox"
+      }
+    ],
+    "n_colisiones": 2,
+    "infracciones_conduccion": [
+      {
+        "timestamp": "00:01:00",
+        "descripcion": "Minimum Fork Height(mtrs)"
+      },
+      {
+        "timestamp": "00:02:02",
+        "descripcion": "Park Brake used when machine in motion"
+      }
+    ],
+    "telemetria": {
+      "steering_serrucho_index": 0.621,
+      "steering_volantazos_extremos": 1,
+      "speed_max_estimada_kmh": 3.16,
+      "frenadas_panico_count": 1
+    },
+    "clasificacion": {
+      "riesgo": "Media",
+      "aptitud": "Apto / Observación"
+    }
+  },
+  {
+    "archivo": "32.pdf",
+    "student_name": "Test",
+    "student_id": "Test",
+    "score": "87.94",
+    "penalties": "-12.06",
+    "exercise_duration": "00:14:22",
+    "exercise_duration_seg": 862,
+    "exercise_start_time": "20 October 2026 at 08:39 am",
+    "colisiones": [
+      {
+        "timestamp": "00:07:34",
+        "descripcion": "Collision Between ForkLift and palletBox"
+      },
+      {
+        "timestamp": "00:07:53",
+        "descripcion": "Collision Between ForkLift and PathPole"
+      },
+      {
+        "timestamp": "00:12:46",
+        "descripcion": "Collision Between ForkLift and palletBox"
+      }
+    ],
+    "n_colisiones": 3,
+    "infracciones_conduccion": [
+      {
+        "timestamp": "00:01:01",
+        "descripcion": "Minimum Fork Height(mtrs)"
+      },
+      {
+        "timestamp": "00:03:39",
+        "descripcion": "Park Brake used when machine in motion"
+      }
+    ],
+    "telemetria": {
+      "steering_serrucho_index": 0.489,
+      "steering_volantazos_extremos": 1,
+      "speed_max_estimada_kmh": 2.63,
+      "frenadas_panico_count": 4
+    },
+    "clasificacion": {
+      "riesgo": "Alta",
+      "aptitud": "Condicional"
+    }
+  },
+  {
+    "archivo": "33.pdf",
+    "student_name": "Test",
+    "student_id": "Test",
+    "score": "95.45",
+    "penalties": "-4.55",
+    "exercise_duration": "00:08:21",
+    "exercise_duration_seg": 501,
+    "exercise_start_time": "20 October 2026 at 08:55 am",
+    "colisiones": [
+      {
+        "timestamp": "00:02:21",
+        "descripcion": "Collision Between ForkLift and palletBox"
+      }
+    ],
+    "n_colisiones": 1,
+    "infracciones_conduccion": [
+      {
+        "timestamp": "00:01:01",
+        "descripcion": "Minimum Fork Height(mtrs)"
+      }
+    ],
+    "telemetria": {
+      "steering_serrucho_index": 0.597,
+      "steering_volantazos_extremos": 1,
+      "speed_max_estimada_kmh": 4.51,
+      "frenadas_panico_count": 0
+    },
+    "clasificacion": {
+      "riesgo": "Mínima (Autónomo)",
+      "aptitud": "Apto Directo"
+    }
+  },
+  {
+    "archivo": "34.pdf",
+    "student_name": "Test",
+    "student_id": "Test",
+    "score": "65.29",
+    "penalties": "-4.71",
+    "exercise_duration": "00:07:02",
+    "exercise_duration_seg": 422,
+    "exercise_start_time": "20 October 2026 at 09:04 am",
+    "colisiones": [],
+    "n_colisiones": 0,
+    "infracciones_conduccion": [
+      {
+        "timestamp": "00:01:01",
+        "descripcion": "Minimum Fork Height(mtrs)"
+      },
+      {
+        "timestamp": "00:01:07",
+        "descripcion": "Park Brake used when machine in motion"
+      }
+    ],
+    "telemetria": {
+      "steering_serrucho_index": 0.338,
+      "steering_volantazos_extremos": 0,
+      "speed_max_estimada_kmh": 2.92,
+      "frenadas_panico_count": 0
+    },
+    "clasificacion": {
+      "riesgo": "Mínima (Autónomo)",
+      "aptitud": "Apto Directo"
+    }
+  },
+  {
+    "archivo": "35.pdf",
+    "student_name": "Test",
+    "student_id": "Test",
+    "score": "87.84",
+    "penalties": "-12.16",
+    "exercise_duration": "00:07:38",
+    "exercise_duration_seg": 458,
+    "exercise_start_time": "20 October 2026 at 09:12 am",
+    "colisiones": [
+      {
+        "timestamp": "00:03:15",
+        "descripcion": "Collision Between ForkLift and palletBox"
+      },
+      {
+        "timestamp": "00:03:18",
+        "descripcion": "Collision Between ForkLift and palletBox"
+      },
+      {
+        "timestamp": "00:06:09",
+        "descripcion": "Collision Between ForkLift and PathPole"
+      },
+      {
+        "timestamp": "00:07:00",
+        "descripcion": "Collision Between ForkLift and PathPole"
+      }
+    ],
+    "n_colisiones": 4,
+    "infracciones_conduccion": [
+      {
+        "timestamp": "00:01:01",
+        "descripcion": "Minimum Fork Height(mtrs)"
+      }
+    ],
+    "telemetria": {
+      "steering_serrucho_index": 0.385,
+      "steering_volantazos_extremos": 1,
+      "speed_max_estimada_kmh": 3.68,
+      "frenadas_panico_count": 0
+    },
+    "clasificacion": {
+      "riesgo": "Alta",
+      "aptitud": "Condicional"
+    }
+  },
+  {
+    "archivo": "36.pdf",
+    "student_name": "Micaela galarza dantrea",
+    "student_id": "42",
+    "score": "96.59",
+    "penalties": "-3.41",
+    "exercise_duration": "00:17:14",
+    "exercise_duration_seg": 1034,
+    "exercise_start_time": "20 October 2026 at 09:21 am",
+    "colisiones": [],
+    "n_colisiones": 0,
+    "infracciones_conduccion": [
+      {
+        "timestamp": "00:01:00",
+        "descripcion": "Minimum Fork Height(mtrs)"
+      }
+    ],
+    "telemetria": {
+      "steering_serrucho_index": 0.741,
+      "steering_volantazos_extremos": 0,
+      "speed_max_estimada_kmh": 3.99,
+      "frenadas_panico_count": 0
+    },
+    "clasificacion": {
+      "riesgo": "Mínima (Autónomo)",
+      "aptitud": "Apto Directo"
+    }
+  },
+  {
+    "archivo": "37.pdf",
+    "student_name": "Micaela galarza dantrea",
+    "student_id": "42",
+    "score": "97.30",
+    "penalties": "-2.70",
+    "exercise_duration": "00:12:01",
+    "exercise_duration_seg": 721,
+    "exercise_start_time": "20 October 2026 at 09:42 am",
+    "colisiones": [],
+    "n_colisiones": 0,
+    "infracciones_conduccion": [
+      {
+        "timestamp": "00:01:01",
+        "descripcion": "Minimum Fork Height(mtrs)"
+      }
+    ],
+    "telemetria": {
+      "steering_serrucho_index": 0.722,
+      "steering_volantazos_extremos": 12,
+      "speed_max_estimada_kmh": 5.04,
+      "frenadas_panico_count": 0
+    },
+    "clasificacion": {
+      "riesgo": "Mínima (Autónomo)",
+      "aptitud": "Apto Directo"
+    }
+  },
+  {
+    "archivo": "38.pdf",
+    "student_name": "Test",
+    "student_id": "Test",
+    "score": "45.70",
+    "penalties": "-24.30",
+    "exercise_duration": "00:07:42",
+    "exercise_duration_seg": 462,
+    "exercise_start_time": "20 October 2026 at 09:55 am",
+    "colisiones": [
+      {
+        "timestamp": "00:04:41",
+        "descripcion": "Collision Between ForkLift and palletBox"
+      },
+      {
+        "timestamp": "00:04:47",
+        "descripcion": "Collision Between ForkLift and PathPole"
+      }
+    ],
+    "n_colisiones": 2,
+    "infracciones_conduccion": [
+      {
+        "timestamp": "00:01:00",
+        "descripcion": "Minimum Fork Height(mtrs)"
+      },
+      {
+        "timestamp": "00:01:02",
+        "descripcion": "Park Brake used when machine in motion"
+      }
+    ],
+    "telemetria": {
+      "steering_serrucho_index": 0.83,
+      "steering_volantazos_extremos": 5,
+      "speed_max_estimada_kmh": 4.21,
+      "frenadas_panico_count": 1
+    },
+    "clasificacion": {
+      "riesgo": "Media",
+      "aptitud": "Apto / Observación"
+    }
+  },
+  {
+    "archivo": "39.pdf",
+    "student_name": "Acosta Juana",
+    "student_id": "44",
+    "score": "-6.00",
+    "penalties": "-6.00",
+    "exercise_duration": "00:09:30",
+    "exercise_duration_seg": 570,
+    "exercise_start_time": "20 October 2026 at 10:05 am",
+    "colisiones": [
+      {
+        "timestamp": "00:08:14",
+        "descripcion": "Collision Between ForkLift and palletBox"
+      }
+    ],
+    "n_colisiones": 1,
+    "infracciones_conduccion": [
+      {
+        "timestamp": "00:01:00",
+        "descripcion": "Minimum Fork Height(mtrs)"
+      },
+      {
+        "timestamp": "00:06:51",
+        "descripcion": "Minimum Tilt Angle(deg)"
+      }
+    ],
+    "telemetria": {
+      "steering_serrucho_index": 0.341,
+      "steering_volantazos_extremos": 7,
+      "speed_max_estimada_kmh": 5.01,
+      "frenadas_panico_count": 0
+    },
+    "clasificacion": {
+      "riesgo": "Mínima (Autónomo)",
+      "aptitud": "Apto Directo"
+    }
+  },
+  {
+    "archivo": "40.pdf",
+    "student_name": "Acosta Juana",
+    "student_id": "44",
+    "score": "72.08",
+    "penalties": "-10.42",
+    "exercise_duration": "00:09:03",
+    "exercise_duration_seg": 543,
+    "exercise_start_time": "20 October 2026 at 10:30 am",
+    "colisiones": [
+      {
+        "timestamp": "00:02:04",
+        "descripcion": "Collision Between ForkLift and palletBox"
+      },
+      {
+        "timestamp": "00:05:26",
+        "descripcion": "Collision Between ForkLift and PathPole"
+      },
+      {
+        "timestamp": "00:05:40",
+        "descripcion": "Collision Between ForkLift and PathPole"
+      },
+      {
+        "timestamp": "00:05:44",
+        "descripcion": "Collision Between ForkLift and PathPole"
+      }
+    ],
+    "n_colisiones": 4,
+    "infracciones_conduccion": [
+      {
+        "timestamp": "00:01:01",
+        "descripcion": "Minimum Fork Height(mtrs)"
+      }
+    ],
+    "telemetria": {
+      "steering_serrucho_index": 0.081,
+      "steering_volantazos_extremos": 3,
+      "speed_max_estimada_kmh": 4.58,
+      "frenadas_panico_count": 8
+    },
+    "clasificacion": {
+      "riesgo": "Alta",
+      "aptitud": "Condicional"
+    }
+  },
+  {
+    "archivo": "41.pdf",
+    "student_name": "Fabio Fernandez",
+    "student_id": "43",
+    "score": "93.64",
+    "penalties": "-6.36",
+    "exercise_duration": "00:08:43",
+    "exercise_duration_seg": 523,
+    "exercise_start_time": "20 October 2026 at 10:40 am",
+    "colisiones": [
+      {
+        "timestamp": "00:06:12",
+        "descripcion": "Collision Between ForkLift and PathPole"
+      }
+    ],
+    "n_colisiones": 1,
+    "infracciones_conduccion": [
+      {
+        "timestamp": "00:01:00",
+        "descripcion": "Minimum Fork Height(mtrs)"
+      },
+      {
+        "timestamp": "00:07:02",
+        "descripcion": "Minimum Tilt Angle(deg)"
+      }
+    ],
+    "telemetria": {
+      "steering_serrucho_index": 0.384,
+      "steering_volantazos_extremos": 9,
+      "speed_max_estimada_kmh": 4.99,
+      "frenadas_panico_count": 0
+    },
+    "clasificacion": {
+      "riesgo": "Mínima (Autónomo)",
+      "aptitud": "Apto Directo"
+    }
+  },
+  {
+    "archivo": "42.pdf",
+    "student_name": "Fabio Fernandez",
+    "student_id": "43",
+    "score": "90.54",
+    "penalties": "-9.46",
+    "exercise_duration": "00:06:55",
+    "exercise_duration_seg": 415,
+    "exercise_start_time": "20 October 2026 at 10:54 am",
+    "colisiones": [
+      {
+        "timestamp": "00:03:03",
+        "descripcion": "Collision Between ForkLift and palletBox"
+      },
+      {
+        "timestamp": "00:05:10",
+        "descripcion": "Collision Between ForkLift and PathPole"
+      },
+      {
+        "timestamp": "00:06:08",
+        "descripcion": "Collision Between ForkLift and palletBox"
+      }
+    ],
+    "n_colisiones": 3,
+    "infracciones_conduccion": [
+      {
+        "timestamp": "00:01:00",
+        "descripcion": "Minimum Fork Height(mtrs)"
+      }
+    ],
+    "telemetria": {
+      "steering_serrucho_index": 0.0,
+      "steering_volantazos_extremos": 1,
+      "speed_max_estimada_kmh": 4.21,
+      "frenadas_panico_count": 1
+    },
+    "clasificacion": {
+      "riesgo": "Alta",
+      "aptitud": "Condicional"
+    }
+  },
+  {
+    "archivo": "43.pdf",
+    "student_name": "Mario Jaime",
+    "student_id": "46",
+    "score": "95.61",
+    "penalties": "-4.39",
+    "exercise_duration": "00:07:39",
+    "exercise_duration_seg": 459,
+    "exercise_start_time": "20 October 2026 at 11:02 am",
+    "colisiones": [],
+    "n_colisiones": 0,
+    "infracciones_conduccion": [
+      {
+        "timestamp": "00:01:00",
+        "descripcion": "Minimum Fork Height(mtrs)"
+      },
+      {
+        "timestamp": "00:01:05",
+        "descripcion": "Park Brake used when machine in motion"
+      }
+    ],
+    "telemetria": {
+      "steering_serrucho_index": 0.0,
+      "steering_volantazos_extremos": 1,
+      "speed_max_estimada_kmh": 3.16,
+      "frenadas_panico_count": 0
+    },
+    "clasificacion": {
+      "riesgo": "Mínima (Autónomo)",
+      "aptitud": "Apto Directo"
+    }
+  },
+  {
+    "archivo": "44.pdf",
+    "student_name": "Mario Jaime",
+    "student_id": "46",
+    "score": "95.51",
+    "penalties": "-4.49",
+    "exercise_duration": "00:06:15",
+    "exercise_duration_seg": 375,
+    "exercise_start_time": "20 October 2026 at 11:11 am",
+    "colisiones": [
+      {
+        "timestamp": "00:02:01",
+        "descripcion": "Collision Between ForkLift and palletBox"
+      }
+    ],
+    "n_colisiones": 1,
+    "infracciones_conduccion": [
+      {
+        "timestamp": "00:01:00",
+        "descripcion": "Minimum Fork Height(mtrs)"
+      }
+    ],
+    "telemetria": {
+      "steering_serrucho_index": 0.0,
+      "steering_volantazos_extremos": 1,
+      "speed_max_estimada_kmh": 4.73,
+      "frenadas_panico_count": 1
+    },
+    "clasificacion": {
+      "riesgo": "Mínima (Autónomo)",
+      "aptitud": "Apto Directo"
+    }
+  },
+  {
+    "archivo": "45.pdf",
+    "student_name": "Gustavo Machado",
+    "student_id": "47",
+    "score": "63.75",
+    "penalties": "-6.25",
+    "exercise_duration": "00:15:55",
+    "exercise_duration_seg": 955,
+    "exercise_start_time": "20 October 2026 at 11:18 am",
+    "colisiones": [
+      {
+        "timestamp": "00:08:12",
+        "descripcion": "Collision Between ForkLift and palletBox"
+      },
+      {
+        "timestamp": "00:13:07",
+        "descripcion": "Collision Between ForkLift and PathPole"
+      }
+    ],
+    "n_colisiones": 2,
+    "infracciones_conduccion": [
+      {
+        "timestamp": "00:01:00",
+        "descripcion": "Minimum Fork Height(mtrs)"
+      }
+    ],
+    "telemetria": {
+      "steering_serrucho_index": 0.0,
+      "steering_volantazos_extremos": 1,
+      "speed_max_estimada_kmh": 4.73,
+      "frenadas_panico_count": 0
+    },
+    "clasificacion": {
+      "riesgo": "Media",
+      "aptitud": "Apto / Observación"
+    }
+  },
+  {
+    "archivo": "46.pdf",
+    "student_name": "Gustavo Machado",
+    "student_id": "47",
+    "score": "95.74",
+    "penalties": "-4.26",
+    "exercise_duration": "00:06:28",
+    "exercise_duration_seg": 388,
+    "exercise_start_time": "20 October 2026 at 11:37 am",
+    "colisiones": [
+      {
+        "timestamp": "00:03:02",
+        "descripcion": "Collision Between ForkLift and land"
+      }
+    ],
+    "n_colisiones": 1,
+    "infracciones_conduccion": [
+      {
+        "timestamp": "00:01:01",
+        "descripcion": "Minimum Fork Height(mtrs)"
+      }
+    ],
+    "telemetria": {
+      "steering_serrucho_index": 0.0,
+      "steering_volantazos_extremos": 1,
+      "speed_max_estimada_kmh": 5.26,
+      "frenadas_panico_count": 1
+    },
+    "clasificacion": {
+      "riesgo": "Mínima (Autónomo)",
+      "aptitud": "Apto Directo"
+    }
+  },
+  {
+    "archivo": "47.pdf",
+    "student_name": "Lucio Barrionuevo",
+    "student_id": "48",
+    "score": "60.14",
+    "penalties": "-9.86",
+    "exercise_duration": "00:11:25",
+    "exercise_duration_seg": 685,
+    "exercise_start_time": "20 October 2026 at 11:45 am",
+    "colisiones": [
+      {
+        "timestamp": "00:07:20",
+        "descripcion": "Collision Between ForkLift and land"
+      },
+      {
+        "timestamp": "00:10:24",
+        "descripcion": "Collision Between ForkLift and palletBox"
+      },
+      {
+        "timestamp": "00:11:10",
+        "descripcion": "Collision Between ForkLift and PathPole"
+      }
+    ],
+    "n_colisiones": 3,
+    "infracciones_conduccion": [
+      {
+        "timestamp": "00:01:00",
+        "descripcion": "Minimum Fork Height(mtrs)"
+      }
+    ],
+    "telemetria": {
+      "steering_serrucho_index": 0.0,
+      "steering_volantazos_extremos": 1,
+      "speed_max_estimada_kmh": 5.26,
+      "frenadas_panico_count": 0
+    },
+    "clasificacion": {
+      "riesgo": "Alta",
+      "aptitud": "Condicional"
+    }
+  },
+  {
+    "archivo": "48.pdf",
+    "student_name": "Lucio Barrionuevo",
+    "student_id": "48",
+    "score": "93.12",
+    "penalties": "-6.88",
+    "exercise_duration": "00:09:39",
+    "exercise_duration_seg": 579,
+    "exercise_start_time": "20 October 2026 at 11:58 am",
+    "colisiones": [
+      {
+        "timestamp": "00:08:34",
+        "descripcion": "Collision Between ForkLift and palletBox"
+      }
+    ],
+    "n_colisiones": 1,
+    "infracciones_conduccion": [
+      {
+        "timestamp": "00:01:01",
+        "descripcion": "Minimum Fork Height(mtrs)"
+      },
+      {
+        "timestamp": "00:01:09",
+        "descripcion": "Park Brake used when machine in motion"
+      }
+    ],
+    "telemetria": {
+      "steering_serrucho_index": 0.242,
+      "steering_volantazos_extremos": 5,
+      "speed_max_estimada_kmh": 4.76,
+      "frenadas_panico_count": 0
+    },
+    "clasificacion": {
+      "riesgo": "Mínima (Autónomo)",
+      "aptitud": "Apto Directo"
+    }
+  },
+  {
+    "archivo": "49.pdf",
+    "student_name": "Alejandro Gomez",
+    "student_id": "49",
+    "score": "93.70",
+    "penalties": "-6.30",
+    "exercise_duration": "00:15:30",
+    "exercise_duration_seg": 930,
+    "exercise_start_time": "20 October 2026 at 04:16 pm",
+    "colisiones": [
+      {
+        "timestamp": "00:10:53",
+        "descripcion": "Collision Between ForkLift and PathPole"
+      },
+      {
+        "timestamp": "00:13:53",
+        "descripcion": "Collision Between ForkLift and palletBox"
+      }
+    ],
+    "n_colisiones": 2,
+    "infracciones_conduccion": [
+      {
+        "timestamp": "00:01:00",
+        "descripcion": "Minimum Fork Height(mtrs)"
+      }
+    ],
+    "telemetria": {
+      "steering_serrucho_index": 0.214,
+      "steering_volantazos_extremos": 3,
+      "speed_max_estimada_kmh": 4.1,
+      "frenadas_panico_count": 4
+    },
+    "clasificacion": {
+      "riesgo": "Media",
+      "aptitud": "Apto / Observación"
+    }
+  },
+  {
+    "archivo": "50.pdf",
+    "student_name": "Alejandro Gomez",
+    "student_id": "49",
+    "score": "91.74",
+    "penalties": "-8.26",
+    "exercise_duration": "00:09:11",
+    "exercise_duration_seg": 551,
+    "exercise_start_time": "20 October 2026 at 04:54 pm",
+    "colisiones": [
+      {
+        "timestamp": "00:03:38",
+        "descripcion": "Collision Between ForkLift and land"
+      },
+      {
+        "timestamp": "00:05:04",
+        "descripcion": "Collision Between ForkLift and PathPole"
+      },
+      {
+        "timestamp": "00:07:40",
+        "descripcion": "Collision Between ForkLift and palletBox"
+      }
+    ],
+    "n_colisiones": 3,
+    "infracciones_conduccion": [
+      {
+        "timestamp": "00:01:01",
+        "descripcion": "Minimum Fork Height(mtrs)"
+      }
+    ],
+    "telemetria": {
+      "steering_serrucho_index": 0.0,
+      "steering_volantazos_extremos": 1,
+      "speed_max_estimada_kmh": 3.16,
+      "frenadas_panico_count": 1
+    },
+    "clasificacion": {
+      "riesgo": "Alta",
+      "aptitud": "Condicional"
+    }
+  },
+  {
+    "archivo": "51.pdf",
+    "student_name": "Cristian Coronel",
+    "student_id": "50",
+    "score": "88.86",
+    "penalties": "-11.14",
+    "exercise_duration": "00:16:34",
+    "exercise_duration_seg": 994,
+    "exercise_start_time": "20 October 2026 at 05:05 pm",
+    "colisiones": [
+      {
+        "timestamp": "00:08:07",
+        "descripcion": "Collision Between ForkLift and palletBox"
+      },
+      {
+        "timestamp": "00:14:30",
+        "descripcion": "Collision Between ForkLift and palletBox"
+      },
+      {
+        "timestamp": "00:14:51",
+        "descripcion": "Collision Between ForkLift and palletBox"
+      },
+      {
+        "timestamp": "00:15:15",
+        "descripcion": "Collision Between ForkLift and palletBox"
+      }
+    ],
+    "n_colisiones": 4,
+    "infracciones_conduccion": [
+      {
+        "timestamp": "00:01:00",
+        "descripcion": "Minimum Fork Height(mtrs)"
+      }
+    ],
+    "telemetria": {
+      "steering_serrucho_index": 0.377,
+      "steering_volantazos_extremos": 1,
+      "speed_max_estimada_kmh": 3.16,
+      "frenadas_panico_count": 0
+    },
+    "clasificacion": {
+      "riesgo": "Alta",
+      "aptitud": "Condicional"
+    }
+  },
+  {
+    "archivo": "52.pdf",
+    "student_name": "Juan Martin Oharriz",
+    "student_id": "51",
+    "score": "91.66",
+    "penalties": "-8.34",
+    "exercise_duration": "00:09:26",
+    "exercise_duration_seg": 566,
+    "exercise_start_time": "20 October 2026 at 05:34 pm",
+    "colisiones": [
+      {
+        "timestamp": "00:05:58",
+        "descripcion": "Collision Between ForkLift and land"
+      },
+      {
+        "timestamp": "00:07:12",
+        "descripcion": "Collision Between ForkLift and PathPole"
+      },
+      {
+        "timestamp": "00:08:20",
+        "descripcion": "Collision Between ForkLift and palletBox"
+      }
+    ],
+    "n_colisiones": 3,
+    "infracciones_conduccion": [
+      {
+        "timestamp": "00:01:01",
+        "descripcion": "Minimum Fork Height(mtrs)"
+      }
+    ],
+    "telemetria": {
+      "steering_serrucho_index": 0.0,
+      "steering_volantazos_extremos": 1,
+      "speed_max_estimada_kmh": 2.63,
+      "frenadas_panico_count": 0
+    },
+    "clasificacion": {
+      "riesgo": "Alta",
+      "aptitud": "Condicional"
+    }
+  },
+  {
+    "archivo": "53.pdf",
+    "student_name": "Gianfranco Fernandez",
+    "student_id": "52",
+    "score": "93.68",
+    "penalties": "-6.32",
+    "exercise_duration": "00:09:55",
+    "exercise_duration_seg": 595,
+    "exercise_start_time": "20 October 2026 at 05:46 pm",
+    "colisiones": [
+      {
+        "timestamp": "00:05:01",
+        "descripcion": "Collision Between ForkLift and palletBox"
+      },
+      {
+        "timestamp": "00:08:53",
+        "descripcion": "Collision Between ForkLift and palletBox"
+      }
+    ],
+    "n_colisiones": 2,
+    "infracciones_conduccion": [
+      {
+        "timestamp": "00:01:01",
+        "descripcion": "Minimum Fork Height(mtrs)"
+      }
+    ],
+    "telemetria": {
+      "steering_serrucho_index": 0.0,
+      "steering_volantazos_extremos": 1,
+      "speed_max_estimada_kmh": 3.16,
+      "frenadas_panico_count": 1
+    },
+    "clasificacion": {
+      "riesgo": "Media",
+      "aptitud": "Apto / Observación"
+    }
+  },
+  {
+    "archivo": "54.pdf",
+    "student_name": "Cristian Coronel",
+    "student_id": "50",
+    "score": "93.65",
+    "penalties": "-6.35",
+    "exercise_duration": "00:09:09",
+    "exercise_duration_seg": 549,
+    "exercise_start_time": "20 October 2026 at 05:57 pm",
+    "colisiones": [
+      {
+        "timestamp": "00:01:24",
+        "descripcion": "Collision Between ForkLift and palletBox"
+      },
+      {
+        "timestamp": "00:04:15",
+        "descripcion": "Collision Between ForkLift and land"
+      }
+    ],
+    "n_colisiones": 2,
+    "infracciones_conduccion": [
+      {
+        "timestamp": "00:01:01",
+        "descripcion": "Minimum Fork Height(mtrs)"
+      }
+    ],
+    "telemetria": {
+      "steering_serrucho_index": 0.0,
+      "steering_volantazos_extremos": 1,
+      "speed_max_estimada_kmh": 2.63,
+      "frenadas_panico_count": 0
+    },
+    "clasificacion": {
+      "riesgo": "Media",
+      "aptitud": "Apto / Observación"
+    }
+  },
+  {
+    "archivo": "55.pdf",
+    "student_name": "Juan Martin Oharriz",
+    "student_id": "51",
+    "score": "91.56",
+    "penalties": "-8.44",
+    "exercise_duration": "00:07:16",
+    "exercise_duration_seg": 436,
+    "exercise_start_time": "20 October 2026 at 06:10 pm",
+    "colisiones": [
+      {
+        "timestamp": "00:02:15",
+        "descripcion": "Collision Between ForkLift and palletBox"
+      },
+      {
+        "timestamp": "00:04:47",
+        "descripcion": "Collision Between ForkLift and PathPole"
+      }
+    ],
+    "n_colisiones": 2,
+    "infracciones_conduccion": [
+      {
+        "timestamp": "00:01:00",
+        "descripcion": "Minimum Fork Height(mtrs)"
+      },
+      {
+        "timestamp": "00:07:09",
+        "descripcion": "Park Brake used when machine in motion"
+      }
+    ],
+    "telemetria": {
+      "steering_serrucho_index": 0.474,
+      "steering_volantazos_extremos": 6,
+      "speed_max_estimada_kmh": 2.99,
+      "frenadas_panico_count": 0
+    },
+    "clasificacion": {
+      "riesgo": "Media",
+      "aptitud": "Apto / Observación"
+    }
+  },
+  {
+    "archivo": "56.pdf",
+    "student_name": "Gianfranco Fernandez",
+    "student_id": "52",
+    "score": "93.97",
+    "penalties": "-6.03",
+    "exercise_duration": "00:06:43",
+    "exercise_duration_seg": 403,
+    "exercise_start_time": "20 October 2026 at 06:19 pm",
+    "colisiones": [
+      {
+        "timestamp": "00:01:46",
+        "descripcion": "Collision Between ForkLift and palletBox"
+      },
+      {
+        "timestamp": "00:06:00",
+        "descripcion": "Collision Between ForkLift and palletBox"
+      }
+    ],
+    "n_colisiones": 2,
+    "infracciones_conduccion": [
+      {
+        "timestamp": "00:01:00",
+        "descripcion": "Minimum Fork Height(mtrs)"
+      }
+    ],
+    "telemetria": {
+      "steering_serrucho_index": 0.0,
+      "steering_volantazos_extremos": 1,
+      "speed_max_estimada_kmh": 3.16,
+      "frenadas_panico_count": 0
+    },
+    "clasificacion": {
+      "riesgo": "Media",
+      "aptitud": "Apto / Observación"
+    }
+  },
+  {
+    "archivo": "57.pdf",
+    "student_name": "Maximiliano Velez",
+    "student_id": "53",
+    "score": "95.70",
+    "penalties": "-4.30",
+    "exercise_duration": "00:13:48",
+    "exercise_duration_seg": 828,
+    "exercise_start_time": "21 October 2026 at 08:22 am",
+    "colisiones": [
+      {
+        "timestamp": "00:06:33",
+        "descripcion": "Collision Between ForkLift and palletBox"
+      }
+    ],
+    "n_colisiones": 1,
+    "infracciones_conduccion": [
+      {
+        "timestamp": "00:01:00",
+        "descripcion": "Minimum Fork Height(mtrs)"
+      }
+    ],
+    "telemetria": {
+      "steering_serrucho_index": 0.0,
+      "steering_volantazos_extremos": 1,
+      "speed_max_estimada_kmh": 3.16,
+      "frenadas_panico_count": 1
+    },
+    "clasificacion": {
+      "riesgo": "Mínima (Autónomo)",
+      "aptitud": "Apto Directo"
+    }
+  },
+  {
+    "archivo": "58.pdf",
+    "student_name": "Alejandra Ludue;a",
+    "student_id": "54",
+    "score": "95.66",
+    "penalties": "-4.34",
+    "exercise_duration": "00:13:42",
+    "exercise_duration_seg": 822,
+    "exercise_start_time": "21 October 2026 at 08:45 am",
+    "colisiones": [
+      {
+        "timestamp": "00:05:51",
+        "descripcion": "Collision Between ForkLift and palletBox"
+      }
+    ],
+    "n_colisiones": 1,
+    "infracciones_conduccion": [
+      {
+        "timestamp": "00:01:01",
+        "descripcion": "Minimum Fork Height(mtrs)"
+      }
+    ],
+    "telemetria": {
+      "steering_serrucho_index": 0.0,
+      "steering_volantazos_extremos": 1,
+      "speed_max_estimada_kmh": 4.21,
+      "frenadas_panico_count": 1
+    },
+    "clasificacion": {
+      "riesgo": "Mínima (Autónomo)",
+      "aptitud": "Apto Directo"
+    }
+  },
+  {
+    "archivo": "59.pdf",
+    "student_name": "Maximiliano Velez",
+    "student_id": "53",
+    "score": "93.71",
+    "penalties": "-6.29",
+    "exercise_duration": "00:07:57",
+    "exercise_duration_seg": 477,
+    "exercise_start_time": "21 October 2026 at 09:04 am",
+    "colisiones": [
+      {
+        "timestamp": "00:02:20",
+        "descripcion": "Collision Between ForkLift and palletBox"
+      },
+      {
+        "timestamp": "00:04:56",
+        "descripcion": "Collision Between ForkLift and PathPole"
+      }
+    ],
+    "n_colisiones": 2,
+    "infracciones_conduccion": [
+      {
+        "timestamp": "00:01:01",
+        "descripcion": "Minimum Fork Height(mtrs)"
+      }
+    ],
+    "telemetria": {
+      "steering_serrucho_index": 0.608,
+      "steering_volantazos_extremos": 9,
+      "speed_max_estimada_kmh": 3.48,
+      "frenadas_panico_count": 0
+    },
+    "clasificacion": {
+      "riesgo": "Media",
+      "aptitud": "Apto / Observación"
+    }
+  },
+  {
+    "archivo": "6.pdf",
+    "student_name": "Brajuscovich Marcela",
+    "student_id": "27",
+    "score": "89.66",
+    "penalties": "-10.34",
+    "exercise_duration": "00:06:30",
+    "exercise_duration_seg": 390,
+    "exercise_start_time": "19 October 2026 at 09:54 am",
+    "colisiones": [
+      {
+        "timestamp": "00:01:37",
+        "descripcion": "Collision Between ForkLift and palletBox"
+      },
+      {
+        "timestamp": "00:03:47",
+        "descripcion": "Collision Between ForkLift and PathPole"
+      },
+      {
+        "timestamp": "00:03:51",
+        "descripcion": "Collision Between ForkLift and PathPole"
+      },
+      {
+        "timestamp": "00:05:14",
+        "descripcion": "Collision Between ForkLift and PathPole"
+      }
+    ],
+    "n_colisiones": 4,
+    "infracciones_conduccion": [
+      {
+        "timestamp": "00:01:00",
+        "descripcion": "Minimum Fork Height(mtrs)"
+      }
+    ],
+    "telemetria": {
+      "steering_serrucho_index": 0.0,
+      "steering_volantazos_extremos": 1,
+      "speed_max_estimada_kmh": 3.16,
+      "frenadas_panico_count": 0
+    },
+    "clasificacion": {
+      "riesgo": "Alta",
+      "aptitud": "Condicional"
+    }
+  },
+  {
+    "archivo": "60.pdf",
+    "student_name": "Alejandra Ludue;a",
+    "student_id": "54",
+    "score": "95.46",
+    "penalties": "-4.54",
+    "exercise_duration": "00:07:35",
+    "exercise_duration_seg": 455,
+    "exercise_start_time": "21 October 2026 at 09:14 am",
+    "colisiones": [],
+    "n_colisiones": 0,
+    "infracciones_conduccion": [
+      {
+        "timestamp": "00:01:01",
+        "descripcion": "Minimum Fork Height(mtrs)"
+      },
+      {
+        "timestamp": "00:01:55",
+        "descripcion": "Minimum Tilt Angle(deg)"
+      }
+    ],
+    "telemetria": {
+      "steering_serrucho_index": 0.0,
+      "steering_volantazos_extremos": 1,
+      "speed_max_estimada_kmh": 3.16,
+      "frenadas_panico_count": 1
+    },
+    "clasificacion": {
+      "riesgo": "Mínima (Autónomo)",
+      "aptitud": "Apto Directo"
+    }
+  },
+  {
+    "archivo": "61.pdf",
+    "student_name": "Franco Alvarez",
+    "student_id": "55",
+    "score": "97.47",
+    "penalties": "-2.53",
+    "exercise_duration": "00:12:37",
+    "exercise_duration_seg": 757,
+    "exercise_start_time": "21 October 2026 at 09:23 am",
+    "colisiones": [],
+    "n_colisiones": 0,
+    "infracciones_conduccion": [
+      {
+        "timestamp": "00:01:01",
+        "descripcion": "Minimum Fork Height(mtrs)"
+      }
+    ],
+    "telemetria": {
+      "steering_serrucho_index": 0.0,
+      "steering_volantazos_extremos": 1,
+      "speed_max_estimada_kmh": 2.63,
+      "frenadas_panico_count": 0
+    },
+    "clasificacion": {
+      "riesgo": "Mínima (Autónomo)",
+      "aptitud": "Apto Directo"
+    }
+  },
+  {
+    "archivo": "62.pdf",
+    "student_name": "Franco Alvarez",
+    "student_id": "55",
+    "score": "95.74",
+    "penalties": "-4.26",
+    "exercise_duration": "00:07:18",
+    "exercise_duration_seg": 438,
+    "exercise_start_time": "21 October 2026 at 09:48 am",
+    "colisiones": [
+      {
+        "timestamp": "00:06:27",
+        "descripcion": "Collision Between ForkLift and palletBox"
+      }
+    ],
+    "n_colisiones": 1,
+    "infracciones_conduccion": [
+      {
+        "timestamp": "00:01:00",
+        "descripcion": "Minimum Fork Height(mtrs)"
+      }
+    ],
+    "telemetria": {
+      "steering_serrucho_index": 0.0,
+      "steering_volantazos_extremos": 1,
+      "speed_max_estimada_kmh": 4.21,
+      "frenadas_panico_count": 0
+    },
+    "clasificacion": {
+      "riesgo": "Mínima (Autónomo)",
+      "aptitud": "Apto Directo"
+    }
+  },
+  {
+    "archivo": "63.pdf",
+    "student_name": "Facundo Medero",
+    "student_id": "56",
+    "score": "93.68",
+    "penalties": "-6.32",
+    "exercise_duration": "00:13:55",
+    "exercise_duration_seg": 835,
+    "exercise_start_time": "21 October 2026 at 04:20 pm",
+    "colisiones": [
+      {
+        "timestamp": "00:08:56",
+        "descripcion": "Collision Between ForkLift and land"
+      },
+      {
+        "timestamp": "00:10:36",
+        "descripcion": "Collision Between ForkLift and PathPole"
+      }
+    ],
+    "n_colisiones": 2,
+    "infracciones_conduccion": [
+      {
+        "timestamp": "00:01:00",
+        "descripcion": "Minimum Fork Height(mtrs)"
+      }
+    ],
+    "telemetria": {
+      "steering_serrucho_index": 0.0,
+      "steering_volantazos_extremos": 1,
+      "speed_max_estimada_kmh": 5.26,
+      "frenadas_panico_count": 0
+    },
+    "clasificacion": {
+      "riesgo": "Media",
+      "aptitud": "Apto / Observación"
+    }
+  },
+  {
+    "archivo": "64.pdf",
+    "student_name": "Julieta Becerra",
+    "student_id": "58",
+    "score": "62.28",
+    "penalties": "-7.72",
+    "exercise_duration": "00:11:29",
+    "exercise_duration_seg": 689,
+    "exercise_start_time": "21 October 2026 at 04:40 pm",
+    "colisiones": [
+      {
+        "timestamp": "00:05:09",
+        "descripcion": "Collision Between ForkLift and palletBox"
+      },
+      {
+        "timestamp": "00:06:41",
+        "descripcion": "Collision Between ForkLift and land"
+      }
+    ],
+    "n_colisiones": 2,
+    "infracciones_conduccion": [
+      {
+        "timestamp": "00:01:00",
+        "descripcion": "Minimum Fork Height(mtrs)"
+      }
+    ],
+    "telemetria": {
+      "steering_serrucho_index": 0.0,
+      "steering_volantazos_extremos": 1,
+      "speed_max_estimada_kmh": 3.68,
+      "frenadas_panico_count": 1
+    },
+    "clasificacion": {
+      "riesgo": "Media",
+      "aptitud": "Apto / Observación"
+    }
+  },
+  {
+    "archivo": "65.pdf",
+    "student_name": "Gustavo Guzman",
+    "student_id": "57",
+    "score": "95.55",
+    "penalties": "-4.45",
+    "exercise_duration": "00:09:40",
+    "exercise_duration_seg": 580,
+    "exercise_start_time": "21 October 2026 at 04:53 pm",
+    "colisiones": [
+      {
+        "timestamp": "00:08:49",
+        "descripcion": "Collision Between ForkLift and palletBox"
+      }
+    ],
+    "n_colisiones": 1,
+    "infracciones_conduccion": [
+      {
+        "timestamp": "00:01:01",
+        "descripcion": "Minimum Fork Height(mtrs)"
+      }
+    ],
+    "telemetria": {
+      "steering_serrucho_index": 0.0,
+      "steering_volantazos_extremos": 1,
+      "speed_max_estimada_kmh": 5.26,
+      "frenadas_panico_count": 1
+    },
+    "clasificacion": {
+      "riesgo": "Mínima (Autónomo)",
+      "aptitud": "Apto Directo"
+    }
+  },
+  {
+    "archivo": "66.pdf",
+    "student_name": "Facundo Medero",
+    "student_id": "56",
+    "score": "95.85",
+    "penalties": "-4.15",
+    "exercise_duration": "00:09:01",
+    "exercise_duration_seg": 541,
+    "exercise_start_time": "21 October 2026 at 05:03 pm",
+    "colisiones": [
+      {
+        "timestamp": "00:08:09",
+        "descripcion": "Collision Between ForkLift and PathPole"
+      }
+    ],
+    "n_colisiones": 1,
+    "infracciones_conduccion": [
+      {
+        "timestamp": "00:01:01",
+        "descripcion": "Minimum Fork Height(mtrs)"
+      }
+    ],
+    "telemetria": {
+      "steering_serrucho_index": 0.0,
+      "steering_volantazos_extremos": 1,
+      "speed_max_estimada_kmh": 2.63,
+      "frenadas_panico_count": 0
+    },
+    "clasificacion": {
+      "riesgo": "Mínima (Autónomo)",
+      "aptitud": "Apto Directo"
+    }
+  },
+  {
+    "archivo": "67.pdf",
+    "student_name": "Julieta Becerra",
+    "student_id": "58",
+    "score": "97.58",
+    "penalties": "-2.42",
+    "exercise_duration": "00:09:45",
+    "exercise_duration_seg": 585,
+    "exercise_start_time": "21 October 2026 at 05:14 pm",
+    "colisiones": [],
+    "n_colisiones": 0,
+    "infracciones_conduccion": [
+      {
+        "timestamp": "00:01:00",
+        "descripcion": "Minimum Fork Height(mtrs)"
+      }
+    ],
+    "telemetria": {
+      "steering_serrucho_index": 0.0,
+      "steering_volantazos_extremos": 1,
+      "speed_max_estimada_kmh": 3.16,
+      "frenadas_panico_count": 1
+    },
+    "clasificacion": {
+      "riesgo": "Mínima (Autónomo)",
+      "aptitud": "Apto Directo"
+    }
+  },
+  {
+    "archivo": "68.pdf",
+    "student_name": "Gustavo Guzman",
+    "student_id": "57",
+    "score": "94.64",
+    "penalties": "-5.36",
+    "exercise_duration": "00:09:52",
+    "exercise_duration_seg": 592,
+    "exercise_start_time": "21 October 2026 at 05:25 pm",
+    "colisiones": [
+      {
+        "timestamp": "00:03:24",
+        "descripcion": "Collision Between ForkLift and palletBox"
+      }
+    ],
+    "n_colisiones": 1,
+    "infracciones_conduccion": [
+      {
+        "timestamp": "00:01:01",
+        "descripcion": "Minimum Fork Height(mtrs)"
+      }
+    ],
+    "telemetria": {
+      "steering_serrucho_index": 0.0,
+      "steering_volantazos_extremos": 1,
+      "speed_max_estimada_kmh": 3.16,
+      "frenadas_panico_count": 1
+    },
+    "clasificacion": {
+      "riesgo": "Mínima (Autónomo)",
+      "aptitud": "Apto Directo"
+    }
+  },
+  {
+    "archivo": "69.pdf",
+    "student_name": "Alejandro Cococcioni",
+    "student_id": "59",
+    "score": "97.65",
+    "penalties": "-2.35",
+    "exercise_duration": "00:11:10",
+    "exercise_duration_seg": 670,
+    "exercise_start_time": "21 October 2026 at 05:36 pm",
+    "colisiones": [],
+    "n_colisiones": 0,
+    "infracciones_conduccion": [
+      {
+        "timestamp": "00:01:00",
+        "descripcion": "Minimum Fork Height(mtrs)"
+      }
+    ],
+    "telemetria": {
+      "steering_serrucho_index": 0.0,
+      "steering_volantazos_extremos": 1,
+      "speed_max_estimada_kmh": 5.26,
+      "frenadas_panico_count": 1
+    },
+    "clasificacion": {
+      "riesgo": "Mínima (Autónomo)",
+      "aptitud": "Apto Directo"
+    }
+  },
+  {
+    "archivo": "7.pdf",
+    "student_name": "Garcia Kevin",
+    "student_id": "25",
+    "score": "95.65",
+    "penalties": "-4.35",
+    "exercise_duration": "00:05:58",
+    "exercise_duration_seg": 358,
+    "exercise_start_time": "19 October 2026 at 10:03 am",
+    "colisiones": [
+      {
+        "timestamp": "00:01:49",
+        "descripcion": "Collision Between ForkLift and palletBox"
+      }
+    ],
+    "n_colisiones": 1,
+    "infracciones_conduccion": [
+      {
+        "timestamp": "00:01:00",
+        "descripcion": "Minimum Fork Height(mtrs)"
+      }
+    ],
+    "telemetria": {
+      "steering_serrucho_index": 0.551,
+      "steering_volantazos_extremos": 11,
+      "speed_max_estimada_kmh": 3.99,
+      "frenadas_panico_count": 0
+    },
+    "clasificacion": {
+      "riesgo": "Mínima (Autónomo)",
+      "aptitud": "Apto Directo"
+    }
+  },
+  {
+    "archivo": "70.pdf",
+    "student_name": "Alejandro Cornejo",
+    "student_id": "60",
+    "score": "97.19",
+    "penalties": "-2.81",
+    "exercise_duration": "00:11:17",
+    "exercise_duration_seg": 677,
+    "exercise_start_time": "21 October 2026 at 05:51 pm",
+    "colisiones": [],
+    "n_colisiones": 0,
+    "infracciones_conduccion": [
+      {
+        "timestamp": "00:01:01",
+        "descripcion": "Minimum Fork Height(mtrs)"
+      }
+    ],
+    "telemetria": {
+      "steering_serrucho_index": 0.723,
+      "steering_volantazos_extremos": 10,
+      "speed_max_estimada_kmh": 3.16,
+      "frenadas_panico_count": 0
+    },
+    "clasificacion": {
+      "riesgo": "Mínima (Autónomo)",
+      "aptitud": "Apto Directo"
+    }
+  },
+  {
+    "archivo": "71.pdf",
+    "student_name": "Gramajo Kevin",
+    "student_id": "10",
+    "score": "89.46",
+    "penalties": "-10.55",
+    "exercise_duration": "00:09:11",
+    "exercise_duration_seg": 551,
+    "exercise_start_time": "17 September 2026 at 10:09 am",
+    "colisiones": [
+      {
+        "timestamp": "00:01:55",
+        "descripcion": "Collision Between ForkLift and cargo_VerticalBox"
+      },
+      {
+        "timestamp": "00:02:49",
+        "descripcion": "Collision Between ForkLift and cargo_VerticalBox"
+      },
+      {
+        "timestamp": "00:05:38",
+        "descripcion": "Collision Between ForkLift and railing_"
+      },
+      {
+        "timestamp": "00:08:05",
+        "descripcion": "Collision Between ForkLift and cargo_VerticalBox"
+      }
+    ],
+    "n_colisiones": 4,
+    "infracciones_conduccion": [
+      {
+        "timestamp": "00:01:01",
+        "descripcion": "Minimum Fork Height(mtrs)"
+      }
+    ],
+    "telemetria": {
+      "steering_serrucho_index": 0.0,
+      "steering_volantazos_extremos": 1,
+      "speed_max_estimada_kmh": 3.16,
+      "frenadas_panico_count": 0
+    },
+    "clasificacion": {
+      "riesgo": "Alta",
+      "aptitud": "Condicional"
+    }
+  },
+  {
+    "archivo": "8.pdf",
+    "student_name": "Castillo Santiago",
+    "student_id": "30",
+    "score": "91.74",
+    "penalties": "-8.26",
+    "exercise_duration": "00:09:30",
+    "exercise_duration_seg": 570,
+    "exercise_start_time": "19 October 2026 at 10:11 am",
+    "colisiones": [
+      {
+        "timestamp": "00:04:43",
+        "descripcion": "Collision Between ForkLift and palletBox"
+      },
+      {
+        "timestamp": "00:07:49",
+        "descripcion": "Collision Between ForkLift and palletBox"
+      },
+      {
+        "timestamp": "00:08:03",
+        "descripcion": "Collision Between ForkLift and palletBox"
+      }
+    ],
+    "n_colisiones": 3,
+    "infracciones_conduccion": [
+      {
+        "timestamp": "00:01:01",
+        "descripcion": "Minimum Fork Height(mtrs)"
+      }
+    ],
+    "telemetria": {
+      "steering_serrucho_index": 0.26,
+      "steering_volantazos_extremos": 7,
+      "speed_max_estimada_kmh": 2.99,
+      "frenadas_panico_count": 0
+    },
+    "clasificacion": {
+      "riesgo": "Alta",
+      "aptitud": "Condicional"
+    }
+  },
+  {
+    "archivo": "9.pdf",
+    "student_name": "Acosta Joana",
+    "student_id": "29",
+    "score": "93.81",
+    "penalties": "-6.19",
+    "exercise_duration": "00:11:43",
+    "exercise_duration_seg": 703,
+    "exercise_start_time": "19 October 2026 at 10:38 am",
+    "colisiones": [
+      {
+        "timestamp": "00:08:22",
+        "descripcion": "Collision Between ForkLift and PathPole"
+      },
+      {
+        "timestamp": "00:09:50",
+        "descripcion": "Collision Between ForkLift and palletBox"
+      }
+    ],
+    "n_colisiones": 2,
+    "infracciones_conduccion": [
+      {
+        "timestamp": "00:01:00",
+        "descripcion": "Minimum Fork Height(mtrs)"
+      }
+    ],
+    "telemetria": {
+      "steering_serrucho_index": 0.0,
+      "steering_volantazos_extremos": 1,
+      "speed_max_estimada_kmh": 2.63,
+      "frenadas_panico_count": 1
+    },
+    "clasificacion": {
+      "riesgo": "Media",
+      "aptitud": "Apto / Observación"
+    }
+  },
+  {
+    "archivo": "Garcia kevin 22.pdf",
+    "student_name": "Garcia Kevin",
+    "student_id": "25",
+    "score": "97.39",
+    "penalties": "-2.61",
+    "exercise_duration": "00:08:52",
+    "exercise_duration_seg": 532,
+    "exercise_start_time": "19 October 2026 at 09:43 am",
+    "colisiones": [],
+    "n_colisiones": 0,
+    "infracciones_conduccion": [
+      {
+        "timestamp": "00:01:00",
+        "descripcion": "Minimum Fork Height(mtrs)"
+      }
+    ],
+    "telemetria": {
+      "steering_serrucho_index": 0.225,
+      "steering_volantazos_extremos": 4,
+      "speed_max_estimada_kmh": 2.49,
+      "frenadas_panico_count": 6
+    },
+    "clasificacion": {
+      "riesgo": "Media",
+      "aptitud": "Apto / Observación"
+    }
+  },
+  {
+    "archivo": "Report.pdf",
+    "student_name": "Britos Federico",
+    "student_id": "23",
+    "score": "95.58",
+    "penalties": "-4.42",
+    "exercise_duration": "00:11:27",
+    "exercise_duration_seg": 687,
+    "exercise_start_time": "19 October 2026 at 08:29 am",
+    "colisiones": [
+      {
+        "timestamp": "00:09:46",
+        "descripcion": "Collision Between ForkLift and palletBox"
+      }
+    ],
+    "n_colisiones": 1,
+    "infracciones_conduccion": [
+      {
+        "timestamp": "00:01:00",
+        "descripcion": "Minimum Fork Height(mtrs)"
+      }
+    ],
+    "telemetria": {
+      "steering_serrucho_index": 1.854,
+      "steering_volantazos_extremos": 33,
+      "speed_max_estimada_kmh": 3.97,
+      "frenadas_panico_count": 0
+    },
+    "clasificacion": {
+      "riesgo": "Media",
+      "aptitud": "Apto / Observación"
+    }
+  },
+  {
+    "archivo": "brajuscovich marcela.pdf",
+    "student_name": "Brajuscovich Marcela",
+    "student_id": "27",
+    "score": "93.35",
+    "penalties": "-6.65",
+    "exercise_duration": "00:10:23",
+    "exercise_duration_seg": 623,
+    "exercise_start_time": "19 October 2026 at 09:31 am",
+    "colisiones": [
+      {
+        "timestamp": "00:04:12",
+        "descripcion": "Collision Between ForkLift and palletBox"
+      },
+      {
+        "timestamp": "00:09:00",
+        "descripcion": "Collision Between ForkLift and palletBox"
+      }
+    ],
+    "n_colisiones": 2,
+    "infracciones_conduccion": [
+      {
+        "timestamp": "00:01:01",
+        "descripcion": "Minimum Fork Height(mtrs)"
+      }
+    ],
+    "telemetria": {
+      "steering_serrucho_index": 1.114,
+      "steering_volantazos_extremos": 22,
+      "speed_max_estimada_kmh": 2.94,
+      "frenadas_panico_count": 0
+    },
+    "clasificacion": {
+      "riesgo": "Media",
+      "aptitud": "Apto / Observación"
+    }
+  },
+  {
+    "archivo": "britos federico 2.pdf",
+    "student_name": "Britos Federico",
+    "student_id": "23",
+    "score": "97.66",
+    "penalties": "-2.34",
+    "exercise_duration": "00:07:41",
+    "exercise_duration_seg": 461,
+    "exercise_start_time": "19 October 2026 at 08:56 am",
+    "colisiones": [],
+    "n_colisiones": 0,
+    "infracciones_conduccion": [
+      {
+        "timestamp": "00:01:00",
+        "descripcion": "Minimum Fork Height(mtrs)"
+      }
+    ],
+    "telemetria": {
+      "steering_serrucho_index": 0.0,
+      "steering_volantazos_extremos": 1,
+      "speed_max_estimada_kmh": 5.26,
+      "frenadas_panico_count": 1
+    },
+    "clasificacion": {
+      "riesgo": "Mínima (Autónomo)",
+      "aptitud": "Apto Directo"
+    }
+  },
+  {
+    "archivo": "garcia kevin.pdf",
+    "student_name": "Garcia Kevin",
+    "student_id": "25",
+    "score": "94.66",
+    "penalties": "-5.34",
+    "exercise_duration": "00:13:41",
+    "exercise_duration_seg": 821,
+    "exercise_start_time": "19 October 2026 at 09:04 am",
+    "colisiones": [
+      {
+        "timestamp": "00:10:02",
+        "descripcion": "Collision Between ForkLift and PathPole"
+      }
+    ],
+    "n_colisiones": 1,
+    "infracciones_conduccion": [
+      {
+        "timestamp": "00:01:00",
+        "descripcion": "Minimum Fork Height(mtrs)"
+      }
+    ],
+    "telemetria": {
+      "steering_serrucho_index": 0.602,
+      "steering_volantazos_extremos": 8,
+      "speed_max_estimada_kmh": 2.5,
+      "frenadas_panico_count": 0
+    },
+    "clasificacion": {
+      "riesgo": "Mínima (Autónomo)",
+      "aptitud": "Apto Directo"
+    }
+  }
+]
