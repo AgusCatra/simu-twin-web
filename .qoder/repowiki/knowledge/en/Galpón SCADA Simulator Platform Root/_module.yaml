@@ -1,6 +1,6 @@
 schema_version: 1
 module_path: ""
-title: simu-twin-web Next.js Project Root
+title: Galpón SCADA Simulator Platform Root
 scope:
     - README.md
     - .gitignore

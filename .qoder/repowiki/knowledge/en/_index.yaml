@@ -3,11 +3,11 @@ schema_version: 1
 locale: en-US
 branch: main
 nodes_managed: true
-exported_at: "2026-10-17T22:51:08Z"
+exported_at: "2026-10-28T14:01:04Z"
 modules:
     "":
-        dir_name: simu-twin-web Next.js Project Root
-        title: simu-twin-web Next.js Project Root
+        dir_name: Galpón SCADA Simulator Platform Root
+        title: Galpón SCADA Simulator Platform Root
         scope:
             - README.md
             - .gitignore
@@ -20,6 +20,7 @@ modules:
         source_files: []
         children:
             - galpon
+            - scripts
         depends_on: []
         related_to: []
     galpon:
@@ -27,6 +28,16 @@ modules:
         title: Galpón SCADA Simulator Digital Twin
         scope:
             - galpon.html
+        source_files: []
+        children: []
+        depends_on: []
+        related_to: []
+    scripts:
+        dir_name: ETECH Simulator PDF Telemetry Pipeline
+        title: ETECH Simulator PDF Telemetry Pipeline
+        scope:
+            - scripts/
+            - telemetria_cohortes.json
         source_files: []
         children: []
         depends_on: []

@@ -1,0 +1,1 @@
+Parses ETECH Simulation diagnostic PDF reports to extract student metadata, assessment logs, and raster chart telemetry, producing a cohort JSON dataset for the sim-twin web app.

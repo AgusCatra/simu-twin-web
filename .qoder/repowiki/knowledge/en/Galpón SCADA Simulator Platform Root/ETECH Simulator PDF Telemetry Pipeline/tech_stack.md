@@ -1,0 +1,1 @@
+Python with PyMuPDF (`fitz`) for PDF/image extraction, Pillow for RGBA/Smask composition, NumPy for vectorized pixel-grid and curve analysis; input PDFs are produced by the ETECH Simulation autoelevador simulator.

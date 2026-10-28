@@ -1,0 +1,5 @@
+- Per-channel metrics share a common analyzer shape: `analizar_canal` returns `{vals, v_max, v_min}` derived from grid-row centers and a channel-specific `GRID_STEP` lookup, and higher-level metric functions consume it uniformly.
+- Chart pixels are decoded by masking the violet plot line (`b - g > 25 & r -g > 15`) and averaging row positions per column, rather than using any vector or OCR library.
+- Grid-line detection relies on finding equispaced gray rows (`gris = abs(r-g)<6 & abs(g-b)<6 & 100<r<245`) and keeping only those whose spacing matches the median gap within a tolerance of 0.2 grid steps.
+- Event counts (panic brakes, extreme steering contacts) are computed by counting transitions in a boolean mask via `np.sum(mask[1:] & ~mask[:-1])` plus an edge-case head check.
+- Each PDF processing function wraps its work in `try/finally doc.close()` so the PyMuPDF document handle is released even when parsing raises.
