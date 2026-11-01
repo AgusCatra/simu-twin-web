@@ -3,26 +3,29 @@ import { NextResponse, type NextRequest } from 'next/server';
 
 /**
  * Refresca/protege la sesión solo en las rutas que de verdad la necesitan.
- * - /admin/* y /login: validación dura contra el servidor (getUser, round-trip de red).
+ * - /admin/*, /cabina/* y /login: validación dura contra el servidor (getUser, round-trip de red).
  * - /visitas (pública dentro del matcher): solo lectura de cookie (getSession), sin red.
  *
  * Robustez: si faltan las variables de entorno en el borde, NO se lanza Error
  * (evita un 500 en todo el sitio). Las rutas públicas pasan con next(); /admin/*
- * se redirige de forma controlada a /login. La validación dura de env vive en
- * lib/supabase/client.ts y server.ts, que sí lanzan un Error claro en español.
+ * y /cabina/* se redirigen de forma controlada a /login. La validación dura de
+ * env vive en lib/supabase/client.ts y server.ts, que sí lanzan un Error claro
+ * en español.
  */
 async function updateSession(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const esRutaAdmin = pathname.startsWith('/admin');
+  // FIX F10: boundary exacto para no sobre-matchear rutas tipo /cabinaX.
+  const esRutaCabina = pathname === '/cabina' || pathname.startsWith('/cabina/');
   const esRutaLogin = pathname === '/login';
-  const esRutaProtegida = esRutaAdmin || esRutaLogin;
+  const esRutaProtegida = esRutaAdmin || esRutaCabina || esRutaLogin;
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
   if (!url || !anonKey) {
     // Sin env en el borde: no tumbar el sitio.
-    if (esRutaAdmin) {
+    if (esRutaAdmin || esRutaCabina) {
       const loginUrl = request.nextUrl.clone();
       loginUrl.pathname = '/login';
       loginUrl.search = '';
@@ -63,7 +66,7 @@ async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user && esRutaAdmin) {
+  if (!user && (esRutaAdmin || esRutaCabina)) {
     const loginUrl = request.nextUrl.clone();
     loginUrl.pathname = '/login';
     loginUrl.search = '';
@@ -88,12 +91,12 @@ export const config = {
   matcher: [
     /*
      * Matcher ACOTADO a las rutas que necesitan control de sesión:
-     * /admin/*, /login y /visitas. Se excluyen los assets internos de Next
-     * (_next/static, _next/image), favicon y cualquier archivo estático por
-     * extensión —incluidos los modelos 3D/tipografías/medios/documentos de la
-     * futura landing— para no ejecutar el middleware en peticiones que no lo
+     * /admin/*, /cabina/*, /login y /visitas. Se excluyen los assets internos
+     * de Next (_next/static, _next/image), favicon y cualquier archivo estático
+     * por extensión —incluidos los modelos 3D/tipografías/medios/documentos de
+     * la futura landing— para no ejecutar el middleware en peticiones que no lo
      * requieren (assets, payloads RSC, POST de Server Actions, etc.).
      */
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|glb|gltf|hdr|ktx2|bin|draco|woff|woff2|ttf|mp4|webm|json|webmanifest|pdf|avif)$)(?:admin|login|visitas)(?:/.*)?)',
+    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|glb|gltf|hdr|ktx2|bin|draco|woff|woff2|ttf|mp4|webm|json|webmanifest|pdf|avif)$)(?:admin|cabina|login|visitas)(?:/.*)?)',
   ],
 };
