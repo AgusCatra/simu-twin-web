@@ -10,6 +10,7 @@ import {
   ExternalLink,
   Server,
   Truck,
+  UsersRound,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -29,6 +30,7 @@ export const RUTAS_ADMIN: readonly RutaAdmin[] = [
   { href: '/admin/registro-actividades', label: 'Registro de Actividades', icono: ClipboardList },
   { href: '/admin/telemetria', label: 'Telemetría (Titán)', icono: Cpu },
   { href: '/admin/tup', label: 'Logística TUP', icono: Truck },
+  { href: '/gestion/cohortes', label: 'Cohortes y Cabina (Empleo)', icono: UsersRound },
 ];
 
 /** Determina si una ruta del menú corresponde al pathname actual. */

@@ -1,0 +1,1 @@
+Next.js 15 workspace hosting the Three.js Galpón SCADA simulator as the web app and a sibling ETECH PDF telemetry pipeline, sharing repo-wide tooling but with no runtime coupling.

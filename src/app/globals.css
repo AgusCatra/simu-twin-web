@@ -24,3 +24,138 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* ══════════════════════════════════════════════════════════════
+   Cronograma Oficial · hoja membretada imprimible (/gestion/cohortes)
+   En pantalla la hoja está oculta (display:none); solo existe para
+   window.print(). La botonera marca el panel interactivo con
+   .print-ocultar para excluirlo de la impresión.
+   ══════════════════════════════════════════════════════════════ */
+.hoja-cronograma {
+  display: none;
+}
+
+@media print {
+  @page {
+    margin: 16mm;
+  }
+
+  html,
+  body {
+    background: #fff !important;
+    color: #000 !important;
+  }
+
+  /* Aprovecha el ancho de la hoja y anula el padding del layout. */
+  main {
+    padding: 0 !important;
+    max-width: none !important;
+  }
+
+  /* Oculta todo el panel (cabecera, botonera, config, parrilla, tabla,
+     drawers). Solo permanece la hoja membretada del cronograma. */
+  .print-ocultar {
+    display: none !important;
+  }
+
+  .hoja-cronograma {
+    display: block !important;
+    color: #000;
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 12pt;
+    line-height: 1.45;
+  }
+
+  .hc-membrete {
+    border-bottom: 2px solid #000;
+    padding-bottom: 8px;
+    margin-bottom: 14px;
+    text-align: center;
+  }
+
+  .hc-titulo {
+    font-size: 16pt;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    margin: 0;
+  }
+
+  .hc-subtitulo {
+    font-size: 11pt;
+    margin: 4px 0 0;
+  }
+
+  .hc-cohorte {
+    font-size: 10pt;
+    font-style: italic;
+    margin: 2px 0 0;
+  }
+
+  .hc-seccion {
+    margin-bottom: 12px;
+    break-inside: avoid;
+  }
+
+  .hc-seccion-titulo {
+    font-size: 12pt;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    border-bottom: 1px solid #999;
+    padding-bottom: 2px;
+    margin: 0 0 6px;
+  }
+
+  .hc-dato {
+    margin: 2px 0;
+  }
+
+  .hc-turno {
+    margin-top: 8px;
+  }
+
+  .hc-turno-titulo {
+    font-weight: 700;
+    text-transform: uppercase;
+    margin: 6px 0 4px;
+  }
+
+  .hc-ternas {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .hc-terna {
+    flex: 1 1 30%;
+    min-width: 160px;
+    border: 1px solid #ccc;
+    padding: 6px 8px;
+    break-inside: avoid;
+  }
+
+  .hc-horario {
+    font-weight: 700;
+    margin: 0 0 4px;
+    border-bottom: 1px dotted #999;
+    padding-bottom: 2px;
+  }
+
+  .hc-lista {
+    margin: 0;
+    padding-left: 18px;
+  }
+
+  .hc-lista li {
+    margin: 1px 0;
+  }
+
+  .hc-pie {
+    margin-top: 16px;
+    border-top: 1px solid #999;
+    padding-top: 6px;
+    font-size: 10pt;
+    font-weight: 700;
+    text-align: center;
+  }
+}

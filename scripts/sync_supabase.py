@@ -73,6 +73,24 @@ MESES = {
 }
 STOP = {"de", "del", "la", "el"}
 
+# Etapas del flujo de doble pasada (migración 0008).
+ETAPA_INTENTO_1 = "DIAG_INTENTO_1"
+ETAPA_INTENTO_2 = "DIAG_INTENTO_2"
+ETAPA_FINAL = "FINAL"
+
+# Grafías de portada alternativas aceptadas por ranking, para apellidos que el
+# umbral fuzzy no alcanza (OCR, apóstrofos raros u orden invertido). Cada alias
+# se compara con el mismo compatible(); la normalización de tokens() YA neutraliza
+# apóstrofes (' ’ ` ´) y acentos, así "O'Connell"/"O`Connell"/"O Connell" vinculan
+# solos si el reporte existe.
+#
+# AUDITORÍA nov/2026 sobre el corpus real (71 PDF + 87 TraineeName de los 363
+# metadatos de grabación): NO existe ningún reporte de #4 Robledo Daniel ni de
+# #28 O`Connell Daniel bajo NINGUNA grafía. Ambos quedan legítimamente SIN
+# TELEMETRÍA (el script nunca inventa datos). Cuando se incorpore su PDF, cargar
+# acá la grafía exacta de portada, p.ej.: 4: ["Robledo Daniel E"], 28: ["OConnell"].
+ALIASES = {}
+
 
 class SyncError(Exception):
     pass
@@ -107,20 +125,127 @@ def fecha_reporte(rep):
     return datetime(int(anio), MESES[mes.casefold()], int(dia), hora, int(minuto))
 
 
+def es_final(rep):
+    """Un reporte es Prueba Final si su Exercise Name (o el nombre base del
+    archivo, sin extensión) lo rotula. Se excluye la extensión para que
+    '71.pdf' no calce por el substring '1f'."""
+    nombre = rep.get("exercise_name") or ""
+    if "final" in nombre.casefold():
+        return True
+    base = (rep.get("archivo") or "")
+    return "final" in os.path.splitext(base)[0].casefold()
+
+
 def vincular():
+    """Agrupa TODOS los reportes de cada postulante de la nómina, ordenados
+    cronológicamente por timestamp_inicio (ya no se descarta por max(fecha))."""
     with open(ROOT / "telemetria_cohortes.json", encoding="utf-8") as fh:
         reportes = json.load(fh)
     if not isinstance(reportes, list):
         raise SyncError("telemetria_cohortes.json debe contener una lista")
     links = []
+    usados = []
     for ranking, nombre, dni, turno in NOMINA:
-        candidatos = [r for r in reportes if compatible(nombre, r.get("student_name"))]
-        elegido = max(candidatos, key=lambda r: (fecha_reporte(r), r.get("archivo") or ""), default=None)
-        links.append({"ranking": ranking, "nombre": nombre, "dni": dni, "turno": turno, "rep": elegido})
-    usados = [x["rep"]["archivo"] for x in links if x["rep"]]
+        aceptados = [nombre, *ALIASES.get(ranking, [])]
+        candidatos = [r for r in reportes
+                      if any(compatible(a, r.get("student_name")) for a in aceptados)]
+        ordenados = sorted(candidatos, key=lambda r: (fecha_reporte(r), r.get("archivo") or ""))
+        usados += [r.get("archivo") for r in ordenados]
+        links.append({"ranking": ranking, "nombre": nombre, "dni": dni,
+                      "turno": turno, "reportes": ordenados})
     if len(usados) != len(set(usados)):
         raise SyncError("Un mismo reporte quedó asignado a más de un postulante")
     return links
+
+
+def plan_evaluaciones(links):
+    """Asigna etapa a cada reporte (FINAL rotulado; el resto DIAG_INTENTO_1/2
+    por orden cronológico), marca el mejor diagnóstico y calcula deltas.
+
+    Criterio 'Mejor Diagnóstico' entre V1 y V2:
+      1. menor colisiones reales; 2. empate -> menor serrucho; 3. empate ->
+      menor duración. Con un único diagnóstico, ese resulta el mejor.
+    Los deltas de INTENTO_2 se calculan contra INTENTO_1; los de FINAL contra
+    el mejor diagnóstico.
+    """
+    plan = []
+    for x in links:
+        reps = x["reportes"]
+        if not reps:
+            continue
+        finales = [r for r in reps if es_final(r)]
+        diagnosticos = [r for r in reps if not es_final(r)]
+        etapas = {}
+        for i, r in enumerate(diagnosticos[:2]):
+            etapas[r["archivo"]] = ETAPA_INTENTO_1 if i == 0 else ETAPA_INTENTO_2
+        for r in finales[:1]:
+            etapas[r["archivo"]] = ETAPA_FINAL
+        if len(diagnosticos) > 2:
+            print(f"AVISO: #{x['ranking']} {x['nombre']} tiene {len(diagnosticos)} "
+                  f"diagnósticos; se toman los 2 más tempranos y el resto no se sincroniza.")
+
+        base = {ETAPA_INTENTO_1: diagnosticos[0] if diagnosticos else None,
+                ETAPA_INTENTO_2: diagnosticos[1] if len(diagnosticos) > 1 else None}
+        vigentes = {k: v for k, v in base.items() if v}
+        mejor_etapa = min(vigentes, key=lambda e: clave_mejor(vigentes[e])) if vigentes else None
+
+        for archivo, etapa in etapas.items():
+            rep = next(r for r in reps if r["archivo"] == archivo)
+            ref = None
+            if etapa == ETAPA_INTENTO_2:
+                ref = base.get(ETAPA_INTENTO_1)
+            elif etapa == ETAPA_FINAL and mejor_etapa:
+                ref = base[mejor_etapa]
+            plan.append({
+                "dni": x["dni"],
+                "rep": rep,
+                "etapa": etapa,
+                "es_mejor": etapa == mejor_etapa,
+                "ref": ref,
+            })
+    return plan
+
+
+def clave_mejor(rep):
+    """Tupla de orden del 'Mejor Diagnóstico' (menor es mejor)."""
+    san = rep.get("metricas_sanitizadas") or rep.get("telemetria") or {}
+    colisiones = entero(rep.get("n_colisiones"), "n_colisiones") or 0
+    serrucho = san.get("steering_serrucho_index")
+    dur = entero(rep.get("exercise_duration_seg"), "exercise_duration_seg")
+    return (colisiones,
+            serrucho if serrucho is not None else float("inf"),
+            dur if dur is not None else float("inf"))
+
+
+def flotar(valor):
+    if valor is None:
+        return None
+    try:
+        return float(valor)
+    except (TypeError, ValueError):
+        return None
+
+
+def deltas(rep, ref):
+    """Deltas del intento respecto de su referencia (rep - ref)."""
+    if not ref:
+        return {"delta_tiempo_seg": None, "delta_colisiones": None,
+                "delta_score": None, "delta_serrucho": None}
+    tel = rep.get("metricas_sanitizadas") or rep.get("telemetria") or {}
+    tel_ref = ref.get("metricas_sanitizadas") or ref.get("telemetria") or {}
+
+    def resta(a, b):
+        return None if a is None or b is None else a - b
+
+    return {
+        "delta_tiempo_seg": resta(entero(rep.get("exercise_duration_seg"), "t"),
+                                  entero(ref.get("exercise_duration_seg"), "t")),
+        "delta_colisiones": resta(entero(rep.get("n_colisiones"), "c"),
+                                  entero(ref.get("n_colisiones"), "c")),
+        "delta_score": resta(flotar(rep.get("score")), flotar(ref.get("score"))),
+        "delta_serrucho": resta(flotar(tel.get("steering_serrucho_index")),
+                                flotar(tel_ref.get("steering_serrucho_index"))),
+    }
 
 
 def entero(valor, campo):
@@ -132,8 +257,8 @@ def entero(valor, campo):
         raise SyncError(f"{campo} debe ser entero o null") from exc
 
 
-def evaluacion(postulante_id, rep):
-    tel = rep.get("telemetria") or {}
+def evaluacion(postulante_id, rep, etapa, es_mejor, ref):
+    tel = rep.get("metricas_sanitizadas") or rep.get("telemetria") or {}
     clasi = rep.get("clasificacion") or {}
     riesgo = clasi.get("riesgo")
     dictamen = clasi.get("aptitud")
@@ -151,7 +276,7 @@ def evaluacion(postulante_id, rep):
         x["descripcion"] for x in rep.get("infracciones_conduccion", [])
         if "fork" in x.get("descripcion", "").casefold() or "mastil" in x.get("descripcion", "").casefold()
     ]
-    return {
+    payload = {
         "postulante_id": postulante_id,
         "asistencia_cabina": RIESGO[riesgo],
         "dictamen": DICTAMEN[dictamen],
@@ -163,7 +288,16 @@ def evaluacion(postulante_id, rep):
         "colisiones": entero(rep.get("n_colisiones"), "n_colisiones") or 0,
         "score_puntos": score,
         "archivo_fuente": rep.get("archivo"),
+        # Columnas multi-intento (migración 0008)
+        "etapa": etapa,
+        "es_mejor_diagnostico": es_mejor,
+        "colisiones_descartadas": entero(
+            rep.get("metricas_sanitizadas", {}).get("colisiones_descartadas")
+            if rep.get("metricas_sanitizadas") else len(rep.get("descartes_sanitizados") or []),
+            "colisiones_descartadas") or 0,
     }
+    payload.update(deltas(rep, ref))
+    return payload
 
 
 def uno(res, descripcion):
@@ -211,18 +345,27 @@ def sincronizar(db, links):
         for x in links
     ], on_conflict="cohorte_id,postulante_id").execute()
 
-    con_rep = [x for x in links if x["rep"]]
-    ids = [por_dni[x["dni"]] for x in con_rep]
+    plan = plan_evaluaciones(links)
+    ids = sorted({por_dni[e["dni"]] for e in plan})
     previas = []
     if ids:
         previas = db.table("evaluacion_diagnostico").select(
             "id,postulante_id,archivo_fuente"
         ).in_("postulante_id", ids).execute().data or []
+        # Idempotencia (tarea B): apagar TODAS las banderas de mejor diagnóstico
+        # de los postulantes del lote ANTES de reescribir. Garantiza que el índice
+        # parcial único uq_mejor_diagnostico_por_postulante nunca observe dos TRUE
+        # y que el script pueda re-ejecutarse indefinidamente sin error 23505.
+        db.table("evaluacion_diagnostico").update(
+            {"es_mejor_diagnostico": False}).in_("postulante_id", ids).execute()
     por_fuente = {(x["postulante_id"], x["archivo_fuente"]): x["id"] for x in previas}
+    plan_claves = {(por_dni[e["dni"]], e["rep"]["archivo"]) for e in plan}
+
     inserts, updates = [], []
-    for x in con_rep:
-        payload = evaluacion(por_dni[x["dni"]], x["rep"])
-        clave = (payload["postulante_id"], payload["archivo_fuente"])
+    for e in plan:
+        pid = por_dni[e["dni"]]
+        payload = evaluacion(pid, e["rep"], e["etapa"], e["es_mejor"], e["ref"])
+        clave = (pid, payload["archivo_fuente"])
         if clave in por_fuente:
             updates.append({"id": por_fuente[clave], **payload})
         else:
@@ -244,11 +387,16 @@ def sincronizar(db, links):
         "postulante_id,archivo_fuente"
     ).in_("postulante_id", ids).execute().data or [] if ids else []
     presentes = {(x["postulante_id"], x["archivo_fuente"]) for x in evals}
-    esperadas = {(por_dni[x["dni"]], x["rep"]["archivo"]) for x in con_rep}
+    esperadas = plan_claves
     if not esperadas.issubset(presentes):
         raise SyncError(f"Verificación de evaluaciones: {len(presentes & esperadas)}/{len(esperadas)}")
+    por_etapa = {}
+    for e in plan:
+        por_etapa[e["etapa"]] = por_etapa.get(e["etapa"], 0) + 1
     return {"cohorte": cid, "franjas": len(franjas), "postulantes": len(por_dni),
-            "inscripciones": len(insc), "evaluaciones": len(esperadas)}
+            "inscripciones": len(insc), "evaluaciones": len(esperadas),
+            "por_etapa": por_etapa,
+            "mejores": sum(1 for e in plan if e["es_mejor"])}
 
 
 def cliente():
@@ -267,13 +415,25 @@ def cliente():
 
 def main():
     links = vincular()
-    con_rep = [x for x in links if x["rep"]]
-    sin_rep = [x for x in links if not x["rep"]]
+    con_rep = [x for x in links if x["reportes"]]
+    sin_rep = [x for x in links if not x["reportes"]]
     if "--dry-run" in sys.argv:
+        plan = plan_evaluaciones(links)
         for x in links:
-            destino = x["rep"]["archivo"] if x["rep"] else "SIN REPORTE IDENTIFICABLE"
-            print(f"#{x['ranking']:02d} {x['nombre']} -> {destino}")
-        print(f"RESUMEN: {len(con_rep)} con telemetría, {len(sin_rep)} sin telemetría")
+            if not x["reportes"]:
+                print(f"#{x['ranking']:02d} {x['nombre']} -> SIN REPORTE IDENTIFICABLE")
+                continue
+            entradas = [e for e in plan if e["dni"] == x["dni"]]
+            detalle = ", ".join(
+                f"{e['etapa']}={e['rep']['archivo']}" + ("*" if e["es_mejor"] else "")
+                for e in sorted(entradas, key=lambda e: e["etapa"]))
+            print(f"#{x['ranking']:02d} {x['nombre']} -> {detalle}")
+        etapas = {}
+        for e in plan:
+            etapas[e["etapa"]] = etapas.get(e["etapa"], 0) + 1
+        print(f"RESUMEN: {len(con_rep)} postulantes con telemetría, "
+              f"{len(sin_rep)} sin telemetría, {len(plan)} evaluaciones {etapas}")
+        print("(*) = es_mejor_diagnostico")
         return
     res = sincronizar(cliente(), links)
     print("=" * 58)
@@ -281,7 +441,8 @@ def main():
     print(f"Franjas verificadas: {res['franjas']}/7")
     print(f"Postulantes cargados: {res['postulantes']}/30")
     print(f"Inscripciones enlazadas (ranking 1-30): {res['inscripciones']}/30")
-    print(f"Evaluaciones con telemetría: {res['evaluaciones']}/{len(con_rep)}")
+    print(f"Evaluaciones sincronizadas: {res['evaluaciones']} {res['por_etapa']}")
+    print(f"Marcadas como mejor diagnóstico: {res['mejores']}")
     for x in sin_rep:
         print(f"SIN TELEMETRÍA: #{x['ranking']} {x['nombre']} (DNI {x['dni']})")
     print("=" * 58)
@@ -296,5 +457,9 @@ if __name__ == "__main__":
         if "row-level security" in detalle or "permission denied" in detalle:
             print("La ingesta requiere SUPABASE_SERVICE_ROLE_KEY en .env.local.", file=sys.stderr)
         elif "could not find" in detalle or "pgrst" in detalle:
-            print("Aplicá primero supabase/migrations/0005_gestion_empleo_sheets.sql.", file=sys.stderr)
+            print("Aplicá primero supabase/migrations/0005_gestion_empleo_sheets.sql "
+                  "y 0008_evaluacion_multi_intento.sql.", file=sys.stderr)
+        elif "23505" in detalle or "uq_postulante_archivo" in detalle:
+            print("Quedó más de una fila por (postulante_id, archivo_fuente): "
+                  "deduplicá antes de aplicar 0008.", file=sys.stderr)
         sys.exit(1)

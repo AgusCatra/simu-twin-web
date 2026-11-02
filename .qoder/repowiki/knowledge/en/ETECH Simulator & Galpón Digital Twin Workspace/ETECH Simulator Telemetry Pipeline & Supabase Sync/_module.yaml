@@ -1,6 +1,6 @@
 schema_version: 1
 module_path: scripts
-title: ETECH Simulator PDF Telemetry Pipeline
+title: ETECH Simulator Telemetry Pipeline & Supabase Sync
 scope:
     - scripts/
     - telemetria_cohortes.json

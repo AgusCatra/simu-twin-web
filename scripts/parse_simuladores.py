@@ -40,6 +40,17 @@ GRID_STEP = {"brake": 1.0, "steering": 5.0, "speed": 0.5}
 RE_TIME = re.compile(r"^\d{2}:\d{2}:\d{2}$")
 TYPES = {"PrechecksViolation", "Driving", "Collision", "ExerciseTasks", "VehicleParking"}
 
+# Patrones del bug conocido de fisica/sensores del simulador: colisiones
+# fantasma contra el suelo/malla y rebote de uñas a cota de piso (sensor de
+# altura de mastil en -2). Toda falta cuya descripcion coincida se descarta
+# de las metricas y queda auditada en descartes_sanitizados.
+RE_ARTEFACTO_SUELO = re.compile(
+    r"\b(floor|ground|terrain|mesh)\b"
+    r"|fork\s*height\s*\(?\s*(?:mtrs|mts|m)?\s*\)?\s*(?:=|:)?\s*-"
+    r"|\bhorn\s*-(?:contact|touch)\b",
+    re.I,
+)
+
 COVER_FIELDS = ["Penalties", "Task Of Exercise", "Score", "Student Name", "Student Id",
                 "Class name", "Class Id", "Instructor Name", "Exercise Name",
                 "Equipment Name", "Exercise Start Time", "Exercise Duration"]
@@ -92,6 +103,23 @@ def parse_faltas(pages):
                 continue
         i += 1
     return filas
+
+
+def sanitizar_faltas(faltas):
+    """Separa faltas reales de artefactos fantasma de suelo/malla (bug -2).
+
+    Funcion pura: no muta la entrada. Retorna (reales, descartes), donde
+    descartes conserva la fila original mas el motivo de exclusion para
+    auditoria post-corrida.
+    """
+    reales, descartes = [], []
+    for f in faltas:
+        desc = f.get("descripcion") or ""
+        if RE_ARTEFACTO_SUELO.search(desc):
+            descartes.append({**f, "motivo_descarte": "ARTEFACTO_SUELO"})
+        else:
+            reales.append(f)
+    return reales, descartes
 
 
 def curva_de_grafico(doc, page, idx):
@@ -170,6 +198,11 @@ def analizar_canal(doc, page_no, local_idx, canal):
     if xs.size == 0:
         return None
     vals = v_max + (ys - y_top) * (v_min - v_max) / max(y_bot - y_top, 1e-9)
+    if v_min >= 0.0:
+        # Canales no bipolares (brake, speed, fork height): el artefacto de
+        # sensor -2 cae bajo la ultima gridline y la extrapolacion lineal lo
+        # conserva. Se clampea a 0.0 para no distorsionar medias ni picos.
+        vals = np.maximum(vals, 0.0)
     return {"vals": vals, "v_max": v_max, "v_min": v_min}
 
 
@@ -225,8 +258,9 @@ def procesar_pdf(ruta):
     try:
         portada = parse_portada(doc[0])
         faltas = parse_faltas([doc[1], doc[2], doc[3]])
-        colisiones = [f for f in faltas if f["tipo"] == "Collision"]
-        conduccion = [f for f in faltas if f["tipo"] == "Driving"]
+        faltas_reales, descartes = sanitizar_faltas(faltas)
+        colisiones = [f for f in faltas_reales if f["tipo"] == "Collision"]
+        conduccion = [f for f in faltas_reales if f["tipo"] == "Driving"]
 
         # lista global de imagenes de graficos en orden de pagina (pags 5-12)
         orden = []
@@ -242,22 +276,35 @@ def procesar_pdf(ruta):
             speed_max = metricas_speed(doc, orden)
 
         dur = portada.get("Exercise Duration", "")
+        inicio = portada.get("Exercise Start Time")
         riesgo, aptitud = clasificar(len(colisiones), serrucho, frenadas)
         return {
             "archivo": os.path.basename(ruta),
+            "archivo_fuente": os.path.basename(ruta),
             "student_name": portada.get("Student Name"),
             "student_id": portada.get("Student Id"),
             "score": portada.get("Score"),
             "penalties": portada.get("Penalties"),
+            "exercise_name": portada.get("Exercise Name"),
             "exercise_duration": dur,
             "exercise_duration_seg": hms_a_segundos(dur),
-            "exercise_start_time": portada.get("Exercise Start Time"),
+            "exercise_start_time": inicio,
+            "timestamp_inicio": inicio,
             "colisiones": [{"timestamp": c["timestamp"], "descripcion": c["descripcion"]}
                            for c in colisiones],
             "n_colisiones": len(colisiones),
             "infracciones_conduccion": [{"timestamp": c["timestamp"],
                                          "descripcion": c["descripcion"]} for c in conduccion],
+            "descartes_sanitizados": descartes,
             "telemetria": {
+                "steering_serrucho_index": serrucho,
+                "steering_volantazos_extremos": volantazos,
+                "speed_max_estimada_kmh": speed_max,
+                "frenadas_panico_count": frenadas,
+            },
+            "metricas_sanitizadas": {
+                "n_colisiones_reales": len(colisiones),
+                "colisiones_descartadas": len(descartes),
                 "steering_serrucho_index": serrucho,
                 "steering_volantazos_extremos": volantazos,
                 "speed_max_estimada_kmh": speed_max,

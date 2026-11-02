@@ -17,15 +17,16 @@ async function updateSession(request: NextRequest) {
   const esRutaAdmin = pathname.startsWith('/admin');
   // FIX F10: boundary exacto para no sobre-matchear rutas tipo /cabinaX.
   const esRutaCabina = pathname === '/cabina' || pathname.startsWith('/cabina/');
+  const esRutaGestion = pathname === '/gestion' || pathname.startsWith('/gestion/');
   const esRutaLogin = pathname === '/login';
-  const esRutaProtegida = esRutaAdmin || esRutaCabina || esRutaLogin;
+  const esRutaProtegida = esRutaAdmin || esRutaCabina || esRutaGestion || esRutaLogin;
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
   if (!url || !anonKey) {
     // Sin env en el borde: no tumbar el sitio.
-    if (esRutaAdmin || esRutaCabina) {
+    if (esRutaAdmin || esRutaCabina || esRutaGestion) {
       const loginUrl = request.nextUrl.clone();
       loginUrl.pathname = '/login';
       loginUrl.search = '';
@@ -66,7 +67,7 @@ async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user && (esRutaAdmin || esRutaCabina)) {
+  if (!user && (esRutaAdmin || esRutaCabina || esRutaGestion)) {
     const loginUrl = request.nextUrl.clone();
     loginUrl.pathname = '/login';
     loginUrl.search = '';
@@ -91,12 +92,12 @@ export const config = {
   matcher: [
     /*
      * Matcher ACOTADO a las rutas que necesitan control de sesión:
-     * /admin/*, /cabina/*, /login y /visitas. Se excluyen los assets internos
+     * /admin/*, /cabina/*, /gestion/*, /login y /visitas. Se excluyen los assets internos
      * de Next (_next/static, _next/image), favicon y cualquier archivo estático
      * por extensión —incluidos los modelos 3D/tipografías/medios/documentos de
      * la futura landing— para no ejecutar el middleware en peticiones que no lo
      * requieren (assets, payloads RSC, POST de Server Actions, etc.).
      */
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|glb|gltf|hdr|ktx2|bin|draco|woff|woff2|ttf|mp4|webm|json|webmanifest|pdf|avif)$)(?:admin|cabina|login|visitas)(?:/.*)?)',
+    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|glb|gltf|hdr|ktx2|bin|draco|woff|woff2|ttf|mp4|webm|json|webmanifest|pdf|avif)$)(?:admin|cabina|gestion|login|visitas)(?:/.*)?)',
   ],
 };

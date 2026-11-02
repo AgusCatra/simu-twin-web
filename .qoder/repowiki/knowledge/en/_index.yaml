@@ -3,11 +3,11 @@ schema_version: 1
 locale: en-US
 branch: main
 nodes_managed: true
-exported_at: "2026-10-28T14:01:04Z"
+exported_at: "2026-11-01T15:59:39Z"
 modules:
     "":
-        dir_name: Galpón SCADA Simulator Platform Root
-        title: Galpón SCADA Simulator Platform Root
+        dir_name: ETECH Simulator & Galpón Digital Twin Workspace
+        title: ETECH Simulator & Galpón Digital Twin Workspace
         scope:
             - README.md
             - .gitignore
@@ -33,8 +33,8 @@ modules:
         depends_on: []
         related_to: []
     scripts:
-        dir_name: ETECH Simulator PDF Telemetry Pipeline
-        title: ETECH Simulator PDF Telemetry Pipeline
+        dir_name: ETECH Simulator Telemetry Pipeline & Supabase Sync
+        title: ETECH Simulator Telemetry Pipeline & Supabase Sync
         scope:
             - scripts/
             - telemetria_cohortes.json

@@ -1,0 +1,1 @@
+Parses ETECH autoelevador diagnostic PDFs into a cohort JSON dataset and synchronizes the resulting student evaluations to a Supabase database.

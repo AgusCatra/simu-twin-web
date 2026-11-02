@@ -1,0 +1,1 @@
+Python with PyMuPDF (`fitz`) for PDF/image extraction, Pillow for RGBA/Smask composition, NumPy for vectorized pixel-grid and curve analysis, and the official `supabase` Python SDK for REST upserts; optional `python-dotenv` loaded lazily via subprocess install if missing.
