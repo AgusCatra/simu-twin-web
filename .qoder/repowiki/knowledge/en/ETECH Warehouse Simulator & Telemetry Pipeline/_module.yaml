@@ -1,6 +1,6 @@
 schema_version: 1
 module_path: ""
-title: ETECH Simulator & Galpón Digital Twin Workspace
+title: ETECH Warehouse Simulator & Telemetry Pipeline
 scope:
     - README.md
     - .gitignore

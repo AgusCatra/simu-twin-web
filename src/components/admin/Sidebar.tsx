@@ -6,7 +6,6 @@ import {
   Activity,
   BookOpen,
   ClipboardList,
-  Cpu,
   ExternalLink,
   Server,
   Truck,
@@ -28,7 +27,6 @@ export const RUTAS_ADMIN: readonly RutaAdmin[] = [
   { href: '/admin', label: 'Dashboard (En vivo)', icono: Activity },
   { href: '/admin/visitas-educativas', label: 'Visitas Educativas (H4)', icono: BookOpen },
   { href: '/admin/registro-actividades', label: 'Registro de Actividades', icono: ClipboardList },
-  { href: '/admin/telemetria', label: 'Telemetría (Titán)', icono: Cpu },
   { href: '/admin/tup', label: 'Logística TUP', icono: Truck },
   { href: '/gestion/cohortes', label: 'Cohortes y Cabina (Empleo)', icono: UsersRound },
 ];

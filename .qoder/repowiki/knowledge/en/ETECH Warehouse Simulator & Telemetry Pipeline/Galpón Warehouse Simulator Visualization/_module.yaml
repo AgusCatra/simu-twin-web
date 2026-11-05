@@ -1,6 +1,6 @@
 schema_version: 1
 module_path: galpon
-title: Galpón SCADA Simulator Digital Twin
+title: Galpón Warehouse Simulator Visualization
 scope:
     - galpon.html
 source_files: []

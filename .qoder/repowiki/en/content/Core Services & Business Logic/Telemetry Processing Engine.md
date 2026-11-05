@@ -14,12 +14,11 @@
 
 ## Update Summary
 **Changes Made**   
-- Enhanced architecture overview with detailed processing pipeline visualization
-- Added comprehensive performance considerations section with optimization strategies
-- Expanded component analysis with specific implementation details
-- Updated dependency analysis with version specifications
-- Improved troubleshooting guide with specific error scenarios
-- Enhanced data model documentation with complete field specifications
+- Enhanced data sanitization system with artifact filtering and audit trails
+- Added structured source file references and exercise metadata fields
+- Implemented comprehensive timestamp tracking and sanitized metric collections
+- Updated data model documentation with new audit and validation fields
+- Enhanced troubleshooting guide with sanitization-specific scenarios
 
 ## Table of Contents
 1. [Introduction](#introduction)
@@ -66,7 +65,8 @@ ComputeMetrics --> AnalyzeSpeed["Analyze Speed Channel<br/>Max Speed Estimation"
 AnalyzeSteering --> ClassifyRisk["Classify Risk & Fitness Level"]
 AnalyzeBrake --> ClassifyRisk
 AnalyzeSpeed --> ClassifyRisk
-ClassifyRisk --> BuildRecord["Construct Record Object"]
+ClassifyRisk --> SanitizeEvents["Sanitize Event Data<br/>Filter Phantom Artifacts"]
+SanitizeEvents --> BuildRecord["Construct Record Object<br/>with Audit Trail"]
 BuildRecord --> AppendResults["Append to Results Array"]
 AppendResults --> NextPDF{"More PDFs?"}
 NextPDF --> |Yes| ProcessLoop
@@ -85,7 +85,7 @@ The architecture implements a robust error-handling mechanism that catches excep
 - [scripts/parse_simuladores.py:272-299](file://scripts/parse_simuladores.py#L272-L299)
 
 ## Processing Pipeline
-The telemetry processing pipeline consists of six distinct phases, each optimized for specific aspects of PDF analysis and metric extraction:
+The telemetry processing pipeline consists of seven distinct phases, each optimized for specific aspects of PDF analysis and metric extraction:
 
 ### Phase 1: Input Discovery and Validation
 The pipeline begins by scanning the configured input directory for PDF files, sorting them alphabetically to ensure consistent processing order. Each file undergoes basic validation before entering the main processing loop.
@@ -114,13 +114,20 @@ Three primary channels are analyzed using specialized algorithms:
 - **Brake Channel**: Identifies panic braking events by thresholding values above 9.5 units
 - **Speed Channel**: Estimates maximum speed from peak values in the speed channel
 
-### Phase 6: Classification and Output Generation
+### Phase 6: Event Sanitization and Audit Trail
+**Updated** Enhanced event processing now includes sophisticated artifact filtering:
+- **Phantom Artifact Detection**: Filters false collision events caused by simulator physics bugs (ground/mesh interactions, fork height sensor errors)
+- **Audit Trail Generation**: Maintains complete record of filtered events with exclusion reasons
+- **Sanitized Metrics**: Provides cleaned metric collections excluding phantom artifacts
+
+### Phase 7: Classification and Output Generation
 Derived metrics feed into a multi-criteria classification system that determines risk levels and fitness status based on collision frequency, steering behavior patterns, and braking intensity.
 
 **Section sources**
 - [scripts/parse_simuladores.py:48-94](file://scripts/parse_simuladores.py#L48-L94)
 - [scripts/parse_simuladores.py:97-173](file://scripts/parse_simuladores.py#L97-L173)
 - [scripts/parse_simuladores.py:176-220](file://scripts/parse_simuladores.py#L176-L220)
+- [scripts/parse_simuladores.py:108-122](file://scripts/parse_simuladores.py#L108-L122)
 
 ## Core Components
 The telemetry processing engine comprises several specialized components, each responsible for specific aspects of the processing pipeline:
@@ -129,10 +136,17 @@ The telemetry processing engine comprises several specialized components, each r
 Handles document opening, page iteration, and structural parsing. Implements robust error handling for corrupted or malformed PDF files.
 
 ### Metadata Extraction Module
-Processes cover page information including student identity, evaluation scores, penalties, exercise duration, and timing information. Converts time strings to numeric formats for consistent analysis.
+Processes cover page information including student identity, evaluation scores, penalties, exercise duration, timing information, and exercise names. Converts time strings to numeric formats for consistent analysis.
 
 ### Event Log Processor
 Analyzes assessment and fault logs across multiple pages, grouping rows by sequence numbers and timestamps. Associates multi-line descriptions with event types such as collisions, driving infractions, prechecks violations, and vehicle parking incidents.
+
+### Advanced Sanitization Engine
+**New** Sophisticated artifact filtering system that:
+- Identifies phantom collision events from simulator physics bugs
+- Filters ground/mesh interaction artifacts and sensor errors
+- Maintains complete audit trail of all filtered events
+- Preserves original event data alongside sanitized versions
 
 ### Image Processing Engine
 Manages chart image extraction, alpha mask composition, and color space conversions. Implements efficient NumPy operations for pixel-wise analysis and vectorized computations.
@@ -150,11 +164,12 @@ Applies multi-criteria decision logic to determine risk levels and fitness class
 - [scripts/parse_simuladores.py:48-94](file://scripts/parse_simuladores.py#L48-L94)
 - [scripts/parse_simuladores.py:97-173](file://scripts/parse_simuladores.py#L97-L173)
 - [scripts/parse_simuladores.py:176-220](file://scripts/parse_simuladores.py#L176-L220)
+- [scripts/parse_simuladores.py:108-122](file://scripts/parse_simuladores.py#L108-L122)
 
 ## Detailed Component Analysis
 
 ### PDF Parsing and Metadata Extraction
-The cover page parser extracts critical key-value pairs including student identity, evaluation scores, penalty deductions, exercise duration, and start timestamps. The system uses predefined field names and relies on adjacent line relationships for value extraction.
+The cover page parser extracts critical key-value pairs including student identity, evaluation scores, penalty deductions, exercise duration, start timestamps, and exercise names. The system uses predefined field names and relies on adjacent line relationships for value extraction.
 
 Key cover fields processed include:
 - Penalties and score calculations
@@ -162,6 +177,7 @@ Key cover fields processed include:
 - Student name and ID verification
 - Class information and instructor assignment
 - Equipment identification and timing data
+- Exercise names and session identifiers
 
 Duration strings are automatically converted to seconds for consistent numeric analysis across all records.
 
@@ -182,6 +198,38 @@ The system reconstructs tabular layout from plain text lines, handling variable 
 
 **Section sources**
 - [scripts/parse_simuladores.py:66-94](file://scripts/parse_simuladores.py#L66-L94)
+
+### Advanced Sanitization and Audit Trail System
+**New** The sanitization engine implements sophisticated artifact filtering to handle known simulator physics bugs:
+
+#### Phantom Artifact Detection
+- **Ground/Mesh Interaction Filter**: Identifies false collision events where the forklift appears to collide with the ground plane due to sensor bugs
+- **Fork Height Sensor Error**: Filters events related to negative fork height readings (-2 meters) that indicate sensor malfunctions
+- **Horn Contact Artifacts**: Removes phantom horn contact events that occur at floor level
+
+#### Audit Trail Implementation
+- **Complete Event Preservation**: All original events are maintained alongside sanitized versions
+- **Exclusion Reason Tracking**: Each filtered event includes detailed reason codes (e.g., "ARTEFACTO_SUELO")
+- **Post-Run Analysis Support**: Enables comprehensive review of data quality and filtering effectiveness
+
+```mermaid
+flowchart TD
+RawEvents["Raw Event Collection"] --> PatternMatch["Pattern Matching<br/>RE_ARTEFACTO_SUELO"]
+PatternMatch --> IsArtifact{"Is Phantom Artifact?"}
+IsArtifact --> |Yes| AddToDiscards["Add to descartes_sanitizados<br/>with motivo_descarte"]
+IsArtifact --> |No| KeepAsReal["Keep as Real Event"]
+AddToDiscards --> AuditTrail["Complete Audit Trail<br/>Original + Reason"]
+KeepAsReal --> CleanedEvents["Cleaned Event Set"]
+AuditTrail --> FinalOutput["Final Output with<br/>Both Cleaned & Discarded"]
+```
+
+**Diagram sources**
+- [scripts/parse_simuladores.py:108-122](file://scripts/parse_simuladores.py#L108-L122)
+- [scripts/parse_simuladores.py:47-52](file://scripts/parse_simuladores.py#L47-L52)
+
+**Section sources**
+- [scripts/parse_simuladores.py:108-122](file://scripts/parse_simuladores.py#L108-L122)
+- [scripts/parse_simuladores.py:47-52](file://scripts/parse_simuladores.py#L47-L52)
 
 ### Advanced Chart Signal Extraction
 Chart images embedded in PDFs undergo sophisticated processing to extract meaningful telemetry data:
@@ -266,15 +314,16 @@ The classification algorithm applies weighted scoring across multiple dimensions
 - [scripts/parse_simuladores.py:211-220](file://scripts/parse_simuladores.py#L211-L220)
 
 ### Record Construction and Output Serialization
-Each processed PDF generates a comprehensive record containing structured telemetry data, event histories, and classification results. The main processing function orchestrates the entire pipeline, managing file I/O, error handling, and output generation.
+**Updated** Each processed PDF generates a comprehensive record containing structured telemetry data, event histories, and classification results with enhanced audit capabilities:
 
 Key record components include:
-- File reference and student identification
-- Evaluation scores and penalty calculations
-- Temporal data (duration, start times)
-- Event histories (collisions, infractions)
-- Derived telemetry metrics
-- Risk and fitness classifications
+- **Source File References**: `archivo` and `archivo_fuente` for complete traceability
+- **Exercise Metadata**: `exercise_name` and `exercise_start_time` for contextual information
+- **Timestamp Tracking**: `timestamp_inicio` for temporal analysis
+- **Event Histories**: Both real and sanitized collision/infringement records
+- **Audit Trail**: Complete `descartes_sanitizados` array with exclusion reasons
+- **Sanitized Metrics**: `metricas_sanitizadas` object with cleaned metric collections
+- **Classification Results**: Risk and fitness determinations
 
 The system implements robust error collection and summary reporting, providing detailed feedback on processing success rates and failure reasons.
 
@@ -283,28 +332,39 @@ The system implements robust error collection and summary reporting, providing d
 - [scripts/parse_simuladores.py:272-299](file://scripts/parse_simuladores.py#L272-L299)
 
 ## Data Model
-The telemetry processing engine generates a comprehensive JSON data structure that captures all aspects of trainee performance and operational metrics:
+The telemetry processing engine generates a comprehensive JSON data structure that captures all aspects of trainee performance and operational metrics with enhanced data quality and audit capabilities:
 
 ### Cohort Record Structure
-Each record in the output array represents a complete trainee evaluation session with the following fields:
+Each record in the output array represents a complete trainee evaluation session with the following enhanced fields:
 
-#### Identity and Evaluation Data
-- `archivo`: Source PDF filename for traceability
+#### Identity and Source Traceability
+- `archivo`: Source PDF filename for basic traceability
+- `archivo_fuente`: Full source file reference for complete audit trail
 - `student_name` and `student_id`: Trainee identification
 - `score` and `penalties`: Numerical evaluation outcomes
-- `exercise_duration` and `exercise_duration_seg`: Duration in string and seconds formats
-- `exercise_start_time`: Timestamp of exercise initiation
 
-#### Event History
-- `colisiones`: Array of collision events with timestamps and descriptions
+#### Exercise Context and Timing
+- `exercise_name`: Specific exercise type and difficulty level
+- `exercise_duration` and `exercise_duration_seg`: Duration in string and seconds formats
+- `exercise_start_time`: Original timestamp of exercise initiation
+- `timestamp_inicio`: Structured timestamp for temporal analysis
+
+#### Event History with Sanitization
+- `colisiones`: Array of validated collision events with timestamps and descriptions
 - `n_colisiones`: Total collision count for quick assessment
 - `infracciones_conduccion`: Array of driving infractions with temporal context
+- `descartes_sanitizados`: Complete audit trail of filtered phantom artifacts
 
-#### Telemetry Metrics
+#### Sanitized Telemetry Metrics
 - `steering_serrucho_index`: Quantitative measure of steering smoothness
 - `steering_volantazos_extremos`: Count of extreme steering maneuvers
 - `speed_max_estimada_kmh`: Estimated maximum speed achieved
 - `frenadas_panico_count`: Number of panic braking events
+
+#### Comprehensive Sanitized Metrics
+- `n_colisiones_reales`: Validated collision count after artifact filtering
+- `colisiones_descartadas`: Count of phantom artifacts removed
+- Complete metric sets mirroring `telemetria` but guaranteed clean
 
 #### Classification Results
 - `riesgo`: Risk level categorization (Mínima, Media, Alta)
@@ -314,16 +374,21 @@ Each record in the output array represents a complete trainee evaluation session
 erDiagram
 COHORT_RECORD {
 string archivo
+string archivo_fuente
 string student_name
 string student_id
 string score
 string penalties
+string exercise_name
 string exercise_duration
 number exercise_duration_seg
 string exercise_start_time
+string timestamp_inicio
 number n_colisiones
 object telemetria
+object metricas_sanitizadas
 object clasificacion
+array descartes_sanitizados
 }
 COLISION_EVENT {
 string timestamp
@@ -333,11 +398,20 @@ INFRACTION_EVENT {
 string timestamp
 string descripcion
 }
-TELEMETRY_METRICS {
+SANITIZED_METRICS {
+number n_colisiones_reales
+number colisiones_descartadas
 number steering_serrucho_index
 number steering_volantazos_extremos
 number speed_max_estimada_kmh
 number frenadas_panico_count
+}
+AUDIT_DISCARD {
+string timestamp
+string descripcion
+string tipo
+string marks
+string motivo_descarte
 }
 CLASSIFICATION_RESULT {
 string riesgo
@@ -345,12 +419,14 @@ string aptitud
 }
 COHORT_RECORD ||--o{ COLISION_EVENT : "contains"
 COHORT_RECORD ||--o{ INFRACTION_EVENT : "contains"
-COHORT_RECORD ||--|| TELEMETRY_METRICS : "includes"
+COHORT_RECORD ||--|| SANITIZED_METRICS : "includes"
+COHORT_RECORD ||--o{ AUDIT_DISCARD : "tracks"
 COHORT_RECORD ||--|| CLASSIFICATION_RESULT : "has"
 ```
 
 **Diagram sources**
 - [telemetria_cohortes.json:1-40](file://telemetria_cohortes.json#L1-L40)
+- [scripts/parse_simuladores.py:281-314](file://scripts/parse_simuladores.py#L281-L314)
 
 **Section sources**
 - [telemetria_cohortes.json:1-40](file://telemetria_cohortes.json#L1-L40)
@@ -476,6 +552,13 @@ The telemetry processing engine incorporates several optimization strategies to 
 - **Threshold-Based Filtering**: Grid detection uses strict thresholds to eliminate false positives early in the pipeline
 - **Efficient String Processing**: Time format validation uses compiled regular expressions for faster matching
 
+### Enhanced Sanitization Performance
+**New** The sanitization system is optimized for performance:
+- **Pattern Matching Efficiency**: Compiled regular expressions for artifact detection
+- **Single-Pass Processing**: Event filtering occurs during initial parsing, avoiding multiple passes
+- **Memory-Efficient Audit Trail**: Discarded events are stored compactly with minimal overhead
+- **Parallelizable Design**: Sanitization logic can be parallelized for large event sets
+
 ### Scalability Considerations
 - **Batch Processing**: Sequential PDF processing scales linearly with input size
 - **Error Isolation**: Individual PDF failures don't affect processing of other files
@@ -561,6 +644,12 @@ Common issues and their resolutions when working with the telemetry processing e
 - **Unexpected Page Layouts**: The parser assumes a fixed 16-page structure; deviations may cause missing charts or misaligned indices
 - **Missing Images**: Pages without embedded chart images will result in None values for telemetry metrics
 
+### Enhanced Sanitization Issues
+**New** Sanitization-related troubleshooting:
+- **Over-Filtering**: If legitimate events are being filtered, review the `RE_ARTEFACTO_SUELO` pattern and adjust regex if needed
+- **Under-Filtering**: If phantom artifacts remain in the data, check that the artifact detection patterns match the simulator's bug signatures
+- **Audit Trail Gaps**: If `descartes_sanitizados` is empty but should contain filtered events, verify the sanitization function is being called correctly
+
 ### Image Processing Issues
 - **Color Mask Failures**: If chart colors differ from expected violet traces, adjust thresholds in the curve extraction function
 - **Grid Detection Errors**: Non-uniform grids or heavy annotations can break row center detection; verify grid step constants
@@ -570,26 +659,32 @@ Common issues and their resolutions when working with the telemetry processing e
 - **Classification Anomalies**: Adjust thresholds in classification logic if training standards change
 - **Channel Calibration**: Verify GRID_STEP values match the actual chart calibrations
 - **Signal Quality**: Poor image quality or compression artifacts may affect curve extraction accuracy
+- **Sanitized vs Raw Metrics**: Compare `telemetria` and `metricas_sanitizadas` to understand the impact of artifact filtering
 
 ### Performance Issues
 - **Large Batch Processing**: For very large PDF collections, consider implementing parallel processing
 - **Memory Usage**: Monitor memory consumption when processing high-resolution chart images
 - **Processing Time**: Optimize image processing parameters for faster throughput
+- **Sanitization Overhead**: For datasets with many phantom artifacts, the filtering process may add noticeable overhead
 
 ### Error Handling and Debugging
 The engine implements comprehensive error handling:
 - Individual PDF processing failures are caught and logged with filenames and exception messages
 - Processing summaries include success/failure counts and sample error details
 - Failed entries are printed with full exception information for debugging
+- **Sanitization Logging**: The audit trail provides detailed information about filtered events and exclusion reasons
 
 **Section sources**
 - [scripts/parse_simuladores.py:272-299](file://scripts/parse_simuladores.py#L272-L299)
+- [scripts/parse_simuladores.py:108-122](file://scripts/parse_simuladores.py#L108-L122)
 
 ## Conclusion
-The Telemetry Processing Engine represents a sophisticated solution for transforming unstructured PDF diagnostic reports into actionable telemetry data. Through advanced image processing, signal extraction, and multi-criteria classification, the system provides comprehensive insights into trainee performance and operational safety.
+The Telemetry Processing Engine represents a sophisticated solution for transforming unstructured PDF diagnostic reports into actionable telemetry data. Through advanced image processing, signal extraction, multi-criteria classification, and enhanced data sanitization, the system provides comprehensive insights into trainee performance and operational safety.
+
+The recent enhancements introduce robust artifact filtering capabilities that address known simulator physics bugs, maintaining data integrity while preserving complete audit trails. The addition of structured source file references, exercise metadata, and comprehensive timestamp tracking enables more sophisticated analysis and reporting capabilities.
 
 The engine's modular architecture enables easy maintenance and extension, while its robust error handling ensures reliable operation in production environments. The generated telemetry datasets serve as valuable inputs for training classification, analytics workflows, and performance monitoring systems.
 
 When integrated with the broader Simu-Twin Web application, the telemetry processing engine complements the interactive 3D SCADA visualization and type-driven simulation model, enabling comprehensive oversight of training operations and safety performance. This combination of offline data processing and real-time visualization creates a powerful platform for evaluating and improving heavy machinery training programs.
 
-The system's emphasis on performance optimization, scalability, and maintainability ensures it can handle growing datasets while providing consistent, reliable results for training program evaluation and improvement initiatives.
+The system's emphasis on performance optimization, scalability, maintainability, and data quality assurance ensures it can handle growing datasets while providing consistent, reliable results for training program evaluation and improvement initiatives. The enhanced sanitization and audit capabilities provide unprecedented visibility into data quality and processing decisions, making the system suitable for regulatory compliance and quality assurance requirements.

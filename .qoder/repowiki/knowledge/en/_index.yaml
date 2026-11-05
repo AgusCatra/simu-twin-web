@@ -3,11 +3,11 @@ schema_version: 1
 locale: en-US
 branch: main
 nodes_managed: true
-exported_at: "2026-11-01T15:59:39Z"
+exported_at: "2026-11-02T14:29:26Z"
 modules:
     "":
-        dir_name: ETECH Simulator & Galpón Digital Twin Workspace
-        title: ETECH Simulator & Galpón Digital Twin Workspace
+        dir_name: ETECH Warehouse Simulator & Telemetry Pipeline
+        title: ETECH Warehouse Simulator & Telemetry Pipeline
         scope:
             - README.md
             - .gitignore
@@ -24,8 +24,8 @@ modules:
         depends_on: []
         related_to: []
     galpon:
-        dir_name: Galpón SCADA Simulator Digital Twin
-        title: Galpón SCADA Simulator Digital Twin
+        dir_name: Galpón Warehouse Simulator Visualization
+        title: Galpón Warehouse Simulator Visualization
         scope:
             - galpon.html
         source_files: []
