@@ -40,3 +40,12 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 powershell.cmd
+
+# Blindaje de seguridad y proteccion de datos (Ley 25.326)
+*.png
+!public/images/icono-gobierno-vt.png
+!public/images/logo-gobierno-vt.png
+telemetria_cohortes.json
+.tmp*
+capturas/
+
