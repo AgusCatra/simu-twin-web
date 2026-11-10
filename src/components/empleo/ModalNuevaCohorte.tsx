@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState, useTransition, type FormEvent } from 'react';
+import { useRouter } from 'next/navigation';
 import { CalendarDays, Layers, Users, X } from 'lucide-react';
 import { crearCohorteAction } from '@/services/empleo';
 import {
@@ -60,6 +61,7 @@ export default function ModalNuevaCohorte({
   feriadosMunicipales,
   cohorteActivaCodigo,
 }: Props) {
+  const router = useRouter();
   const [codigo, setCodigo] = useState('AUTO-2026-C2');
   const [nombre, setNombre] = useState('Autoelevador Nivel Inicial - Cohorte 2');
   const [tipoMaquinaria, setTipoMaquinaria] =
@@ -148,6 +150,8 @@ export default function ModalNuevaCohorte({
       }
 
       onCerrar();
+      router.push(`/gestion/cohortes?cohorteId=${encodeURIComponent(res.cohorte_id)}`);
+      router.refresh();
     });
   }
 

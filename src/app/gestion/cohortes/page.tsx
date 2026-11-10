@@ -1,12 +1,16 @@
 import { redirect } from 'next/navigation';
 import { AlertTriangle, CalendarCheck2 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
-import { obtenerDatosCohorteActiva } from '@/services/empleo';
+import {
+  listarCohortesDisponibles,
+  obtenerDatosCohorteActiva,
+} from '@/services/empleo';
 import CabeceraConfiguracion from '@/components/empleo/CabeceraConfiguracion';
 import ParrillaCabina from '@/components/empleo/ParrillaCabina';
-import TablaPostulantes from '@/components/empleo/TablaPostulantes';
 import BotonExportarCronograma from '@/components/empleo/BotonExportarCronograma';
 import AccionesCohorte from '@/components/empleo/AccionesCohorte';
+import SelectorCohorte from '@/components/empleo/SelectorCohorte';
+import PanelDuplasYPostulantes from '@/components/empleo/PanelDuplasYPostulantes';
 import BotonVolver from '@/components/ui/BotonVolver';
 import {
   aFechaIso,
@@ -105,21 +109,39 @@ function construirSemanasCronograma(
   });
 }
 
-export default async function GestionCohortesPage() {
+export default async function GestionCohortesPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ cohorteId?: string | string[] }>;
+}) {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect('/login');
 
-  const [datos, { data: filasFeriados, error: errFeriados }] = await Promise.all([
-    obtenerDatosCohorteActiva(),
+  const paramsResueltos = searchParams ? await searchParams : {};
+  const rawCohorteId = paramsResueltos?.cohorteId;
+  const cohorteIdSolicitada = Array.isArray(rawCohorteId)
+    ? (rawCohorteId[0] ?? null)
+    : (rawCohorteId ?? null);
+
+  const [
+    cohortesDisponibles,
+    datos,
+    { data: filasFeriados, error: errFeriados },
+  ] = await Promise.all([
+    listarCohortesDisponibles(),
+    obtenerDatosCohorteActiva(cohorteIdSolicitada),
     supabase
       .from('feriados_municipales')
       .select('fecha, descripcion')
       .order('fecha', { ascending: true })
       .returns<FilaFeriadoMunicipalRaw[]>(),
   ]);
+
+  const cohorteActivaRealCodigo =
+    cohortesDisponibles.find((c) => c.estado === 'activa')?.codigo ?? null;
 
   if (errFeriados) {
     console.error('[/gestion/cohortes] Error al consultar feriados_municipales:', {
@@ -203,9 +225,14 @@ export default async function GestionCohortesPage() {
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <BotonVolver href="/admin" etiqueta="Volver al Panel" />
+            <SelectorCohorte
+              cohortes={cohortesDisponibles}
+              cohorteSeleccionadaId={datos?.cohorte.id ?? null}
+            />
             <AccionesCohorte
               cohorteActivaId={datos?.cohorte.id ?? null}
               cohorteActivaCodigo={datos?.cohorte.codigo ?? null}
+              cohorteActivaRealCodigo={cohorteActivaRealCodigo}
               siguienteRankingSugerido={siguienteRankingSugerido}
               feriadosMunicipales={feriadosMunicipales}
             />
@@ -223,17 +250,18 @@ export default async function GestionCohortesPage() {
       {!datos ? (
         <div className="rounded-sm border border-dashed border-zinc-700 bg-zinc-950 px-4 py-16 text-center">
           <p className="font-mono text-xs tracking-[0.18em] text-zinc-400">
-            SIN COHORTE ACTIVA
+            SIN COHORTE REGISTRADA
           </p>
           <p className="mx-auto mt-2 max-w-md font-mono text-[10.5px] leading-relaxed tracking-[0.08em] text-zinc-600">
-            NO HAY NINGUNA COHORTE EN ESTADO &quot;ACTIVA&quot;. UTILIZÁ EL BOTÓN
-            &quot;NUEVA COHORTE&quot; EN LA CABECERA PARA INICIALIZAR UNA COHORTE
-            CON GRUPOS A/B, 8 DUPLAS Y SU PARRILLA DE 7 FRANJAS.
+            NO HAY NINGUNA COHORTE EN BASE DE DATOS. UTILIZÁ EL BOTÓN &quot;NUEVA
+            COHORTE&quot; EN LA CABECERA PARA INICIALIZAR UNA COHORTE CON GRUPOS
+            A/B, 8 DUPLAS Y SU PARRILLA DE 7 FRANJAS.
           </p>
         </div>
       ) : (
         <>
           <CabeceraConfiguracion
+            key={datos.cohorte.id}
             cohorteId={datos.cohorte.id}
             fechaTeoriaInicial={datos.cohorte.fecha_teoria ?? ''}
             cupoInicial={datos.cohorte.max_titulares}
@@ -412,18 +440,12 @@ export default async function GestionCohortesPage() {
             <ParrillaCabina franjas={datos.franjas} />
           </section>
 
-          <section aria-label="Ranking de postulantes" className="space-y-3">
-            <h2 className="font-mono text-[11px] tracking-[0.18em] text-zinc-400">
-              RANKING DE POSTULANTES{' '}
-              <span className="text-zinc-600">
-                {'// CLIC EN UNA FILA PARA VER LA FICHA TÉCNICA'}
-              </span>
-            </h2>
-            <TablaPostulantes
-              postulantes={datos.postulantes}
-              franjas={datos.franjas}
-            />
-          </section>
+          <PanelDuplasYPostulantes
+            key={datos.cohorte.id}
+            cohorteId={datos.cohorte.id}
+            postulantes={datos.postulantes}
+            franjas={datos.franjas}
+          />
         </>
       )}
       </div>

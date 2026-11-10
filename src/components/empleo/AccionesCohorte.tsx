@@ -13,6 +13,7 @@ import ModalNuevoPostulante from './ModalNuevoPostulante';
 interface Props {
   cohorteActivaId: string | null;
   cohorteActivaCodigo: string | null;
+  cohorteActivaRealCodigo?: string | null;
   siguienteRankingSugerido: number;
   feriadosMunicipales: string[];
 }
@@ -20,6 +21,7 @@ interface Props {
 export default function AccionesCohorte({
   cohorteActivaId,
   cohorteActivaCodigo,
+  cohorteActivaRealCodigo,
   siguienteRankingSugerido,
   feriadosMunicipales,
 }: Props) {
@@ -55,7 +57,11 @@ export default function AccionesCohorte({
           abierto={modalCohorteAbierto}
           onCerrar={() => setModalCohorteAbierto(false)}
           feriadosMunicipales={feriadosMunicipales}
-          cohorteActivaCodigo={cohorteActivaCodigo}
+          cohorteActivaCodigo={
+            cohorteActivaRealCodigo !== undefined
+              ? cohorteActivaRealCodigo
+              : cohorteActivaCodigo
+          }
         />
       )}
 

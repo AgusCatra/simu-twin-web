@@ -16,12 +16,14 @@ import {
 import type { MetricasSimulador } from '@/lib/telemetria/parser-simulador';
 import type {
   AnalizarTelemetriaIAInput,
+  CohorteResumen,
   ComparativaProgreso,
   ConfiguracionCohorteInput,
   CrearCohorteInput,
   CrearPostulanteInput,
   DatosCohorteActiva,
   EjeRadar,
+  EstadoCohorte,
   EstadoInscripcion,
   EtapaEvaluacion,
   EvaluacionReceptividad,
@@ -100,12 +102,24 @@ interface FilaCohorte {
   id: string;
   codigo: string;
   nombre: string;
+  estado: string | null;
   fecha_teoria: string | null;
   fecha_inicio_sim: string | null;
   fecha_fin_sim: string | null;
   fecha_pase_planta: string | null;
   cant_dias_sim: number | null;
   max_titulares: number | null;
+}
+
+interface FilaCohorteResumenDB {
+  id: string;
+  codigo: string;
+  nombre: string;
+  estado: string | null;
+  tipo_maquinaria: string | null;
+  fecha_teoria: string | null;
+  fecha_inicio_sim: string | null;
+  created_at: string | null;
 }
 
 interface FilaFranja {
@@ -362,16 +376,62 @@ function esEstadoInscripcion(v: string): v is EstadoInscripcion {
   return (ESTADOS_VALIDOS as readonly string[]).includes(v);
 }
 
+function esEstadoCohorte(v: string | null | undefined): EstadoCohorte {
+  if (v === 'activa' || v === 'finalizada' || v === 'borrador') return v;
+  return 'borrador';
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Lectura del panel
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Cohorte activa + franjas con sus ocupantes CONFIRMADO + postulantes ordenados
- * por ranking con su última evaluacion_diagnostico. Devuelve null si no hay
- * sesión, cohorte activa o si falla la lectura.
+ * Lista todas las cohortes registradas ordenadas por fecha de inicio descendente
+ * (y creación descendente como desempate) para el selector de cohorte activa / histórica.
  */
-export async function obtenerDatosCohorteActiva(): Promise<DatosCohorteActiva | null> {
+export async function listarCohortesDisponibles(): Promise<CohorteResumen[]> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return [];
+
+  const { data, error } = await supabase
+    .from('cohortes')
+    .select(
+      'id, codigo, nombre, estado, tipo_maquinaria, fecha_teoria, fecha_inicio_sim, created_at'
+    )
+    .order('fecha_inicio_sim', { ascending: false, nullsFirst: false })
+    .order('created_at', { ascending: false })
+    .returns<FilaCohorteResumenDB[]>();
+
+  if (error) {
+    console.error('[listarCohortesDisponibles] Error al listar cohortes:', {
+      code: error.code,
+      message: error.message,
+    });
+    return [];
+  }
+
+  return (data ?? []).map((c) => ({
+    id: c.id,
+    codigo: c.codigo,
+    nombre: c.nombre,
+    estado: esEstadoCohorte(c.estado),
+    tipo_maquinaria: c.tipo_maquinaria ?? null,
+    fecha_teoria: c.fecha_teoria ?? null,
+    fecha_inicio_sim: c.fecha_inicio_sim ?? null,
+  }));
+}
+
+/**
+ * Carga la cohorte solicitada por ID (si es UUID válido y existe), o en su
+ * defecto la cohorte con `estado = 'activa'`, o la más reciente disponible.
+ * Filtra franjas_cabina y cohorte_inscripciones estrictamente por ese `cohorte_id`.
+ */
+export async function obtenerDatosCohorteActiva(
+  cohorteIdSolicitada?: string | null
+): Promise<DatosCohorteActiva | null> {
   const supabase = await createClient();
 
   const {
@@ -379,24 +439,70 @@ export async function obtenerDatosCohorteActiva(): Promise<DatosCohorteActiva | 
   } = await supabase.auth.getUser();
   if (!user) return null;
 
-  const { data: cohorte, error: errCohorte } = await supabase
-    .from('cohortes')
-    .select(
-      'id, codigo, nombre, fecha_teoria, fecha_inicio_sim, fecha_fin_sim, fecha_pase_planta, cant_dias_sim, max_titulares'
-    )
-    .eq('estado', 'activa')
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
+  const COLUMNAS_COHORTE =
+    'id, codigo, nombre, estado, fecha_teoria, fecha_inicio_sim, fecha_fin_sim, fecha_pase_planta, cant_dias_sim, max_titulares';
 
-  if (errCohorte) {
-    console.error('[obtenerDatosCohorteActiva] Error al buscar cohorte activa:', {
-      code: errCohorte.code,
-      message: errCohorte.message,
-    });
-    return null;
+  const cohorteIdLimpia =
+    typeof cohorteIdSolicitada === 'string' ? cohorteIdSolicitada.trim() : '';
+
+  let filaCohorte: FilaCohorte | null = null;
+
+  if (UUID_RE.test(cohorteIdLimpia)) {
+    const { data, error } = await supabase
+      .from('cohortes')
+      .select(COLUMNAS_COHORTE)
+      .eq('id', cohorteIdLimpia)
+      .maybeSingle<FilaCohorte>();
+
+    if (error) {
+      console.error('[obtenerDatosCohorteActiva] Error al buscar cohorte solicitada:', {
+        code: error.code,
+        message: error.message,
+      });
+    } else {
+      filaCohorte = data ?? null;
+    }
   }
-  const filaCohorte = cohorte as FilaCohorte | null;
+
+  if (!filaCohorte) {
+    const { data: cohorteActiva, error: errActiva } = await supabase
+      .from('cohortes')
+      .select(COLUMNAS_COHORTE)
+      .eq('estado', 'activa')
+      .order('fecha_inicio_sim', { ascending: false, nullsFirst: false })
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle<FilaCohorte>();
+
+    if (errActiva) {
+      console.error('[obtenerDatosCohorteActiva] Error al buscar cohorte activa:', {
+        code: errActiva.code,
+        message: errActiva.message,
+      });
+      return null;
+    }
+    filaCohorte = cohorteActiva ?? null;
+  }
+
+  if (!filaCohorte) {
+    const { data: cohorteReciente, error: errReciente } = await supabase
+      .from('cohortes')
+      .select(COLUMNAS_COHORTE)
+      .order('fecha_inicio_sim', { ascending: false, nullsFirst: false })
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle<FilaCohorte>();
+
+    if (errReciente) {
+      console.error('[obtenerDatosCohorteActiva] Error al buscar última cohorte:', {
+        code: errReciente.code,
+        message: errReciente.message,
+      });
+      return null;
+    }
+    filaCohorte = cohorteReciente ?? null;
+  }
+
   if (!filaCohorte) return null;
 
   const { data: franjas, error: errFranjas } = await supabase
@@ -495,6 +601,7 @@ export async function obtenerDatosCohorteActiva(): Promise<DatosCohorteActiva | 
       id: filaCohorte.id,
       codigo: filaCohorte.codigo,
       nombre: filaCohorte.nombre,
+      estado: esEstadoCohorte(filaCohorte.estado),
       fecha_teoria: filaCohorte.fecha_teoria,
       fecha_inicio_sim: filaCohorte.fecha_inicio_sim,
       fecha_fin_sim: filaCohorte.fecha_fin_sim,
@@ -953,9 +1060,15 @@ function receptividad(deltaSeg: number | null, base: number | null): EvaluacionR
  * Conviven limpiamente las evaluaciones `CABINA_TABLET*` y los PDF TITAN.
  */
 export async function obtenerComparativaProgreso(
-  postulante_id: string
+  postulante_id: string,
+  cohorte_id?: string | null
 ): Promise<ComparativaProgreso | null> {
-  if (!idsValidos(postulante_id)) return null;
+  if (!idsValidos(postulante_id) || !UUID_RE.test(postulante_id.trim())) return null;
+
+  const postulanteId = postulante_id.trim();
+  const cohorteIdInput =
+    typeof cohorte_id === 'string' ? cohorte_id.trim() : '';
+  if (cohorteIdInput && !UUID_RE.test(cohorteIdInput)) return null;
 
   const supabase = await createClient();
   const {
@@ -963,22 +1076,31 @@ export async function obtenerComparativaProgreso(
   } = await supabase.auth.getUser();
   if (!user) return null;
 
-  const { data: cohorte } = await supabase
-    .from('cohortes')
-    .select('id')
-    .eq('estado', 'activa')
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
-  if (!cohorte) return null;
+  let cohorteIdValidada = cohorteIdInput;
+  if (!cohorteIdValidada) {
+    const { data: cohorteActiva } = await supabase
+      .from('cohortes')
+      .select('id')
+      .eq('estado', 'activa')
+      .order('fecha_inicio_sim', { ascending: false, nullsFirst: false })
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle<{ id: string }>();
+    cohorteIdValidada = cohorteActiva?.id ?? '';
+  }
 
-  // Anti-IDOR: el postulante debe estar inscripto en la cohorte activa.
-  const { data: insc, error: errInsc } = await supabase
+  // Anti-IDOR: el postulante debe estar inscripto en la cohorte solicitada (o en alguna cohorte existente).
+  let inscQuery = supabase
     .from('cohorte_inscripciones')
     .select('id')
-    .eq('cohorte_id', cohorte.id)
-    .eq('postulante_id', postulante_id.trim())
-    .maybeSingle();
+    .eq('postulante_id', postulanteId)
+    .limit(1);
+
+  if (cohorteIdValidada) {
+    inscQuery = inscQuery.eq('cohorte_id', cohorteIdValidada);
+  }
+
+  const { data: insc, error: errInsc } = await inscQuery.maybeSingle<{ id: string }>();
   if (errInsc || !insc) {
     console.error('[obtenerComparativaProgreso] Error al validar inscripción:', {
       code: errInsc?.code,
@@ -997,7 +1119,7 @@ export async function obtenerComparativaProgreso(
        archivo_fuente, colisiones_descartadas, delta_tiempo_seg,
        delta_colisiones, delta_score, delta_serrucho`
     )
-    .eq('postulante_id', postulante_id.trim())
+    .eq('postulante_id', postulanteId)
     .order('created_at', { ascending: true });
 
   if (errEvals) {
@@ -1523,6 +1645,12 @@ export async function analizarTelemetriaPostulanteAction(
     return { ok: false, error: 'Identificador de postulante inválido.' };
   }
 
+  const cohorteIdInput =
+    typeof input.cohorte_id === 'string' ? input.cohorte_id.trim() : '';
+  if (cohorteIdInput && !UUID_RE.test(cohorteIdInput)) {
+    return { ok: false, error: 'Identificador de cohorte inválido.' };
+  }
+
   const archivoNombre =
     typeof input.archivo_nombre === 'string'
       ? input.archivo_nombre.trim().slice(0, 160)
@@ -1538,25 +1666,40 @@ export async function analizarTelemetriaPostulanteAction(
   } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: 'Sesión no válida.' };
 
-  const { data: cohorte } = await supabase
-    .from('cohortes')
-    .select('id')
-    .eq('estado', 'activa')
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle<{ id: string }>();
-
-  if (!cohorte?.id) {
-    return { ok: false, error: 'No hay una cohorte activa para validar la consulta.' };
+  let cohorteIdValidada = '';
+  if (cohorteIdInput) {
+    const { data: cohorteSol } = await supabase
+      .from('cohortes')
+      .select('id')
+      .eq('id', cohorteIdInput)
+      .maybeSingle<{ id: string }>();
+    if (!cohorteSol?.id) {
+      return { ok: false, error: 'La cohorte seleccionada no existe.' };
+    }
+    cohorteIdValidada = cohorteSol.id;
+  } else {
+    const { data: cohorteActiva } = await supabase
+      .from('cohortes')
+      .select('id')
+      .eq('estado', 'activa')
+      .order('fecha_inicio_sim', { ascending: false, nullsFirst: false })
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle<{ id: string }>();
+    cohorteIdValidada = cohorteActiva?.id ?? '';
   }
 
-  // Anti-IDOR: el postulante debe estar inscripto en la cohorte activa.
+  if (!cohorteIdValidada) {
+    return { ok: false, error: 'No hay una cohorte válida para verificar la inscripción.' };
+  }
+
+  // Anti-IDOR: el postulante debe estar inscripto en la cohorte consultada.
   const { data: insc, error: errInsc } = await supabase
     .from('cohorte_inscripciones')
     .select(
       'id, obs_empleo, postulantes(nombre_completo, dni)'
     )
-    .eq('cohorte_id', cohorte.id)
+    .eq('cohorte_id', cohorteIdValidada)
     .eq('postulante_id', postulanteId)
     .maybeSingle<{
       id: string;
@@ -1570,7 +1713,7 @@ export async function analizarTelemetriaPostulanteAction(
   if (errInsc || !insc) {
     return {
       ok: false,
-      error: 'El postulante no pertenece a la cohorte activa.',
+      error: 'El postulante no pertenece a la cohorte seleccionada.',
     };
   }
 

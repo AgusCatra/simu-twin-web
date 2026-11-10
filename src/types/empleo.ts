@@ -9,6 +9,8 @@ import type { MetricasSimulador } from '@/lib/telemetria/parser-simulador';
 
 export type TurnoFranja = 'Mañana' | 'Tarde';
 
+export type EstadoCohorte = 'borrador' | 'activa' | 'finalizada';
+
 export type EstadoInscripcion = 'DISPONIBLE' | 'CONFIRMADO' | 'DESCARTADO';
 
 export type TipoMaquinariaCohorte =
@@ -16,10 +18,21 @@ export type TipoMaquinariaCohorte =
   | 'PALA_FRONTAL'
   | 'RETROEXCAVADORA';
 
+export interface CohorteResumen {
+  id: string;
+  codigo: string;
+  nombre: string;
+  estado: EstadoCohorte;
+  tipo_maquinaria: string | null;
+  fecha_teoria: string | null;
+  fecha_inicio_sim: string | null;
+}
+
 export interface CohorteActiva {
   id: string;
   codigo: string;
   nombre: string;
+  estado?: EstadoCohorte;
   /** YYYY-MM-DD o null si aún no se configuró. */
   fecha_teoria: string | null;
   fecha_inicio_sim: string | null;
@@ -226,6 +239,7 @@ export interface CrearPostulanteInput {
 
 export interface AnalizarTelemetriaIAInput {
   postulante_id: string;
+  cohorte_id?: string | null;
   archivo_nombre: string;
   metricas: MetricasSimulador;
 }

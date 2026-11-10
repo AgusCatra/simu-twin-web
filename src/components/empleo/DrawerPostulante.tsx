@@ -45,6 +45,9 @@ import RadarCuatroEjes from './RadarCuatroEjes';
 interface Props {
   postulante: PostulanteFila | null;
   franjas: FranjaCabina[];
+  cohorteId?: string | null;
+  enfocarTitan?: boolean;
+  enfocarSignal?: number;
   onCerrar: () => void;
 }
 
@@ -231,7 +234,14 @@ function DeltaChip({
   );
 }
 
-export default function DrawerPostulante({ postulante, franjas, onCerrar }: Props) {
+export default function DrawerPostulante({
+  postulante,
+  franjas,
+  cohorteId,
+  enfocarTitan = false,
+  enfocarSignal = 0,
+  onCerrar,
+}: Props) {
   const [notas, setNotas] = useState('');
   const [franjaSeleccionada, setFranjaSeleccionada] = useState('');
   const [mensaje, setMensaje] = useState<{ texto: string; tipo: 'ok' | 'error' } | null>(
@@ -245,6 +255,7 @@ export default function DrawerPostulante({ postulante, franjas, onCerrar }: Prop
   const [vistaActiva, setVistaActiva] = useState<'V1' | 'V2'>('V1');
 
   // Pipeline Titán .json + Motor IA Gemini 2.5 Flash.
+  const titanSectionRef = useRef<HTMLElement | null>(null);
   const inputArchivoRef = useRef<HTMLInputElement | null>(null);
   const [arrastrandoJson, setArrastrandoJson] = useState(false);
   const [archivoJsonNombre, setArchivoJsonNombre] = useState<string | null>(null);
@@ -279,6 +290,18 @@ export default function DrawerPostulante({ postulante, franjas, onCerrar }: Prop
     }
   }, [postulante?.inscripcion_id]);
 
+  // Desplaza directamente hacia la tarjeta Proyecto Titán cuando se abre desde `🛰️ Titán .JSON`.
+  useEffect(() => {
+    if (!postulante || !enfocarTitan) return;
+    const timer = window.setTimeout(() => {
+      titanSectionRef.current?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start',
+      });
+    }, 90);
+    return () => window.clearTimeout(timer);
+  }, [postulante, enfocarTitan, enfocarSignal]);
+
   // Carga la comparativa de progreso al abrir la ficha de un postulante.
   useEffect(() => {
     const pid = postulante?.postulante_id;
@@ -289,7 +312,7 @@ export default function DrawerPostulante({ postulante, franjas, onCerrar }: Prop
     }
     let vivo = true;
     setCargandoComp(true);
-    obtenerComparativaProgreso(pid)
+    obtenerComparativaProgreso(pid, cohorteId)
       .then((r) => {
         if (vivo) setComparativa(r);
       })
@@ -302,7 +325,7 @@ export default function DrawerPostulante({ postulante, franjas, onCerrar }: Prop
     return () => {
       vivo = false;
     };
-  }, [postulante?.postulante_id]);
+  }, [postulante?.postulante_id, cohorteId]);
 
   if (!postulante) return null;
 
@@ -324,9 +347,9 @@ export default function DrawerPostulante({ postulante, franjas, onCerrar }: Prop
   const archivoActivoNombre = metricasJsonLocal
     ? archivoJsonNombre
     : (evaluacion?.telemetria_archivo_nombre ?? null);
-  const informeActivo = metricasJsonLocal
-    ? informeLocal
-    : (evaluacion?.informe_ia ?? null);
+  const informeActivo =
+    informeLocal ??
+    (metricasJsonLocal ? null : (evaluacion?.informe_ia ?? null));
 
   const ejesRadar: PuntoRadar[] | null =
     comparativa && comparativa.radarEjes.length > 0
@@ -432,7 +455,7 @@ export default function DrawerPostulante({ postulante, franjas, onCerrar }: Prop
     e.target.value = '';
   }
 
-  function manejarDropJson(e: React.DragEvent<HTMLDivElement>) {
+  function manejarDropJson(e: React.DragEvent<HTMLButtonElement>) {
     e.preventDefault();
     setArrastrandoJson(false);
     const archivo = e.dataTransfer.files?.[0];
@@ -449,6 +472,7 @@ export default function DrawerPostulante({ postulante, franjas, onCerrar }: Prop
     try {
       const res = await analizarTelemetriaPostulanteAction({
         postulante_id: postulante.postulante_id,
+        cohorte_id: cohorteId ?? null,
         archivo_nombre: archivoActivoNombre ?? 'telemetria.json',
         metricas: metricasActivas,
       });
@@ -532,6 +556,315 @@ export default function DrawerPostulante({ postulante, franjas, onCerrar }: Prop
             )}
           </div>
         )}
+
+        {/* ── PROYECTO TITÁN: Telemetría de Cabina (.json) ────── */}
+        <section
+          ref={titanSectionRef}
+          aria-label="PROYECTO TITÁN: Telemetría de Cabina (.json)"
+          className={`space-y-3 rounded-sm border-2 bg-gradient-to-b from-emerald-950/30 via-zinc-950 to-zinc-950 p-3.5 shadow-[0_0_24px_rgba(16,185,129,0.08)] ${
+            enfocarTitan
+              ? 'border-emerald-400 ring-1 ring-emerald-400/40'
+              : 'border-emerald-500/60'
+          }`}
+        >
+          <div className="flex flex-wrap items-start justify-between gap-2">
+            <div>
+              <p className="flex items-center gap-1.5 font-mono text-[11px] font-semibold tracking-[0.12em] text-emerald-300">
+                <Sparkles size={14} strokeWidth={2} className="shrink-0 text-emerald-400" aria-hidden />
+                <span>PROYECTO TITÁN: Telemetría de Cabina (.json)</span>
+              </p>
+              <p className="mt-0.5 font-mono text-[9.5px] tracking-[0.06em] text-zinc-400">
+                Cargá reportes del simulador para depurar falsos positivos (-2) y emitir dictamen IA.
+              </p>
+            </div>
+            <span
+              className={`rounded-sm border px-2 py-0.5 font-mono text-[9px] font-semibold tracking-[0.1em] ${
+                analizandoIA
+                  ? 'border-amber-500/60 bg-amber-950/40 text-amber-300'
+                  : informeActivo
+                    ? informeActivo.origen === 'GEMINI_2_5_FLASH'
+                      ? 'border-emerald-500/50 bg-emerald-500/15 text-emerald-300'
+                      : 'border-cyan-500/50 bg-cyan-950/40 text-cyan-300'
+                    : metricasActivas
+                      ? 'border-amber-500/50 bg-amber-950/35 text-amber-300'
+                      : 'border-zinc-700 bg-zinc-900 text-zinc-400'
+              }`}
+            >
+              {analizandoIA
+                ? 'ANALIZANDO…'
+                : informeActivo
+                  ? informeActivo.origen === 'GEMINI_2_5_FLASH'
+                    ? 'IA · GEMINI 2.5 FLASH'
+                    : 'IA · FALLBACK HEURÍSTICO'
+                  : metricasActivas
+                    ? '.JSON CARGADO · SIN INFORME'
+                    : 'PENDIENTE DE .JSON'}
+            </span>
+          </div>
+
+          {archivoActivoNombre && (
+            <div className="flex flex-wrap items-center justify-between gap-2 rounded-sm border border-zinc-800 bg-zinc-900/70 px-2.5 py-1.5">
+              <span className="inline-flex min-w-0 items-center gap-1.5 truncate font-mono text-[10px] text-zinc-200">
+                <FileJson size={12} strokeWidth={1.75} className="shrink-0 text-emerald-400" aria-hidden />
+                <span className="truncate">{archivoActivoNombre}</span>
+              </span>
+              <span className="font-mono text-[9px] tracking-[0.1em] text-zinc-500">
+                REPORTE ACTIVO
+              </span>
+            </div>
+          )}
+
+          <input
+            ref={inputArchivoRef}
+            id="subir-telemetria-json"
+            type="file"
+            accept=".json,application/json"
+            onChange={manejarSeleccionArchivo}
+            className="sr-only"
+          />
+
+          <button
+            type="button"
+            onClick={() => inputArchivoRef.current?.click()}
+            onDragOver={(e) => {
+              e.preventDefault();
+              setArrastrandoJson(true);
+            }}
+            onDragLeave={() => setArrastrandoJson(false)}
+            onDrop={manejarDropJson}
+            className={`block w-full cursor-pointer rounded-sm border-2 border-dashed px-3 py-4 text-center transition-colors focus-visible:outline-1 focus-visible:outline-white ${
+              arrastrandoJson
+                ? 'border-emerald-400 bg-emerald-950/40'
+                : 'border-emerald-500/45 bg-zinc-900/60 hover:border-emerald-400 hover:bg-zinc-900'
+            }`}
+          >
+            <Upload
+              size={20}
+              strokeWidth={1.75}
+              className="mx-auto text-emerald-400"
+              aria-hidden
+            />
+            <span className="mt-2 block font-mono text-[11px] font-semibold tracking-[0.08em] text-zinc-100">
+              Hacé clic o arrastrá aquí el reporte <span className="text-emerald-400">.json</span>
+            </span>
+            <span className="mt-1 block font-mono text-[9.5px] tracking-[0.06em] text-zinc-400">
+              Ej: <code className="text-emerald-300">Medium Load Operation_*.json</code> · Acepta hasta 2 MB
+            </span>
+          </button>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => inputArchivoRef.current?.click()}
+              className="inline-flex min-h-[40px] flex-1 items-center justify-center gap-1.5 rounded-sm border border-zinc-600 bg-zinc-900 px-3 font-mono text-[10px] font-semibold tracking-[0.1em] text-zinc-100 transition-colors hover:border-white hover:text-white focus-visible:outline-1 focus-visible:outline-white"
+            >
+              <FileJson size={13} strokeWidth={1.75} aria-hidden />
+              {metricasActivas ? 'SUBIR NUEVO .JSON' : 'SELECCIONAR ARCHIVO .JSON'}
+            </button>
+            {metricasActivas && (
+              <button
+                type="button"
+                disabled={analizandoIA}
+                onClick={() => void ejecutarAnalisisIA()}
+                className="inline-flex min-h-[40px] flex-1 items-center justify-center gap-1.5 rounded-sm border border-emerald-500 bg-emerald-500 px-3 font-mono text-[10px] font-semibold tracking-[0.1em] text-emerald-950 transition-colors hover:bg-emerald-400 disabled:cursor-not-allowed disabled:border-zinc-700 disabled:bg-zinc-800 disabled:text-zinc-500 focus-visible:outline-1 focus-visible:outline-white"
+              >
+                {analizandoIA ? (
+                  <>
+                    <Loader2 size={13} strokeWidth={2} className="animate-spin" aria-hidden />
+                    ANALIZANDO CON IA…
+                  </>
+                ) : (
+                  <>
+                    <Sparkles size={13} strokeWidth={2} aria-hidden />
+                    {informeActivo ? 'RECALCULAR INFORME IA' : 'GENERAR INFORME IA'}
+                  </>
+                )}
+              </button>
+            )}
+          </div>
+
+          {errorJson && (
+            <p
+              role="alert"
+              className="rounded-sm border border-red-500/50 bg-red-950/35 px-2.5 py-2 font-mono text-[10px] text-red-300"
+            >
+              {errorJson}
+            </p>
+          )}
+
+          {errorIA && (
+            <p
+              role="alert"
+              className="rounded-sm border border-red-500/50 bg-red-950/35 px-2.5 py-2 font-mono text-[10px] text-red-300"
+            >
+              {errorIA}
+            </p>
+          )}
+
+          {metricasActivas ? (
+            <div className="space-y-2 rounded-sm border border-zinc-800 bg-zinc-900/60 p-2.5">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="font-mono text-[9.5px] tracking-[0.12em] text-zinc-400">
+                  MÉTRICAS PARSEADAS{metricasActivas.exerciseName ? ` · ${metricasActivas.exerciseName}` : ''}
+                </p>
+                {metricasActivas.alertaFalsoPositivoSuelo && (
+                  <span className="inline-flex items-center gap-1 rounded-sm border border-amber-500/50 bg-amber-950/40 px-2 py-0.5 font-mono text-[9px] font-semibold text-amber-300">
+                    <CheckCircle2 size={11} strokeWidth={2} aria-hidden />
+                    {metricasActivas.colisionesDescartadas} ARTEFACTO(S) SUELO -2 DEPURADOS
+                  </span>
+                )}
+              </div>
+
+              <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-4">
+                <Metrica
+                  etiqueta="SCORE"
+                  valor={formatoNumeroSeguro(metricasActivas.scorePuntos, ' pts')}
+                />
+                <Metrica
+                  etiqueta="TIEMPO"
+                  valor={formatoSegundos(metricasActivas.tiempoDuracionSeg)}
+                />
+                <Metrica
+                  etiqueta="COLISIONES"
+                  valor={String(metricasActivas.colisionesReales)}
+                />
+                <Metrica
+                  etiqueta="SERRUCHO"
+                  valor={formatoNumeroSeguro(metricasActivas.indiceSerrucho, '', 3)}
+                />
+                <Metrica
+                  etiqueta="VOLANTAZOS"
+                  valor={formatoNumeroSeguro(metricasActivas.volantazosExtremos, '', 0)}
+                />
+                <Metrica
+                  etiqueta="FRENADAS PÁNICO"
+                  valor={formatoNumeroSeguro(metricasActivas.frenadasPanico, '', 0)}
+                />
+                <Metrica
+                  etiqueta="VEL. MÁXIMA"
+                  valor={formatoNumeroSeguro(metricasActivas.velocidadMaxKmh, ' km/h', 1)}
+                />
+                <Metrica
+                  etiqueta="DESCARTADAS -2"
+                  valor={String(metricasActivas.colisionesDescartadas)}
+                />
+              </div>
+            </div>
+          ) : evaluacion?.telemetria.tiene_datos ? (
+            <div className="space-y-2 rounded-sm border border-zinc-800 bg-zinc-900/50 p-2.5">
+              <p className="font-mono text-[9.5px] tracking-[0.12em] text-zinc-400">
+                RESUMEN HISTÓRICO TITAN SINCRONIZADO (SUBÍ UN .JSON PARA INFORME IA)
+              </p>
+              <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-4">
+                <Metrica
+                  etiqueta="SCORE"
+                  valor={formatoNumeroSeguro(evaluacion.telemetria.score_puntos, ' pts')}
+                />
+                <Metrica
+                  etiqueta="TIEMPO"
+                  valor={formatoSegundos(evaluacion.telemetria.tiempo_vuelta_seg)}
+                />
+                <Metrica
+                  etiqueta="COLISIONES"
+                  valor={formatoNumeroSeguro(evaluacion.telemetria.colisiones, '', 0)}
+                />
+                <Metrica
+                  etiqueta="SERRUCHO"
+                  valor={formatoNumeroSeguro(evaluacion.telemetria.indice_serrucho, '', 3)}
+                />
+              </div>
+            </div>
+          ) : null}
+
+          {avisoPersistenciaIA && (
+            <p
+              role="status"
+              className="rounded-sm border border-zinc-800 bg-zinc-900 px-2.5 py-1.5 font-mono text-[9.5px] text-zinc-400"
+            >
+              {avisoPersistenciaIA}
+            </p>
+          )}
+
+          {informeActivo ? (
+            <div className="space-y-2.5 rounded-sm border border-emerald-500/35 bg-zinc-900/80 p-3">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-zinc-800 pb-2">
+                <span className="font-mono text-[9.5px] tracking-[0.12em] text-zinc-300">
+                  {informeActivo.origen === 'GEMINI_2_5_FLASH'
+                    ? 'MOTOR ACTIVO: GEMINI 2.5 FLASH'
+                    : 'MOTOR ACTIVO: FALLBACK HEURÍSTICO'}
+                </span>
+                <span
+                  className={`rounded-sm px-2 py-0.5 font-mono text-[9.5px] font-bold tracking-[0.1em] ${
+                    BADGE_DICTAMEN_IA[informeActivo.dictamenSugerido].clase
+                  }`}
+                >
+                  {BADGE_DICTAMEN_IA[informeActivo.dictamenSugerido].etiqueta}
+                </span>
+              </div>
+
+              {(informeActivo.banderaFalsoPositivoSuelo ||
+                informeActivo.banderaFalsoNegativoRiesgoOculto) && (
+                <div className="flex flex-wrap gap-1.5">
+                  {informeActivo.banderaFalsoPositivoSuelo && (
+                    <span className="inline-flex items-center gap-1 rounded-sm border border-emerald-500/40 bg-emerald-950/35 px-2 py-0.5 font-mono text-[9px] text-emerald-300">
+                      <CheckCircle2 size={11} strokeWidth={2} aria-hidden />
+                      ANTIFALSO POSITIVO · SUELO -2 IGNORADO
+                    </span>
+                  )}
+                  {informeActivo.banderaFalsoNegativoRiesgoOculto && (
+                    <span className="inline-flex items-center gap-1 rounded-sm border border-amber-500/50 bg-amber-950/40 px-2 py-0.5 font-mono text-[9px] text-amber-300">
+                      <ShieldAlert size={11} strokeWidth={2} aria-hidden />
+                      ALERTA ANTIFALSO NEGATIVO · RIESGO EN TELEMETRÍA
+                    </span>
+                  )}
+                </div>
+              )}
+
+              <ol className="space-y-2">
+                {informeActivo.puntos.map((punto) => (
+                  <li
+                    key={punto.titulo}
+                    className="rounded-sm border border-zinc-800 bg-zinc-950 px-2.5 py-2"
+                  >
+                    <p className="font-mono text-[9.5px] font-semibold tracking-[0.12em] text-emerald-300">
+                      {punto.titulo}
+                    </p>
+                    <p className="mt-1 font-mono text-[10.5px] leading-relaxed text-zinc-200">
+                      {punto.detalle}
+                    </p>
+                  </li>
+                ))}
+              </ol>
+
+              <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
+                <span className="font-mono text-[9px] text-zinc-500">
+                  {informeActivo.modelo} ·{' '}
+                  {Number.isFinite(Date.parse(informeActivo.generadoEn))
+                    ? new Date(informeActivo.generadoEn).toLocaleString('es-AR', {
+                        dateStyle: 'short',
+                        timeStyle: 'short',
+                      })
+                    : informeActivo.generadoEn}
+                </span>
+                <button
+                  type="button"
+                  onClick={volcarRecomendacionANotas}
+                  className="inline-flex h-8 items-center gap-1.5 rounded-sm border border-zinc-700 px-2.5 font-mono text-[9.5px] tracking-[0.1em] text-zinc-300 transition-colors hover:border-white hover:text-white focus-visible:outline-1 focus-visible:outline-white"
+                >
+                  <ClipboardCopy size={11} strokeWidth={1.75} aria-hidden />
+                  COPIAR PUNTO 3 A NOTAS
+                </button>
+              </div>
+            </div>
+          ) : metricasActivas ? (
+            <div className="flex items-center gap-2 rounded-sm border border-zinc-800 bg-zinc-900/50 px-3 py-2 font-mono text-[10px] text-amber-300">
+              <AlertTriangle size={13} strokeWidth={1.75} className="shrink-0" aria-hidden />
+              <span>
+                Reporte cargado. Pulsá &quot;GENERAR INFORME IA&quot; para emitir la síntesis de 3 puntos.
+              </span>
+            </div>
+          ) : null}
+        </section>
 
         {/* ── 4 Ejes Pedagógicos + Radar ─────────────────────── */}
         <section aria-label="Ejes pedagógicos y radar" className="space-y-3">
@@ -872,249 +1205,6 @@ export default function DrawerPostulante({ postulante, franjas, onCerrar }: Prop
               )}
             </>
           )}
-        </section>
-
-        {/* ── Pipeline Titán .json + Motor IA Gemini 2.5 Flash ─ */}
-        <section
-          aria-label="Pipeline Titán e Informe IA para Empleo"
-          className="space-y-3 rounded-sm border border-zinc-800 bg-zinc-950/90 p-3.5"
-        >
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <p className="flex items-center gap-1.5 font-mono text-[10px] tracking-[0.16em] text-zinc-400">
-              <Sparkles size={13} strokeWidth={1.75} className="text-emerald-400" aria-hidden />
-              PIPELINE TITÁN · REPORTE .JSON &amp; IA EMPLEO
-            </p>
-            {archivoActivoNombre && (
-              <span className="inline-flex items-center gap-1 rounded-sm border border-zinc-700 bg-zinc-900 px-2 py-0.5 font-mono text-[9px] text-zinc-300">
-                <FileJson size={11} strokeWidth={1.75} aria-hidden />
-                {archivoActivoNombre}
-              </span>
-            )}
-          </div>
-
-          <input
-            ref={inputArchivoRef}
-            id="subir-telemetria-json"
-            type="file"
-            accept=".json,application/json"
-            onChange={manejarSeleccionArchivo}
-            className="sr-only"
-          />
-
-          <div
-            onDragOver={(e) => {
-              e.preventDefault();
-              setArrastrandoJson(true);
-            }}
-            onDragLeave={() => setArrastrandoJson(false)}
-            onDrop={manejarDropJson}
-            className={`rounded-sm border border-dashed px-3 py-3.5 text-center transition-colors ${
-              arrastrandoJson
-                ? 'border-emerald-400 bg-emerald-950/25'
-                : 'border-zinc-700 bg-zinc-900/50'
-            }`}
-          >
-            <Upload
-              size={18}
-              strokeWidth={1.75}
-              className="mx-auto text-zinc-400"
-              aria-hidden
-            />
-            <p className="mt-1.5 font-mono text-[10.5px] tracking-[0.08em] text-zinc-300">
-              Arrastrá el reporte <span className="text-emerald-400">.json</span> del simulador aquí
-            </p>
-            <p className="mt-0.5 font-mono text-[9.5px] tracking-[0.06em] text-zinc-500">
-              Depuración automática del bug suelo (-2), métricas de volante/frenos e informe Gemini 2.5 Flash.
-            </p>
-            <div className="mt-2.5 flex flex-wrap items-center justify-center gap-2">
-              <button
-                type="button"
-                onClick={() => inputArchivoRef.current?.click()}
-                className="inline-flex min-h-[40px] items-center gap-1.5 rounded-sm border border-zinc-600 bg-zinc-900 px-3 font-mono text-[10px] font-semibold tracking-[0.12em] text-zinc-100 transition-colors hover:border-white hover:text-white focus-visible:outline-1 focus-visible:outline-white"
-              >
-                <FileJson size={13} strokeWidth={1.75} aria-hidden />
-                {metricasActivas ? 'REEMPLAZAR ARCHIVO .JSON' : 'SELECCIONAR ARCHIVO .JSON'}
-              </button>
-              {metricasActivas && (
-                <button
-                  type="button"
-                  disabled={analizandoIA}
-                  onClick={() => void ejecutarAnalisisIA()}
-                  className="inline-flex min-h-[40px] items-center gap-1.5 rounded-sm border border-emerald-500 bg-emerald-500 px-3 font-mono text-[10px] font-semibold tracking-[0.12em] text-emerald-950 transition-colors hover:bg-emerald-400 disabled:cursor-not-allowed disabled:border-zinc-700 disabled:bg-zinc-800 disabled:text-zinc-500 focus-visible:outline-1 focus-visible:outline-white"
-                >
-                  {analizandoIA ? (
-                    <>
-                      <Loader2 size={13} strokeWidth={2} className="animate-spin" aria-hidden />
-                      ANALIZANDO CON IA…
-                    </>
-                  ) : (
-                    <>
-                      <Sparkles size={13} strokeWidth={2} aria-hidden />
-                      GENERAR INFORME IA
-                    </>
-                  )}
-                </button>
-              )}
-            </div>
-          </div>
-
-          {errorJson && (
-            <p
-              role="alert"
-              className="rounded-sm border border-red-500/50 bg-red-950/35 px-2.5 py-2 font-mono text-[10px] text-red-300"
-            >
-              {errorJson}
-            </p>
-          )}
-
-          {errorIA && (
-            <p
-              role="alert"
-              className="rounded-sm border border-red-500/50 bg-red-950/35 px-2.5 py-2 font-mono text-[10px] text-red-300"
-            >
-              {errorIA}
-            </p>
-          )}
-
-          {metricasActivas && (
-            <div className="space-y-2 rounded-sm border border-zinc-800 bg-zinc-900/60 p-2.5">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <p className="font-mono text-[9.5px] tracking-[0.12em] text-zinc-400">
-                  MÉTRICAS PARSEADAS{metricasActivas.exerciseName ? ` · ${metricasActivas.exerciseName}` : ''}
-                </p>
-                {metricasActivas.alertaFalsoPositivoSuelo && (
-                  <span className="inline-flex items-center gap-1 rounded-sm border border-amber-500/50 bg-amber-950/40 px-2 py-0.5 font-mono text-[9px] font-semibold text-amber-300">
-                    <CheckCircle2 size={11} strokeWidth={2} aria-hidden />
-                    {metricasActivas.colisionesDescartadas} ARTEFACTO(S) SUELO -2 DEPURADOS
-                  </span>
-                )}
-              </div>
-
-              <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-4">
-                <Metrica
-                  etiqueta="SCORE"
-                  valor={formatoNumeroSeguro(metricasActivas.scorePuntos, ' pts')}
-                />
-                <Metrica
-                  etiqueta="DURACIÓN"
-                  valor={formatoSegundos(metricasActivas.tiempoDuracionSeg)}
-                />
-                <Metrica
-                  etiqueta="COLIS. REALES"
-                  valor={String(metricasActivas.colisionesReales)}
-                />
-                <Metrica
-                  etiqueta="SERRUCHO"
-                  valor={formatoNumeroSeguro(metricasActivas.indiceSerrucho, '', 3)}
-                />
-                <Metrica
-                  etiqueta="VOLANTAZOS"
-                  valor={formatoNumeroSeguro(metricasActivas.volantazosExtremos, '', 0)}
-                />
-                <Metrica
-                  etiqueta="FRENADAS PÁNICO"
-                  valor={formatoNumeroSeguro(metricasActivas.frenadasPanico, '', 0)}
-                />
-                <Metrica
-                  etiqueta="VEL. MÁXIMA"
-                  valor={formatoNumeroSeguro(metricasActivas.velocidadMaxKmh, ' km/h', 1)}
-                />
-                <Metrica
-                  etiqueta="DESCARTADAS -2"
-                  valor={String(metricasActivas.colisionesDescartadas)}
-                />
-              </div>
-            </div>
-          )}
-
-          {avisoPersistenciaIA && (
-            <p
-              role="status"
-              className="rounded-sm border border-zinc-800 bg-zinc-900 px-2.5 py-1.5 font-mono text-[9.5px] text-zinc-400"
-            >
-              {avisoPersistenciaIA}
-            </p>
-          )}
-
-          {informeActivo ? (
-            <div className="space-y-2.5 rounded-sm border border-emerald-500/35 bg-zinc-900/80 p-3">
-              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-zinc-800 pb-2">
-                <span className="font-mono text-[9.5px] tracking-[0.12em] text-zinc-400">
-                  {informeActivo.origen === 'GEMINI_2_5_FLASH'
-                    ? 'MOTOR: GEMINI 2.5 FLASH'
-                    : 'MOTOR: FALLBACK HEURÍSTICO'}
-                </span>
-                <span
-                  className={`rounded-sm px-2 py-0.5 font-mono text-[9.5px] font-bold tracking-[0.1em] ${
-                    BADGE_DICTAMEN_IA[informeActivo.dictamenSugerido].clase
-                  }`}
-                >
-                  {BADGE_DICTAMEN_IA[informeActivo.dictamenSugerido].etiqueta}
-                </span>
-              </div>
-
-              {(informeActivo.banderaFalsoPositivoSuelo ||
-                informeActivo.banderaFalsoNegativoRiesgoOculto) && (
-                <div className="flex flex-wrap gap-1.5">
-                  {informeActivo.banderaFalsoPositivoSuelo && (
-                    <span className="inline-flex items-center gap-1 rounded-sm border border-emerald-500/40 bg-emerald-950/35 px-2 py-0.5 font-mono text-[9px] text-emerald-300">
-                      <CheckCircle2 size={11} strokeWidth={2} aria-hidden />
-                      ANTIFALSO POSITIVO · SUELO -2 IGNORADO
-                    </span>
-                  )}
-                  {informeActivo.banderaFalsoNegativoRiesgoOculto && (
-                    <span className="inline-flex items-center gap-1 rounded-sm border border-amber-500/50 bg-amber-950/40 px-2 py-0.5 font-mono text-[9px] text-amber-300">
-                      <ShieldAlert size={11} strokeWidth={2} aria-hidden />
-                      ALERTA ANTIFALSO NEGATIVO · RIESGO EN TELEMETRÍA
-                    </span>
-                  )}
-                </div>
-              )}
-
-              <ol className="space-y-2">
-                {informeActivo.puntos.map((punto) => (
-                  <li
-                    key={punto.titulo}
-                    className="rounded-sm border border-zinc-800 bg-zinc-950 px-2.5 py-2"
-                  >
-                    <p className="font-mono text-[9.5px] font-semibold tracking-[0.12em] text-emerald-300">
-                      {punto.titulo}
-                    </p>
-                    <p className="mt-1 font-mono text-[10.5px] leading-relaxed text-zinc-200">
-                      {punto.detalle}
-                    </p>
-                  </li>
-                ))}
-              </ol>
-
-              <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
-                <span className="font-mono text-[9px] text-zinc-500">
-                  {informeActivo.modelo} ·{' '}
-                  {Number.isFinite(Date.parse(informeActivo.generadoEn))
-                    ? new Date(informeActivo.generadoEn).toLocaleString('es-AR', {
-                        dateStyle: 'short',
-                        timeStyle: 'short',
-                      })
-                    : informeActivo.generadoEn}
-                </span>
-                <button
-                  type="button"
-                  onClick={volcarRecomendacionANotas}
-                  className="inline-flex h-8 items-center gap-1.5 rounded-sm border border-zinc-700 px-2.5 font-mono text-[9.5px] tracking-[0.1em] text-zinc-300 transition-colors hover:border-white hover:text-white focus-visible:outline-1 focus-visible:outline-white"
-                >
-                  <ClipboardCopy size={11} strokeWidth={1.75} aria-hidden />
-                  COPIAR PUNTO 3 A NOTAS
-                </button>
-              </div>
-            </div>
-          ) : metricasActivas ? (
-            <div className="flex items-center gap-2 rounded-sm border border-zinc-800 bg-zinc-900/50 px-3 py-2 font-mono text-[10px] text-amber-300">
-              <AlertTriangle size={13} strokeWidth={1.75} className="shrink-0" aria-hidden />
-              <span>
-                Reporte cargado. Pulsá &quot;GENERAR INFORME IA&quot; para emitir la síntesis de 3 puntos.
-              </span>
-            </div>
-          ) : null}
         </section>
 
         {/* ── Notas sociolaborales de Empleo ─────────────────── */}
