@@ -49,3 +49,12 @@ telemetria_cohortes.json
 .tmp*
 capturas/
 
+# cloudflare / opennext
+.open-next/
+.dev.vars*
+temp_tunnel.log
+
+# python
+__pycache__/
+*.pyc
+
