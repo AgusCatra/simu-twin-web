@@ -1,7 +1,9 @@
 import type {
   AsistenciaCabina,
+  BloqueSplit,
   DictamenCabina,
   EtapaEvaluacionCabina,
+  NivelAsistencia,
   PuntajeEje,
 } from '@/types/cabina';
 
@@ -18,6 +20,18 @@ export const ASISTENCIAS_CABINA_VALIDAS: readonly AsistenciaCabina[] = [
   'MEDIA',
   'ALTA',
 ];
+export const NIVELES_ASISTENCIA_VALIDOS: readonly NivelAsistencia[] = [
+  'AUTONOMO',
+  'AYUDA_VERBAL',
+  'INTERVENCION_CONSTANTE',
+  'INTERVENCION_CRITICA',
+];
+export const BLOQUES_SPLIT_VALIDOS: readonly BloqueSplit[] = [
+  'PILOTO_A',
+  'COPILOTO_B',
+  'PILOTO_B',
+  'COPILOTO_A',
+];
 export const ETAPAS_CABINA_VALIDAS: readonly EtapaEvaluacionCabina[] = [
   'DIAG_INTENTO_1',
   'DIAG_INTENTO_2',
@@ -30,6 +44,38 @@ export type PuntajesEjes = {
   mastil: PuntajeEje;
   control_receptividad: PuntajeEje;
 };
+
+export function esNivelAsistenciaValido(valor: unknown): valor is NivelAsistencia {
+  return (
+    typeof valor === 'string' &&
+    (NIVELES_ASISTENCIA_VALIDOS as readonly string[]).includes(valor)
+  );
+}
+
+export function esBloqueSplitValido(valor: unknown): valor is BloqueSplit {
+  return (
+    typeof valor === 'string' &&
+    (BLOQUES_SPLIT_VALIDOS as readonly string[]).includes(valor)
+  );
+}
+
+/**
+ * Mapea los 4 niveles granulares de asistencia docente (`tipo_asistencia_instructor`)
+ * hacia la columna histórica `asistencia_cabina` (NOT NULL con CHECK legado).
+ */
+export function mapearNivelAsistenciaACabina(
+  nivel: NivelAsistencia
+): AsistenciaCabina {
+  switch (nivel) {
+    case 'AUTONOMO':
+      return 'MINIMA_AUTONOMO';
+    case 'AYUDA_VERBAL':
+      return 'MEDIA';
+    case 'INTERVENCION_CONSTANTE':
+    case 'INTERVENCION_CRITICA':
+      return 'ALTA';
+  }
+}
 
 /**
  * score_total = suma de los 4 ejes (0/10/20) + bonus (0/10).

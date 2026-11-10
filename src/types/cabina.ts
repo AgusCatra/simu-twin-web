@@ -14,6 +14,18 @@ export type ClaveEje =
 
 export type AsistenciaCabina = 'MINIMA_AUTONOMO' | 'MEDIA' | 'ALTA';
 
+export type NivelAsistencia =
+  | 'AUTONOMO'
+  | 'AYUDA_VERBAL'
+  | 'INTERVENCION_CONSTANTE'
+  | 'INTERVENCION_CRITICA';
+
+export type BloqueSplit =
+  | 'PILOTO_A'
+  | 'COPILOTO_B'
+  | 'PILOTO_B'
+  | 'COPILOTO_A';
+
 export type EtapaEvaluacionCabina = 'DIAG_INTENTO_1' | 'DIAG_INTENTO_2' | 'FINAL';
 
 export type DictamenCabina =
@@ -40,7 +52,9 @@ export interface EvaluacionCabinaInput {
   puntaje_mastil: PuntajeEje;
   puntaje_control_receptividad: PuntajeEje;
   bonus_segundo_intento: 0 | 10;
-  asistencia_cabina: AsistenciaCabina;
+  nivel_asistencia: NivelAsistencia;
+  asistencia_cabina?: AsistenciaCabina;
+  bloque_split?: BloqueSplit | null;
   hard_fail: boolean;
   motivo_hard_fail?: string | null;
   tiempo_vuelta_seg?: number | null;

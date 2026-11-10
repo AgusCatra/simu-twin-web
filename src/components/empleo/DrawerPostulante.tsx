@@ -1,12 +1,29 @@
 'use client';
 
-import { useEffect, useState, useTransition } from 'react';
+import { useEffect, useRef, useState, useTransition } from 'react';
 import {
+  AlertTriangle,
+  CheckCircle2,
+  ClipboardCopy,
+  FileJson,
+  Loader2,
+  ShieldAlert,
+  Sparkles,
+  Upload,
+} from 'lucide-react';
+import {
+  analizarTelemetriaPostulanteAction,
   asignarPostulanteFranja,
   darDeBajaPostulante,
   guardarNotasEmpleo,
   obtenerComparativaProgreso,
 } from '@/services/empleo';
+import {
+  MAX_BYTES_REPORTE_JSON,
+  parsearReporteSimulador,
+  type MetricasSimulador,
+} from '@/lib/telemetria/parser-simulador';
+import type { InformeEmpleoIA } from '@/lib/ia/generador-informe';
 import type {
   ComparativaProgreso,
   FranjaCabina,
@@ -39,6 +56,54 @@ const BADGE_ASISTENCIA: Record<string, { etiqueta: string; clase: string }> = {
   MEDIA: { etiqueta: 'MEDIA · GUÍA VERBAL', clase: 'bg-amber-400 text-amber-950' },
   ALTA: {
     etiqueta: 'ALTA · INTERVENCIÓN',
+    clase: 'bg-red-500 text-red-950',
+  },
+};
+
+const BADGE_NIVEL_ASISTENCIA: Record<string, { etiqueta: string; clase: string }> = {
+  AUTONOMO: {
+    etiqueta: 'AUTÓNOMO',
+    clase: 'bg-emerald-500 text-emerald-950',
+  },
+  AYUDA_VERBAL: {
+    etiqueta: 'AYUDA VERBAL',
+    clase: 'bg-amber-400 text-amber-950',
+  },
+  INTERVENCION_CONSTANTE: {
+    etiqueta: 'INTERVENCIÓN CONSTANTE',
+    clase: 'bg-orange-500 text-orange-950',
+  },
+  INTERVENCION_CRITICA: {
+    etiqueta: 'INTERVENCIÓN CRÍTICA',
+    clase: 'bg-red-500 text-red-950',
+  },
+};
+
+const ETIQUETA_BLOQUE_SPLIT: Record<string, string> = {
+  PILOTO_A: 'BLOQUE 1 · PILOTO A',
+  COPILOTO_B: 'BLOQUE 1 · COPILOTO B',
+  PILOTO_B: 'BLOQUE 2 · PILOTO B',
+  COPILOTO_A: 'BLOQUE 2 · COPILOTO A',
+};
+
+const BADGE_DICTAMEN_IA: Record<
+  InformeEmpleoIA['dictamenSugerido'],
+  { etiqueta: string; clase: string }
+> = {
+  APTO_DIRECTO: {
+    etiqueta: 'APTO DIRECTO',
+    clase: 'bg-emerald-500 text-emerald-950',
+  },
+  APTO_OBSERVACION: {
+    etiqueta: 'APTO C/ OBSERVACIÓN',
+    clase: 'bg-cyan-400 text-cyan-950',
+  },
+  CONDICIONAL: {
+    etiqueta: 'CONDICIONAL',
+    clase: 'bg-amber-400 text-amber-950',
+  },
+  NO_APTO: {
+    etiqueta: 'NO APTO',
     clase: 'bg-red-500 text-red-950',
   },
 };
@@ -179,12 +244,40 @@ export default function DrawerPostulante({ postulante, franjas, onCerrar }: Prop
   const [cargandoComp, setCargandoComp] = useState(false);
   const [vistaActiva, setVistaActiva] = useState<'V1' | 'V2'>('V1');
 
+  // Pipeline Titán .json + Motor IA Gemini 2.5 Flash.
+  const inputArchivoRef = useRef<HTMLInputElement | null>(null);
+  const [arrastrandoJson, setArrastrandoJson] = useState(false);
+  const [archivoJsonNombre, setArchivoJsonNombre] = useState<string | null>(null);
+  const [metricasJsonLocal, setMetricasJsonLocal] = useState<MetricasSimulador | null>(
+    null
+  );
+  const [errorJson, setErrorJson] = useState<string | null>(null);
+  const [informeLocal, setInformeLocal] = useState<InformeEmpleoIA | null>(null);
+  const [avisoPersistenciaIA, setAvisoPersistenciaIA] = useState<string | null>(null);
+  const [analizandoIA, setAnalizandoIA] = useState(false);
+  const [errorIA, setErrorIA] = useState<string | null>(null);
+
   // Sincroniza las notas con el postulante abierto (el drawer se reutiliza).
   useEffect(() => {
     setNotas(postulante?.obs_empleo ?? '');
     setFranjaSeleccionada('');
     setMensaje(null);
   }, [postulante?.inscripcion_id, postulante?.obs_empleo]);
+
+  // Reinicia el estado efímero de carga JSON / informe al cambiar de postulante.
+  useEffect(() => {
+    setArrastrandoJson(false);
+    setArchivoJsonNombre(null);
+    setMetricasJsonLocal(null);
+    setErrorJson(null);
+    setInformeLocal(null);
+    setAvisoPersistenciaIA(null);
+    setErrorIA(null);
+    setAnalizandoIA(false);
+    if (inputArchivoRef.current) {
+      inputArchivoRef.current.value = '';
+    }
+  }, [postulante?.inscripcion_id]);
 
   // Carga la comparativa de progreso al abrir la ficha de un postulante.
   useEffect(() => {
@@ -214,9 +307,26 @@ export default function DrawerPostulante({ postulante, franjas, onCerrar }: Prop
   if (!postulante) return null;
 
   const evaluacion = postulante.evaluacion;
-  const asistencia = evaluacion?.asistencia_cabina
-    ? BADGE_ASISTENCIA[evaluacion.asistencia_cabina]
+  const nivelAsistenciaBadge = evaluacion?.nivel_asistencia
+    ? BADGE_NIVEL_ASISTENCIA[evaluacion.nivel_asistencia]
     : null;
+  const asistencia =
+    nivelAsistenciaBadge ??
+    (evaluacion?.asistencia_cabina
+      ? BADGE_ASISTENCIA[evaluacion.asistencia_cabina]
+      : null);
+  const bloqueSplitEtiqueta = evaluacion?.bloque_split
+    ? ETIQUETA_BLOQUE_SPLIT[evaluacion.bloque_split] ?? evaluacion.bloque_split
+    : null;
+
+  const metricasActivas =
+    metricasJsonLocal ?? evaluacion?.telemetria_metricas ?? null;
+  const archivoActivoNombre = metricasJsonLocal
+    ? archivoJsonNombre
+    : (evaluacion?.telemetria_archivo_nombre ?? null);
+  const informeActivo = metricasJsonLocal
+    ? informeLocal
+    : (evaluacion?.informe_ia ?? null);
 
   const ejesRadar: PuntoRadar[] | null =
     comparativa && comparativa.radarEjes.length > 0
@@ -273,6 +383,105 @@ export default function DrawerPostulante({ postulante, franjas, onCerrar }: Prop
     );
   }
 
+  async function procesarArchivoJson(archivo: File) {
+    if (!postulante) return;
+    setErrorJson(null);
+    setErrorIA(null);
+    setAvisoPersistenciaIA(null);
+
+    const nombre = archivo.name.trim() || 'telemetria.json';
+    const esJson =
+      nombre.toLowerCase().endsWith('.json') ||
+      archivo.type === 'application/json' ||
+      archivo.type === 'text/json';
+    if (!esJson) {
+      setErrorJson('Solo se admiten archivos de telemetría en formato .json.');
+      return;
+    }
+    if (archivo.size === 0) {
+      setErrorJson('El archivo .json seleccionado está vacío.');
+      return;
+    }
+    if (archivo.size > MAX_BYTES_REPORTE_JSON) {
+      setErrorJson('El archivo excede el tamaño máximo permitido (2 MB).');
+      return;
+    }
+
+    try {
+      const contenido = await archivo.text();
+      const metricas = parsearReporteSimulador(contenido, {
+        nombrePostulante: postulante.nombre_completo,
+      });
+      setArchivoJsonNombre(nombre);
+      setMetricasJsonLocal(metricas);
+      setInformeLocal(null);
+    } catch (err) {
+      setErrorJson(
+        err instanceof Error
+          ? err.message
+          : 'No se pudo procesar el reporte .json de telemetría.'
+      );
+    }
+  }
+
+  function manejarSeleccionArchivo(e: React.ChangeEvent<HTMLInputElement>) {
+    const archivo = e.target.files?.[0];
+    if (archivo) {
+      void procesarArchivoJson(archivo);
+    }
+    e.target.value = '';
+  }
+
+  function manejarDropJson(e: React.DragEvent<HTMLDivElement>) {
+    e.preventDefault();
+    setArrastrandoJson(false);
+    const archivo = e.dataTransfer.files?.[0];
+    if (archivo) {
+      void procesarArchivoJson(archivo);
+    }
+  }
+
+  async function ejecutarAnalisisIA() {
+    if (!postulante || !metricasActivas || analizandoIA) return;
+    setAnalizandoIA(true);
+    setErrorIA(null);
+    setAvisoPersistenciaIA(null);
+    try {
+      const res = await analizarTelemetriaPostulanteAction({
+        postulante_id: postulante.postulante_id,
+        archivo_nombre: archivoActivoNombre ?? 'telemetria.json',
+        metricas: metricasActivas,
+      });
+      if (!res.ok) {
+        setErrorIA(res.error);
+        return;
+      }
+      setInformeLocal(res.informe);
+      setAvisoPersistenciaIA(
+        res.persistido
+          ? 'Informe IA y métricas guardados en evaluacion_diagnostico.'
+          : 'Informe generado en pantalla (se guardará en DB cuando exista una fila de evaluación de cabina/diagnóstico).'
+      );
+    } catch {
+      setErrorIA('Error de red o tiempo de espera agotado al ejecutar el análisis IA.');
+    } finally {
+      setAnalizandoIA(false);
+    }
+  }
+
+  function volcarRecomendacionANotas() {
+    if (!informeActivo) return;
+    const lineaRecomendacion = `[IA ${informeActivo.dictamenSugerido}] ${informeActivo.puntos[2].detalle}`;
+    setNotas((prev) => {
+      const limpio = prev.trim();
+      if (limpio.includes(lineaRecomendacion)) return prev;
+      const combinado = limpio
+        ? `${limpio}\n\n${lineaRecomendacion}`
+        : lineaRecomendacion;
+      return combinado.slice(0, 2000);
+    });
+  }
+
   return (
     <Sheet
       abierto
@@ -292,6 +501,11 @@ export default function DrawerPostulante({ postulante, franjas, onCerrar }: Prop
           ) : (
             <span className="rounded-sm bg-zinc-800 px-2.5 py-1 font-mono text-[10px] tracking-[0.12em] text-zinc-400">
               SIN EVALUACIÓN DE ASISTENCIA
+            </span>
+          )}
+          {bloqueSplitEtiqueta && (
+            <span className="rounded-sm border border-cyan-500/40 bg-cyan-500/10 px-2.5 py-1 font-mono text-[10px] tracking-[0.12em] text-cyan-300">
+              {bloqueSplitEtiqueta}
             </span>
           )}
           {evaluacion?.dictamen && (
@@ -658,6 +872,249 @@ export default function DrawerPostulante({ postulante, franjas, onCerrar }: Prop
               )}
             </>
           )}
+        </section>
+
+        {/* ── Pipeline Titán .json + Motor IA Gemini 2.5 Flash ─ */}
+        <section
+          aria-label="Pipeline Titán e Informe IA para Empleo"
+          className="space-y-3 rounded-sm border border-zinc-800 bg-zinc-950/90 p-3.5"
+        >
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="flex items-center gap-1.5 font-mono text-[10px] tracking-[0.16em] text-zinc-400">
+              <Sparkles size={13} strokeWidth={1.75} className="text-emerald-400" aria-hidden />
+              PIPELINE TITÁN · REPORTE .JSON &amp; IA EMPLEO
+            </p>
+            {archivoActivoNombre && (
+              <span className="inline-flex items-center gap-1 rounded-sm border border-zinc-700 bg-zinc-900 px-2 py-0.5 font-mono text-[9px] text-zinc-300">
+                <FileJson size={11} strokeWidth={1.75} aria-hidden />
+                {archivoActivoNombre}
+              </span>
+            )}
+          </div>
+
+          <input
+            ref={inputArchivoRef}
+            id="subir-telemetria-json"
+            type="file"
+            accept=".json,application/json"
+            onChange={manejarSeleccionArchivo}
+            className="sr-only"
+          />
+
+          <div
+            onDragOver={(e) => {
+              e.preventDefault();
+              setArrastrandoJson(true);
+            }}
+            onDragLeave={() => setArrastrandoJson(false)}
+            onDrop={manejarDropJson}
+            className={`rounded-sm border border-dashed px-3 py-3.5 text-center transition-colors ${
+              arrastrandoJson
+                ? 'border-emerald-400 bg-emerald-950/25'
+                : 'border-zinc-700 bg-zinc-900/50'
+            }`}
+          >
+            <Upload
+              size={18}
+              strokeWidth={1.75}
+              className="mx-auto text-zinc-400"
+              aria-hidden
+            />
+            <p className="mt-1.5 font-mono text-[10.5px] tracking-[0.08em] text-zinc-300">
+              Arrastrá el reporte <span className="text-emerald-400">.json</span> del simulador aquí
+            </p>
+            <p className="mt-0.5 font-mono text-[9.5px] tracking-[0.06em] text-zinc-500">
+              Depuración automática del bug suelo (-2), métricas de volante/frenos e informe Gemini 2.5 Flash.
+            </p>
+            <div className="mt-2.5 flex flex-wrap items-center justify-center gap-2">
+              <button
+                type="button"
+                onClick={() => inputArchivoRef.current?.click()}
+                className="inline-flex min-h-[40px] items-center gap-1.5 rounded-sm border border-zinc-600 bg-zinc-900 px-3 font-mono text-[10px] font-semibold tracking-[0.12em] text-zinc-100 transition-colors hover:border-white hover:text-white focus-visible:outline-1 focus-visible:outline-white"
+              >
+                <FileJson size={13} strokeWidth={1.75} aria-hidden />
+                {metricasActivas ? 'REEMPLAZAR ARCHIVO .JSON' : 'SELECCIONAR ARCHIVO .JSON'}
+              </button>
+              {metricasActivas && (
+                <button
+                  type="button"
+                  disabled={analizandoIA}
+                  onClick={() => void ejecutarAnalisisIA()}
+                  className="inline-flex min-h-[40px] items-center gap-1.5 rounded-sm border border-emerald-500 bg-emerald-500 px-3 font-mono text-[10px] font-semibold tracking-[0.12em] text-emerald-950 transition-colors hover:bg-emerald-400 disabled:cursor-not-allowed disabled:border-zinc-700 disabled:bg-zinc-800 disabled:text-zinc-500 focus-visible:outline-1 focus-visible:outline-white"
+                >
+                  {analizandoIA ? (
+                    <>
+                      <Loader2 size={13} strokeWidth={2} className="animate-spin" aria-hidden />
+                      ANALIZANDO CON IA…
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles size={13} strokeWidth={2} aria-hidden />
+                      GENERAR INFORME IA
+                    </>
+                  )}
+                </button>
+              )}
+            </div>
+          </div>
+
+          {errorJson && (
+            <p
+              role="alert"
+              className="rounded-sm border border-red-500/50 bg-red-950/35 px-2.5 py-2 font-mono text-[10px] text-red-300"
+            >
+              {errorJson}
+            </p>
+          )}
+
+          {errorIA && (
+            <p
+              role="alert"
+              className="rounded-sm border border-red-500/50 bg-red-950/35 px-2.5 py-2 font-mono text-[10px] text-red-300"
+            >
+              {errorIA}
+            </p>
+          )}
+
+          {metricasActivas && (
+            <div className="space-y-2 rounded-sm border border-zinc-800 bg-zinc-900/60 p-2.5">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="font-mono text-[9.5px] tracking-[0.12em] text-zinc-400">
+                  MÉTRICAS PARSEADAS{metricasActivas.exerciseName ? ` · ${metricasActivas.exerciseName}` : ''}
+                </p>
+                {metricasActivas.alertaFalsoPositivoSuelo && (
+                  <span className="inline-flex items-center gap-1 rounded-sm border border-amber-500/50 bg-amber-950/40 px-2 py-0.5 font-mono text-[9px] font-semibold text-amber-300">
+                    <CheckCircle2 size={11} strokeWidth={2} aria-hidden />
+                    {metricasActivas.colisionesDescartadas} ARTEFACTO(S) SUELO -2 DEPURADOS
+                  </span>
+                )}
+              </div>
+
+              <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-4">
+                <Metrica
+                  etiqueta="SCORE"
+                  valor={formatoNumeroSeguro(metricasActivas.scorePuntos, ' pts')}
+                />
+                <Metrica
+                  etiqueta="DURACIÓN"
+                  valor={formatoSegundos(metricasActivas.tiempoDuracionSeg)}
+                />
+                <Metrica
+                  etiqueta="COLIS. REALES"
+                  valor={String(metricasActivas.colisionesReales)}
+                />
+                <Metrica
+                  etiqueta="SERRUCHO"
+                  valor={formatoNumeroSeguro(metricasActivas.indiceSerrucho, '', 3)}
+                />
+                <Metrica
+                  etiqueta="VOLANTAZOS"
+                  valor={formatoNumeroSeguro(metricasActivas.volantazosExtremos, '', 0)}
+                />
+                <Metrica
+                  etiqueta="FRENADAS PÁNICO"
+                  valor={formatoNumeroSeguro(metricasActivas.frenadasPanico, '', 0)}
+                />
+                <Metrica
+                  etiqueta="VEL. MÁXIMA"
+                  valor={formatoNumeroSeguro(metricasActivas.velocidadMaxKmh, ' km/h', 1)}
+                />
+                <Metrica
+                  etiqueta="DESCARTADAS -2"
+                  valor={String(metricasActivas.colisionesDescartadas)}
+                />
+              </div>
+            </div>
+          )}
+
+          {avisoPersistenciaIA && (
+            <p
+              role="status"
+              className="rounded-sm border border-zinc-800 bg-zinc-900 px-2.5 py-1.5 font-mono text-[9.5px] text-zinc-400"
+            >
+              {avisoPersistenciaIA}
+            </p>
+          )}
+
+          {informeActivo ? (
+            <div className="space-y-2.5 rounded-sm border border-emerald-500/35 bg-zinc-900/80 p-3">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-zinc-800 pb-2">
+                <span className="font-mono text-[9.5px] tracking-[0.12em] text-zinc-400">
+                  {informeActivo.origen === 'GEMINI_2_5_FLASH'
+                    ? 'MOTOR: GEMINI 2.5 FLASH'
+                    : 'MOTOR: FALLBACK HEURÍSTICO'}
+                </span>
+                <span
+                  className={`rounded-sm px-2 py-0.5 font-mono text-[9.5px] font-bold tracking-[0.1em] ${
+                    BADGE_DICTAMEN_IA[informeActivo.dictamenSugerido].clase
+                  }`}
+                >
+                  {BADGE_DICTAMEN_IA[informeActivo.dictamenSugerido].etiqueta}
+                </span>
+              </div>
+
+              {(informeActivo.banderaFalsoPositivoSuelo ||
+                informeActivo.banderaFalsoNegativoRiesgoOculto) && (
+                <div className="flex flex-wrap gap-1.5">
+                  {informeActivo.banderaFalsoPositivoSuelo && (
+                    <span className="inline-flex items-center gap-1 rounded-sm border border-emerald-500/40 bg-emerald-950/35 px-2 py-0.5 font-mono text-[9px] text-emerald-300">
+                      <CheckCircle2 size={11} strokeWidth={2} aria-hidden />
+                      ANTIFALSO POSITIVO · SUELO -2 IGNORADO
+                    </span>
+                  )}
+                  {informeActivo.banderaFalsoNegativoRiesgoOculto && (
+                    <span className="inline-flex items-center gap-1 rounded-sm border border-amber-500/50 bg-amber-950/40 px-2 py-0.5 font-mono text-[9px] text-amber-300">
+                      <ShieldAlert size={11} strokeWidth={2} aria-hidden />
+                      ALERTA ANTIFALSO NEGATIVO · RIESGO EN TELEMETRÍA
+                    </span>
+                  )}
+                </div>
+              )}
+
+              <ol className="space-y-2">
+                {informeActivo.puntos.map((punto) => (
+                  <li
+                    key={punto.titulo}
+                    className="rounded-sm border border-zinc-800 bg-zinc-950 px-2.5 py-2"
+                  >
+                    <p className="font-mono text-[9.5px] font-semibold tracking-[0.12em] text-emerald-300">
+                      {punto.titulo}
+                    </p>
+                    <p className="mt-1 font-mono text-[10.5px] leading-relaxed text-zinc-200">
+                      {punto.detalle}
+                    </p>
+                  </li>
+                ))}
+              </ol>
+
+              <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
+                <span className="font-mono text-[9px] text-zinc-500">
+                  {informeActivo.modelo} ·{' '}
+                  {Number.isFinite(Date.parse(informeActivo.generadoEn))
+                    ? new Date(informeActivo.generadoEn).toLocaleString('es-AR', {
+                        dateStyle: 'short',
+                        timeStyle: 'short',
+                      })
+                    : informeActivo.generadoEn}
+                </span>
+                <button
+                  type="button"
+                  onClick={volcarRecomendacionANotas}
+                  className="inline-flex h-8 items-center gap-1.5 rounded-sm border border-zinc-700 px-2.5 font-mono text-[9.5px] tracking-[0.1em] text-zinc-300 transition-colors hover:border-white hover:text-white focus-visible:outline-1 focus-visible:outline-white"
+                >
+                  <ClipboardCopy size={11} strokeWidth={1.75} aria-hidden />
+                  COPIAR PUNTO 3 A NOTAS
+                </button>
+              </div>
+            </div>
+          ) : metricasActivas ? (
+            <div className="flex items-center gap-2 rounded-sm border border-zinc-800 bg-zinc-900/50 px-3 py-2 font-mono text-[10px] text-amber-300">
+              <AlertTriangle size={13} strokeWidth={1.75} className="shrink-0" aria-hidden />
+              <span>
+                Reporte cargado. Pulsá &quot;GENERAR INFORME IA&quot; para emitir la síntesis de 3 puntos.
+              </span>
+            </div>
+          ) : null}
         </section>
 
         {/* ── Notas sociolaborales de Empleo ─────────────────── */}

@@ -465,3 +465,93 @@ export function proyectarCalendarioCohorteV2(
     alertas,
   };
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Cálculo Determinista de Grupos A/B y Duplas 1..8 (Modelo 16 Alumnos)
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface DuplaPlanificadaItem {
+  duplaNumero: number; // 1..8
+  grupo: GrupoCursado; // 'GRUPO_A' (1..4) | 'GRUPO_B' (5..8)
+  diasLabel: string; // 'Lun / Mié' | 'Mar / Jue'
+  franja: FranjaCursado;
+  horarioLabel: string;
+  puestoDesde: number;
+  puestoHasta: number;
+  integrantesPrevistos: number; // 0 | 1 | 2 según cupoAlumnos
+}
+
+export interface ResumenGruposYDuplas {
+  cupoTotal: number;
+  capacidadBaseDuplas: number;
+  titularesEnDuplas: number;
+  cuposReserva: number;
+  totalDuplasActivas: number;
+  grupoACantidad: number;
+  grupoBCantidad: number;
+  duplas: DuplaPlanificadaItem[];
+}
+
+const HORARIOS_FRANJA_DUPLA: Record<FranjaCursado, string> = {
+  M1_10_11: '10:00 - 11:00',
+  M2_11_12: '11:00 - 12:00',
+  T1_16_17: '16:00 - 17:00',
+  T2_17_18: '17:00 - 18:00',
+};
+
+/**
+ * Calcula de forma determinista la distribución de Grupos A (Lun/Mié, Duplas 1..4)
+ * y B (Mar/Jue, Duplas 5..8) para un cupo dado bajo el régimen de 8 duplas (16 alumnos).
+ */
+export function calcularEstructuraGruposYDuplas(
+  cupoTotalInput: number
+): ResumenGruposYDuplas {
+  const cupoTotal =
+    Number.isInteger(cupoTotalInput) && cupoTotalInput > 0
+      ? Math.min(200, cupoTotalInput)
+      : 16;
+  const capacidadBaseDuplas = 16;
+  const duplas: DuplaPlanificadaItem[] = [];
+
+  for (let i = 0; i < 8; i += 1) {
+    const duplaNumero = i + 1;
+    const grupo: GrupoCursado = duplaNumero <= 4 ? 'GRUPO_A' : 'GRUPO_B';
+    const franja = FRANJAS_OPERATIVAS[i % TOTAL_DUPLAS_POR_GRUPO];
+    const puestoDesde = i * 2 + 1;
+    const puestoHasta = i * 2 + 2;
+    const integrantesPrevistos = Math.max(
+      0,
+      Math.min(2, cupoTotal - (puestoDesde - 1))
+    );
+
+    duplas.push({
+      duplaNumero,
+      grupo,
+      diasLabel: grupo === 'GRUPO_A' ? 'Lun / Mié' : 'Mar / Jue',
+      franja,
+      horarioLabel: HORARIOS_FRANJA_DUPLA[franja],
+      puestoDesde,
+      puestoHasta,
+      integrantesPrevistos,
+    });
+  }
+
+  const grupoACantidad = duplas
+    .filter((d) => d.grupo === 'GRUPO_A')
+    .reduce((acc, d) => acc + d.integrantesPrevistos, 0);
+  const grupoBCantidad = duplas
+    .filter((d) => d.grupo === 'GRUPO_B')
+    .reduce((acc, d) => acc + d.integrantesPrevistos, 0);
+
+  return {
+    cupoTotal,
+    capacidadBaseDuplas,
+    titularesEnDuplas: grupoACantidad + grupoBCantidad,
+    cuposReserva: Math.max(0, cupoTotal - capacidadBaseDuplas),
+    totalDuplasActivas: duplas.filter((d) => d.integrantesPrevistos > 0).length,
+    grupoACantidad,
+    grupoBCantidad,
+    duplas,
+  };
+}
+

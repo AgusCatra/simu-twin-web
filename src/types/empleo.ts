@@ -4,9 +4,17 @@
  * `postulantes` y `evaluacion_diagnostico` (migraciones 0005 + 0006 + 0007).
  */
 
+import type { InformeEmpleoIA } from '@/lib/ia/generador-informe';
+import type { MetricasSimulador } from '@/lib/telemetria/parser-simulador';
+
 export type TurnoFranja = 'Mañana' | 'Tarde';
 
 export type EstadoInscripcion = 'DISPONIBLE' | 'CONFIRMADO' | 'DESCARTADO';
+
+export type TipoMaquinariaCohorte =
+  | 'AUTOELEVADOR'
+  | 'PALA_FRONTAL'
+  | 'RETROEXCAVADORA';
 
 export interface CohorteActiva {
   id: string;
@@ -57,6 +65,8 @@ export interface TelemetriaTitan {
 export interface FichaEvaluacion {
   dictamen: string | null;
   asistencia_cabina: string | null;
+  nivel_asistencia: string | null;
+  bloque_split: string | null;
   tiene_evaluacion_tablet: boolean;
   etapa_tablet: EtapaEvaluacion | null;
   score_tablet: number | null;
@@ -76,6 +86,9 @@ export interface FichaEvaluacion {
   eje_mastil: string | null;
   eje_control_receptividad: string | null;
   telemetria: TelemetriaTitan;
+  telemetria_archivo_nombre: string | null;
+  telemetria_metricas: MetricasSimulador | null;
+  informe_ia: InformeEmpleoIA | null;
 }
 
 export interface PostulanteFila {
@@ -191,4 +204,42 @@ export interface ComparativaProgreso {
   tieneComparativaFinalRadar: boolean;
 }
 
+export interface CrearCohorteInput {
+  codigo: string;
+  nombre: string;
+  tipo_maquinaria: TipoMaquinariaCohorte;
+  fecha_teoria: string;
+  cupo_alumnos: number;
+  max_titulares: number;
+  activar_inmediatamente?: boolean;
+}
+
+export interface CrearPostulanteInput {
+  cohorte_id: string;
+  nombre_completo: string;
+  dni: string;
+  origen_turno: 'TM' | 'TT' | 'INDEFINIDO';
+  telefono?: string | null;
+  ranking_orden: number;
+  obs_empleo?: string | null;
+}
+
+export interface AnalizarTelemetriaIAInput {
+  postulante_id: string;
+  archivo_nombre: string;
+  metricas: MetricasSimulador;
+}
+
 export type ResultadoAccion = { ok: true } | { ok: false; error: string };
+
+export type ResultadoCrearCohorte =
+  | { ok: true; cohorte_id: string }
+  | { ok: false; error: string };
+
+export type ResultadoCrearPostulante =
+  | { ok: true; postulante_id: string; inscripcion_id: string }
+  | { ok: false; error: string };
+
+export type ResultadoAnalisisIA =
+  | { ok: true; informe: InformeEmpleoIA; persistido: boolean }
+  | { ok: false; error: string };

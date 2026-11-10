@@ -4,12 +4,22 @@ import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import {
   obtenerProximoLunesPosterior,
+  parsearFechaUtc,
   proyectarCalendarioCohorteV2,
   TOTAL_SESIONES_CICLO,
 } from '@/lib/calendario-duplas';
+import {
+  generarInformeEmpleoIA,
+  type ContextoPostulanteIA,
+  type InformeEmpleoIA,
+} from '@/lib/ia/generador-informe';
+import type { MetricasSimulador } from '@/lib/telemetria/parser-simulador';
 import type {
+  AnalizarTelemetriaIAInput,
   ComparativaProgreso,
   ConfiguracionCohorteInput,
+  CrearCohorteInput,
+  CrearPostulanteInput,
   DatosCohorteActiva,
   EjeRadar,
   EstadoInscripcion,
@@ -22,7 +32,11 @@ import type {
   PostulanteFila,
   PuntoRadar,
   ResultadoAccion,
+  ResultadoAnalisisIA,
+  ResultadoCrearCohorte,
+  ResultadoCrearPostulante,
   TelemetriaTitan,
+  TipoMaquinariaCohorte,
   TurnoFranja,
 } from '@/types/empleo';
 
@@ -39,8 +53,36 @@ const ESTADOS_VALIDOS: readonly EstadoInscripcion[] = [
   'CONFIRMADO',
   'DESCARTADO',
 ];
+const TIPOS_MAQUINARIA_VALIDOS: readonly TipoMaquinariaCohorte[] = [
+  'AUTOELEVADOR',
+  'PALA_FRONTAL',
+  'RETROEXCAVADORA',
+];
+const TURNOS_ORIGEN_VALIDOS: readonly ('TM' | 'TT' | 'INDEFINIDO')[] = [
+  'TM',
+  'TT',
+  'INDEFINIDO',
+];
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const MAX_MOTIVO_BAJA = 500;
 const MAX_NOTAS_EMPLEO = 2000;
+
+const FRANJAS_CABINA_ESTANDAR: readonly {
+  turno: TurnoFranja;
+  horario_label: string;
+  hora_inicio: string;
+  hora_fin: string;
+  cupo_maximo: number;
+}[] = [
+  { turno: 'Mañana', horario_label: '08:00 - 09:00', hora_inicio: '08:00:00', hora_fin: '09:00:00', cupo_maximo: 3 },
+  { turno: 'Mañana', horario_label: '09:00 - 10:00', hora_inicio: '09:00:00', hora_fin: '10:00:00', cupo_maximo: 3 },
+  { turno: 'Mañana', horario_label: '10:00 - 11:00', hora_inicio: '10:00:00', hora_fin: '11:00:00', cupo_maximo: 3 },
+  { turno: 'Mañana', horario_label: '11:00 - 12:00', hora_inicio: '11:00:00', hora_fin: '12:00:00', cupo_maximo: 3 },
+  { turno: 'Tarde', horario_label: '16:00 - 17:00', hora_inicio: '16:00:00', hora_fin: '17:00:00', cupo_maximo: 3 },
+  { turno: 'Tarde', horario_label: '17:00 - 18:00', hora_inicio: '17:00:00', hora_fin: '18:00:00', cupo_maximo: 3 },
+  { turno: 'Tarde', horario_label: '18:00 - 19:00', hora_inicio: '18:00:00', hora_fin: '19:00:00', cupo_maximo: 3 },
+];
 
 // Umbrales de receptividad sobre delta_tiempo_seg relativo V1→V2 (%).
 const UMBRAL_ASIMILACION_SEG = -10;
@@ -80,6 +122,8 @@ interface FilaEvaluacion {
   created_at: string | null;
   dictamen: string | null;
   asistencia_cabina: string | null;
+  nivel_asistencia: string | null;
+  bloque_split: string | null;
   hard_fail: boolean | null;
   motivo_hard_fail: string | null;
   instructor_evaluador: string | null;
@@ -105,6 +149,9 @@ interface FilaEvaluacion {
   delta_colisiones: number | null;
   delta_score: number | string | null;
   delta_serrucho: number | string | null;
+  telemetria_archivo_nombre?: string | null;
+  telemetria_metricas?: unknown;
+  informe_ia?: unknown;
 }
 
 interface FilaInscripcion {
@@ -192,6 +239,21 @@ function parsearTelemetriaLateralidad(texto: string | null): {
   };
 }
 
+function normalizarMetricasGuardadas(raw: unknown): MetricasSimulador | null {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+  const obj = raw as Record<string, unknown>;
+  if (typeof obj.colisionesReales !== 'number') return null;
+  return obj as unknown as MetricasSimulador;
+}
+
+function normalizarInformeGuardado(raw: unknown): InformeEmpleoIA | null {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+  const obj = raw as Record<string, unknown>;
+  if (!Array.isArray(obj.puntos) || obj.puntos.length !== 3) return null;
+  if (typeof obj.dictamenSugerido !== 'string') return null;
+  return obj as unknown as InformeEmpleoIA;
+}
+
 function mapearEvaluacion(filas: FilaEvaluacion[] | null): FichaEvaluacion | null {
   if (!filas || filas.length === 0) return null;
 
@@ -223,6 +285,13 @@ function mapearEvaluacion(filas: FilaEvaluacion[] | null): FichaEvaluacion | nul
   const filaTablet = filasTablet[0] ?? null;
   const filaTitan = filasTitan[0] ?? null;
   const filaBase = filaTablet ?? filaTitan ?? ordenadasReciente[0];
+  const filaConIA =
+    ordenadasReciente.find((f) => normalizarInformeGuardado(f.informe_ia) !== null) ??
+    null;
+  const filaConMetricasJson =
+    ordenadasReciente.find(
+      (f) => normalizarMetricasGuardadas(f.telemetria_metricas) !== null
+    ) ?? null;
 
   const telemetriaTexto = parsearTelemetriaLateralidad(
     filaTitan?.eje_lateralidad ?? null
@@ -250,6 +319,8 @@ function mapearEvaluacion(filas: FilaEvaluacion[] | null): FichaEvaluacion | nul
   return {
     dictamen: filaBase.dictamen,
     asistencia_cabina: filaBase.asistencia_cabina,
+    nivel_asistencia: filaTablet?.nivel_asistencia ?? filaBase.nivel_asistencia ?? null,
+    bloque_split: filaTablet?.bloque_split ?? filaBase.bloque_split ?? null,
     tiene_evaluacion_tablet: filaTablet !== null,
     etapa_tablet: filaTablet ? normalizarEtapa(filaTablet.etapa) : null,
     score_tablet: filaTablet ? numeroOrNull(filaTablet.score_puntos) : null,
@@ -272,6 +343,14 @@ function mapearEvaluacion(filas: FilaEvaluacion[] | null): FichaEvaluacion | nul
     eje_control_receptividad:
       filaTitan?.eje_control_receptividad ?? filaBase.eje_control_receptividad,
     telemetria,
+    telemetria_archivo_nombre:
+      filaConIA?.telemetria_archivo_nombre ??
+      filaConMetricasJson?.telemetria_archivo_nombre ??
+      null,
+    telemetria_metricas: filaConMetricasJson
+      ? normalizarMetricasGuardadas(filaConMetricasJson.telemetria_metricas)
+      : null,
+    informe_ia: filaConIA ? normalizarInformeGuardado(filaConIA.informe_ia) : null,
   };
 }
 
@@ -332,6 +411,8 @@ export async function obtenerDatosCohorteActiva(): Promise<DatosCohorteActiva | 
       `id, ranking_orden, estado, motivo_baja, obs_empleo, franja_id, postulante_id,
        postulantes(nombre_completo, dni, origen_turno,
          evaluacion_diagnostico(id, created_at, dictamen, asistencia_cabina,
+           nivel_asistencia, bloque_split, telemetria_archivo_nombre,
+           telemetria_metricas, informe_ia,
            archivo_fuente, etapa, es_mejor_diagnostico,
            hard_fail, motivo_hard_fail, instructor_evaluador,
            observaciones_rapidas, observaciones_detalle,
@@ -1011,4 +1092,559 @@ export async function obtenerComparativaProgreso(
   }
 
   return payload;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Sprint 4 · Alta de Cohorte, Alta de Postulante y Motor IA Empleo
+// ─────────────────────────────────────────────────────────────────────────────
+
+function normalizarMetricasInput(raw: unknown): MetricasSimulador | null {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+  const obj = raw as Record<string, unknown>;
+
+  const numOrNull = (val: unknown, min: number, max: number): number | null => {
+    if (val === null || val === undefined) return null;
+    if (typeof val !== 'number' || !Number.isFinite(val)) return null;
+    if (val < min || val > max) return null;
+    return val;
+  };
+
+  const intOrZero = (val: unknown, max: number): number | null => {
+    if (typeof val !== 'number' || !Number.isFinite(val)) return null;
+    const trunc = Math.trunc(val);
+    if (trunc < 0 || trunc > max) return null;
+    return trunc;
+  };
+
+  const colisionesReales = intOrZero(obj.colisionesReales, 1000);
+  const colisionesDescartadas = intOrZero(obj.colisionesDescartadas, 1000);
+  if (colisionesReales === null || colisionesDescartadas === null) return null;
+
+  const hallazgosMastil = Array.isArray(obj.hallazgosMastil)
+    ? obj.hallazgosMastil
+        .filter((x): x is string => typeof x === 'string')
+        .map((x) => x.trim().slice(0, 200))
+        .slice(0, 8)
+    : [];
+
+  return {
+    archivoFuente:
+      typeof obj.archivoFuente === 'string'
+        ? obj.archivoFuente.trim().slice(0, 160)
+        : null,
+    studentName:
+      typeof obj.studentName === 'string'
+        ? obj.studentName.trim().slice(0, 120)
+        : null,
+    studentId:
+      typeof obj.studentId === 'string' ? obj.studentId.trim().slice(0, 40) : null,
+    exerciseName:
+      typeof obj.exerciseName === 'string'
+        ? obj.exerciseName.trim().slice(0, 120)
+        : null,
+    exerciseStartTime:
+      typeof obj.exerciseStartTime === 'string'
+        ? obj.exerciseStartTime.trim().slice(0, 80)
+        : null,
+    scorePuntos: numOrNull(obj.scorePuntos, 0, 200),
+    tiempoDuracionSeg: numOrNull(obj.tiempoDuracionSeg, 0, 36000),
+    colisionesReales,
+    colisionesDescartadas,
+    colisionesDetalle: [],
+    descartesDetalle: [],
+    infraccionesConduccion: [],
+    indiceSerrucho: numOrNull(obj.indiceSerrucho, 0, 100),
+    volantazosExtremos: numOrNull(obj.volantazosExtremos, 0, 1000),
+    velocidadMaxKmh: numOrNull(obj.velocidadMaxKmh, 0, 100),
+    frenadasPanico: numOrNull(obj.frenadasPanico, 0, 1000),
+    clasificacionRiesgo:
+      typeof obj.clasificacionRiesgo === 'string'
+        ? obj.clasificacionRiesgo.trim().slice(0, 60)
+        : null,
+    clasificacionAptitud:
+      typeof obj.clasificacionAptitud === 'string'
+        ? obj.clasificacionAptitud.trim().slice(0, 60)
+        : null,
+    hallazgosMastil,
+    alertaFalsoPositivoSuelo: obj.alertaFalsoPositivoSuelo === true,
+  };
+}
+
+/**
+ * Crea una nueva cohorte con proyección determinista de calendario V2
+ * (Grupos A/B, 8 duplas, Viernes Buffer) y siembra sus 7 franjas de cabina.
+ */
+export async function crearCohorteAction(
+  input: CrearCohorteInput
+): Promise<ResultadoCrearCohorte> {
+  if (!input || typeof input !== 'object') {
+    return { ok: false, error: 'Payload inválido.' };
+  }
+
+  const codigo =
+    typeof input.codigo === 'string'
+      ? input.codigo.trim().toUpperCase().replace(/\s+/g, '-')
+      : '';
+  if (!/^[A-Z0-9][A-Z0-9-]{1,30}[A-Z0-9]$/.test(codigo)) {
+    return {
+      ok: false,
+      error: 'El código debe tener 3 a 32 caracteres alfanuméricos o guiones (ej: AUTO-2026-C2).',
+    };
+  }
+
+  const nombre =
+    typeof input.nombre === 'string' ? input.nombre.trim().slice(0, 120) : '';
+  if (nombre.length < 3) {
+    return { ok: false, error: 'El nombre de la cohorte debe tener al menos 3 caracteres.' };
+  }
+
+  if (
+    typeof input.tipo_maquinaria !== 'string' ||
+    !(TIPOS_MAQUINARIA_VALIDOS as readonly string[]).includes(input.tipo_maquinaria)
+  ) {
+    return { ok: false, error: 'Tipo de maquinaria inválido.' };
+  }
+
+  const fechaTeoria = typeof input.fecha_teoria === 'string' ? input.fecha_teoria.trim() : '';
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(fechaTeoria)) {
+    return { ok: false, error: 'La fecha de teoría debe tener formato YYYY-MM-DD.' };
+  }
+
+  const cupoAlumnos = input.cupo_alumnos;
+  if (!Number.isInteger(cupoAlumnos) || cupoAlumnos < 2 || cupoAlumnos > 32) {
+    return { ok: false, error: 'El cupo de alumnos en duplas debe estar entre 2 y 32.' };
+  }
+
+  const maxTitulares = input.max_titulares;
+  if (!Number.isInteger(maxTitulares) || maxTitulares < 1 || maxTitulares > 200) {
+    return { ok: false, error: 'El tope de titulares debe ser un entero entre 1 y 200.' };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: 'Sesión no válida.' };
+
+  const [{ data: existente }, { data: filasFeriados }] = await Promise.all([
+    supabase
+      .from('cohortes')
+      .select('id')
+      .eq('codigo', codigo)
+      .maybeSingle<{ id: string }>(),
+    supabase
+      .from('feriados_municipales')
+      .select('fecha')
+      .order('fecha', { ascending: true })
+      .returns<Array<{ fecha: string | null }>>(),
+  ]);
+
+  if (existente?.id) {
+    return { ok: false, error: `Ya existe una cohorte con el código ${codigo}.` };
+  }
+
+  const diasBloqueados = (filasFeriados ?? [])
+    .map((f) => (typeof f.fecha === 'string' ? f.fecha.split('T')[0] : ''))
+    .filter((fecha) => /^\d{4}-\d{2}-\d{2}$/.test(fecha));
+
+  let proyeccion;
+  try {
+    parsearFechaUtc(fechaTeoria);
+    const fechaInicioSimulador = obtenerProximoLunesPosterior(fechaTeoria);
+    proyeccion = proyectarCalendarioCohorteV2({
+      fechaInicioTeoria: fechaTeoria,
+      fechaInicioSimulador,
+      diasBloqueados,
+      estrategiaFeriados: 'MOVER_A_VIERNES',
+    });
+  } catch {
+    return { ok: false, error: 'La fecha de teoría no es válida para proyectar calendario.' };
+  }
+
+  const activar = input.activar_inmediatamente !== false;
+
+  const { data: cohorteCreada, error: errInsert } = await supabase
+    .from('cohortes')
+    .insert({
+      codigo,
+      nombre,
+      tipo_maquinaria: input.tipo_maquinaria,
+      fecha_teoria: fechaTeoria,
+      fecha_inicio_sim: proyeccion.fechaInicioSimulador,
+      fecha_fin_sim: proyeccion.fechaFinSimulador,
+      fecha_pase_planta: proyeccion.fechaPaseTerreno,
+      cant_dias_sim: TOTAL_SESIONES_CICLO,
+      max_titulares: maxTitulares,
+      cupo_alumnos: cupoAlumnos,
+      duracion_semanas: 3,
+      total_sesiones_requeridas: TOTAL_SESIONES_CICLO,
+      estado: activar ? 'activa' : 'borrador',
+      estado_v2: 'PLANIFICADA',
+    })
+    .select('id')
+    .single<{ id: string }>();
+
+  if (errInsert || !cohorteCreada?.id) {
+    console.error('[crearCohorteAction] Error al crear cohorte:', {
+      code: errInsert?.code,
+      message: errInsert?.message,
+    });
+    return {
+      ok: false,
+      error:
+        errInsert?.code === '23505'
+          ? `El código ${codigo} ya se encuentra registrado.`
+          : 'No se pudo crear la cohorte.',
+    };
+  }
+
+  const franjasInsert = FRANJAS_CABINA_ESTANDAR.map((f) => ({
+    cohorte_id: cohorteCreada.id,
+    turno: f.turno,
+    horario_label: f.horario_label,
+    hora_inicio: f.hora_inicio,
+    hora_fin: f.hora_fin,
+    cupo_maximo: f.cupo_maximo,
+  }));
+
+  const { error: errFranjas } = await supabase
+    .from('franjas_cabina')
+    .insert(franjasInsert);
+
+  if (errFranjas) {
+    console.error('[crearCohorteAction] Error al sembrar franjas:', {
+      code: errFranjas.code,
+      message: errFranjas.message,
+    });
+    await supabase.from('cohortes').delete().eq('id', cohorteCreada.id);
+    return { ok: false, error: 'No se pudieron inicializar las franjas de cabina.' };
+  }
+
+  if (activar) {
+    const { error: errDesactivar } = await supabase
+      .from('cohortes')
+      .update({ estado: 'finalizada' })
+      .eq('estado', 'activa')
+      .neq('id', cohorteCreada.id);
+
+    if (errDesactivar) {
+      console.error('[crearCohorteAction] Aviso al cerrar cohorte previa:', {
+        code: errDesactivar.code,
+        message: errDesactivar.message,
+      });
+    }
+  }
+
+  revalidatePath(RUTA_PANEL);
+  revalidatePath('/cabina/evaluacion');
+  revalidatePath('/admin');
+  return { ok: true, cohorte_id: cohorteCreada.id };
+}
+
+/**
+ * Da de alta un postulante en `public.postulantes` (o reutiliza su legajo
+ * existente por DNI) y lo inscribe en la cohorte indicada con estado DISPONIBLE.
+ */
+export async function crearPostulanteAction(
+  input: CrearPostulanteInput
+): Promise<ResultadoCrearPostulante> {
+  if (!input || typeof input !== 'object') {
+    return { ok: false, error: 'Payload inválido.' };
+  }
+
+  const cohorteId = typeof input.cohorte_id === 'string' ? input.cohorte_id.trim() : '';
+  if (!UUID_RE.test(cohorteId)) {
+    return { ok: false, error: 'Identificador de cohorte inválido.' };
+  }
+
+  const nombreCompleto =
+    typeof input.nombre_completo === 'string'
+      ? input.nombre_completo.trim().replace(/\s+/g, ' ').slice(0, 120)
+      : '';
+  if (nombreCompleto.length < 3) {
+    return { ok: false, error: 'El nombre completo debe tener al menos 3 caracteres.' };
+  }
+
+  const dniLimpio =
+    typeof input.dni === 'string' ? input.dni.replace(/\D+/g, '') : '';
+  if (!/^\d{7,9}$/.test(dniLimpio)) {
+    return { ok: false, error: 'El DNI debe contener entre 7 y 9 dígitos numéricos.' };
+  }
+
+  if (
+    typeof input.origen_turno !== 'string' ||
+    !(TURNOS_ORIGEN_VALIDOS as readonly string[]).includes(input.origen_turno)
+  ) {
+    return { ok: false, error: 'Turno de origen inválido.' };
+  }
+
+  const rankingOrden = input.ranking_orden;
+  if (!Number.isInteger(rankingOrden) || rankingOrden < 1 || rankingOrden > 999) {
+    return { ok: false, error: 'El orden de ranking debe ser un entero entre 1 y 999.' };
+  }
+
+  const telefono =
+    typeof input.telefono === 'string'
+      ? input.telefono.trim().slice(0, 30) || null
+      : null;
+  if (telefono && !/^[+\d\s()-]{5,30}$/.test(telefono)) {
+    return { ok: false, error: 'Formato de teléfono inválido.' };
+  }
+
+  const obsEmpleo =
+    typeof input.obs_empleo === 'string'
+      ? input.obs_empleo.trim().slice(0, MAX_NOTAS_EMPLEO) || null
+      : null;
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: 'Sesión no válida.' };
+
+  // Anti-IDOR: verificar que la cohorte exista en base de datos
+  const { data: cohorte, error: errCohorte } = await supabase
+    .from('cohortes')
+    .select('id')
+    .eq('id', cohorteId)
+    .maybeSingle<{ id: string }>();
+
+  if (errCohorte || !cohorte?.id) {
+    return { ok: false, error: 'La cohorte seleccionada no existe.' };
+  }
+
+  const { data: postulanteExistente, error: errBuscarDni } = await supabase
+    .from('postulantes')
+    .select('id')
+    .eq('dni', dniLimpio)
+    .maybeSingle<{ id: string }>();
+
+  if (errBuscarDni) {
+    console.error('[crearPostulanteAction] Error al buscar DNI:', {
+      code: errBuscarDni.code,
+      message: errBuscarDni.message,
+    });
+    return { ok: false, error: 'No se pudo verificar el DNI en el padrón.' };
+  }
+
+  let postulanteId = postulanteExistente?.id ?? null;
+
+  if (!postulanteId) {
+    const { data: creado, error: errCrearPost } = await supabase
+      .from('postulantes')
+      .insert({
+        dni: dniLimpio,
+        nombre_completo: nombreCompleto,
+        origen_turno: input.origen_turno,
+        telefono,
+      })
+      .select('id')
+      .single<{ id: string }>();
+
+    if (errCrearPost || !creado?.id) {
+      console.error('[crearPostulanteAction] Error al crear postulante:', {
+        code: errCrearPost?.code,
+        message: errCrearPost?.message,
+      });
+      return { ok: false, error: 'No se pudo registrar el postulante.' };
+    }
+    postulanteId = creado.id;
+  } else {
+    const { data: yaInscripto } = await supabase
+      .from('cohorte_inscripciones')
+      .select('id')
+      .eq('cohorte_id', cohorteId)
+      .eq('postulante_id', postulanteId)
+      .maybeSingle<{ id: string }>();
+
+    if (yaInscripto?.id) {
+      return {
+        ok: false,
+        error: `El postulante con DNI ${dniLimpio} ya figura inscripto en esta cohorte.`,
+      };
+    }
+
+    await supabase
+      .from('postulantes')
+      .update({
+        nombre_completo: nombreCompleto,
+        origen_turno: input.origen_turno,
+        ...(telefono ? { telefono } : {}),
+      })
+      .eq('id', postulanteId);
+  }
+
+  const { data: inscripcionCreada, error: errInscripcion } = await supabase
+    .from('cohorte_inscripciones')
+    .insert({
+      cohorte_id: cohorteId,
+      postulante_id: postulanteId,
+      ranking_orden: rankingOrden,
+      estado: 'DISPONIBLE',
+      obs_empleo: obsEmpleo,
+      updated_at: new Date().toISOString(),
+    })
+    .select('id')
+    .single<{ id: string }>();
+
+  if (errInscripcion || !inscripcionCreada?.id) {
+    console.error('[crearPostulanteAction] Error al inscribir en cohorte:', {
+      code: errInscripcion?.code,
+      message: errInscripcion?.message,
+    });
+    return { ok: false, error: 'No se pudo inscribir al postulante en la cohorte.' };
+  }
+
+  revalidatePath(RUTA_PANEL);
+  revalidatePath('/cabina/evaluacion');
+  revalidatePath('/admin');
+  return {
+    ok: true,
+    postulante_id: postulanteId,
+    inscripcion_id: inscripcionCreada.id,
+  };
+}
+
+/**
+ * Ejecuta en servidor el análisis IA (Gemini 2.5 Flash con fallback heurístico)
+ * sobre las métricas parseadas de un reporte `.json` y persiste los resultados
+ * en la última evaluación del postulante si existe en `evaluacion_diagnostico`.
+ */
+export async function analizarTelemetriaPostulanteAction(
+  input: AnalizarTelemetriaIAInput
+): Promise<ResultadoAnalisisIA> {
+  if (!input || typeof input !== 'object') {
+    return { ok: false, error: 'Datos de análisis inválidos.' };
+  }
+
+  const postulanteId =
+    typeof input.postulante_id === 'string' ? input.postulante_id.trim() : '';
+  if (!UUID_RE.test(postulanteId)) {
+    return { ok: false, error: 'Identificador de postulante inválido.' };
+  }
+
+  const archivoNombre =
+    typeof input.archivo_nombre === 'string'
+      ? input.archivo_nombre.trim().slice(0, 160)
+      : 'telemetria.json';
+  const metricas = normalizarMetricasInput(input.metricas);
+  if (!metricas) {
+    return { ok: false, error: 'Métricas de telemetría inválidas.' };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: 'Sesión no válida.' };
+
+  const { data: cohorte } = await supabase
+    .from('cohortes')
+    .select('id')
+    .eq('estado', 'activa')
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle<{ id: string }>();
+
+  if (!cohorte?.id) {
+    return { ok: false, error: 'No hay una cohorte activa para validar la consulta.' };
+  }
+
+  // Anti-IDOR: el postulante debe estar inscripto en la cohorte activa.
+  const { data: insc, error: errInsc } = await supabase
+    .from('cohorte_inscripciones')
+    .select(
+      'id, obs_empleo, postulantes(nombre_completo, dni)'
+    )
+    .eq('cohorte_id', cohorte.id)
+    .eq('postulante_id', postulanteId)
+    .maybeSingle<{
+      id: string;
+      obs_empleo: string | null;
+      postulantes:
+        | { nombre_completo: string; dni: string }
+        | { nombre_completo: string; dni: string }[]
+        | null;
+    }>();
+
+  if (errInsc || !insc) {
+    return {
+      ok: false,
+      error: 'El postulante no pertenece a la cohorte activa.',
+    };
+  }
+
+  const rel = Array.isArray(insc.postulantes)
+    ? insc.postulantes[0]
+    : insc.postulantes;
+  if (!rel) {
+    return { ok: false, error: 'Legajo del postulante no encontrado.' };
+  }
+
+  const { data: evalFilas } = await supabase
+    .from('evaluacion_diagnostico')
+    .select(
+      'id, created_at, dictamen, asistencia_cabina, nivel_asistencia, bloque_split, score_puntos, hard_fail, motivo_hard_fail, observaciones_rapidas, archivo_fuente'
+    )
+    .eq('postulante_id', postulanteId)
+    .order('created_at', { ascending: false });
+
+  const filas = (evalFilas ?? []) as unknown as Array<{
+    id: string;
+    dictamen: string | null;
+    asistencia_cabina: string | null;
+    nivel_asistencia: string | null;
+    bloque_split: string | null;
+    score_puntos: number | string | null;
+    hard_fail: boolean | null;
+    motivo_hard_fail: string | null;
+    observaciones_rapidas: string[] | null;
+    archivo_fuente: string | null;
+  }>;
+
+  const filaCabina =
+    filas.find((f) => esArchivoTablet(f.archivo_fuente)) ?? filas[0] ?? null;
+
+  const contexto: ContextoPostulanteIA = {
+    nombreCompleto: rel.nombre_completo,
+    dni: rel.dni,
+    dictamenCabina: filaCabina?.dictamen ?? null,
+    nivelAsistenciaCabina: filaCabina?.nivel_asistencia ?? null,
+    asistenciaCabinaLegacy: filaCabina?.asistencia_cabina ?? null,
+    bloqueSplit: filaCabina?.bloque_split ?? null,
+    scoreCabina: numeroOrNull(filaCabina?.score_puntos),
+    hardFailCabina: filaCabina?.hard_fail === true,
+    motivoHardFailCabina: filaCabina?.motivo_hard_fail ?? null,
+    observacionesCabina: Array.isArray(filaCabina?.observaciones_rapidas)
+      ? filaCabina.observaciones_rapidas
+      : null,
+    notasEmpleo: insc.obs_empleo,
+  };
+
+  const informe = await generarInformeEmpleoIA(metricas, contexto);
+
+  let persistido = false;
+  if (filaCabina?.id) {
+    const { error: errPersist } = await supabase
+      .from('evaluacion_diagnostico')
+      .update({
+        telemetria_archivo_nombre: archivoNombre,
+        telemetria_metricas: metricas,
+        informe_ia: informe,
+      })
+      .eq('id', filaCabina.id)
+      .eq('postulante_id', postulanteId);
+
+    if (errPersist) {
+      console.error('[analizarTelemetriaPostulanteAction] Error al persistir informe:', {
+        code: errPersist.code,
+        message: errPersist.message,
+      });
+    } else {
+      persistido = true;
+    }
+  }
+
+  revalidatePath(RUTA_PANEL);
+  return { ok: true, informe, persistido };
 }

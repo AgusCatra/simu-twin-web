@@ -1,25 +1,28 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
+import { Volume2, VolumeX, ArrowLeftRight } from 'lucide-react';
 import { registrarEvaluacionCabina } from '@/services/cabina';
-import { calcularDictamen } from '@/lib/cabina/dictamen';
+import {
+  calcularDictamen,
+  mapearNivelAsistenciaACabina,
+} from '@/lib/cabina/dictamen';
 import type {
   AlumnoTurno,
-  AsistenciaCabina,
+  BloqueSplit,
   DictamenCabina,
   EtapaEvaluacionCabina,
   EvaluacionCabinaInput,
+  NivelAsistencia,
   PuntajeEje,
 } from '@/types/cabina';
 
 /**
  * Consola Viva de Cabina — interfaz táctil fullscreen para el instructor.
  *
- * Estética industrial del proyecto: zinc plano, font-mono, uppercase con
- * tracking, rounded-sm, LEDs, sin sombras ni gradientes. Pastillas de ejes
- * min h-14 (56px) y botón final h-16 (64px): usable a una mano con pulgar.
- * El dictamen en vivo usa `calcularDictamen` del módulo puro compartido
- * (@/lib/cabina/dictamen), la misma regla que aplica el backend al guardar.
+ * Incluye selector granular de `nivel_asistencia` (min-h-[48px]) y cronómetro
+ * Split 30/30 (1800 s por mitad) con switch visual de Piloto/Copiloto y alerta
+ * sonora vía Web Audio API al alcanzar el minuto 30.
  */
 
 interface Props {
@@ -34,6 +37,9 @@ type ClavePuntaje =
   | 'puntaje_control_receptividad';
 
 type PuntajesEstado = Record<ClavePuntaje, PuntajeEje | undefined>;
+
+const SEGUNDOS_MITAD_SPLIT = 1800; // 30 minutos por bloque
+const SEGUNDOS_SESION_TOTAL = 3600; // 60 minutos sesión completa en dupla
 
 const ETAPAS: readonly {
   valor: EtapaEvaluacionCabina;
@@ -97,37 +103,67 @@ const EJES: readonly {
   },
 ];
 
-const ASISTENCIAS: readonly {
-  valor: AsistenciaCabina;
+const NIVELES_ASISTENCIA: readonly {
+  valor: NivelAsistencia;
   etiqueta: string;
   detalle: string;
-  activoFondo: string;
-  activoTexto: string;
-  activoBorde: string;
+  activoClase: string;
 }[] = [
   {
-    valor: 'MINIMA_AUTONOMO',
-    etiqueta: 'MÍNIMA',
-    detalle: 'AUTÓNOMO',
-    activoFondo: 'bg-emerald-500',
-    activoTexto: 'text-emerald-950',
-    activoBorde: 'border-emerald-500',
+    valor: 'AUTONOMO',
+    etiqueta: 'AUTÓNOMO',
+    detalle: 'SIN INTERVENCIÓN',
+    activoClase: 'bg-emerald-500 text-emerald-950 border-emerald-500',
   },
   {
-    valor: 'MEDIA',
-    etiqueta: 'MEDIA',
-    detalle: 'GUÍA VERBAL',
-    activoFondo: 'bg-amber-400',
-    activoTexto: 'text-amber-950',
-    activoBorde: 'border-amber-400',
+    valor: 'AYUDA_VERBAL',
+    etiqueta: 'AYUDA VERBAL',
+    detalle: 'GUÍA PUNTUAL',
+    activoClase: 'bg-amber-400 text-amber-950 border-amber-400',
   },
   {
-    valor: 'ALTA',
-    etiqueta: 'ALTA',
-    detalle: 'INTERVENCIÓN CONTINUA',
-    activoFondo: 'bg-red-500',
-    activoTexto: 'text-red-950',
-    activoBorde: 'border-red-500',
+    valor: 'INTERVENCION_CONSTANTE',
+    etiqueta: 'INT. CONSTANTE',
+    detalle: 'CORRECCIÓN CONTINUA',
+    activoClase: 'bg-orange-500 text-orange-950 border-orange-500',
+  },
+  {
+    valor: 'INTERVENCION_CRITICA',
+    etiqueta: 'INT. CRÍTICA',
+    detalle: 'INTERVENCIÓN MANDOS',
+    activoClase: 'bg-red-500 text-red-950 border-red-500',
+  },
+];
+
+const BLOQUES_SPLIT: readonly {
+  valor: BloqueSplit;
+  rolCorto: string;
+  mitad: string;
+  detalle: string;
+}[] = [
+  {
+    valor: 'PILOTO_A',
+    rolCorto: 'PILOTO A',
+    mitad: '0–30 MIN',
+    detalle: 'OPERA CABINA · 1° BLOQUE',
+  },
+  {
+    valor: 'COPILOTO_B',
+    rolCorto: 'COPILOTO B',
+    mitad: '0–30 MIN',
+    detalle: 'OBSERVA Y ASISTE · 1° BLOQUE',
+  },
+  {
+    valor: 'PILOTO_B',
+    rolCorto: 'PILOTO B',
+    mitad: '30–60 MIN',
+    detalle: 'OPERA CABINA · 2° BLOQUE',
+  },
+  {
+    valor: 'COPILOTO_A',
+    rolCorto: 'COPILOTO A',
+    mitad: '30–60 MIN',
+    detalle: 'OBSERVA Y ASISTE · 2° BLOQUE',
   },
 ];
 
@@ -148,6 +184,70 @@ function formatearReloj(totalSeg: number): string {
   const m = Math.floor(totalSeg / 60);
   const s = totalSeg % 60;
   return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+}
+
+function alternarBloqueSplit(actual: BloqueSplit): BloqueSplit {
+  switch (actual) {
+    case 'PILOTO_A':
+      return 'PILOTO_B';
+    case 'COPILOTO_B':
+      return 'COPILOTO_A';
+    case 'PILOTO_B':
+      return 'PILOTO_A';
+    case 'COPILOTO_A':
+      return 'COPILOTO_B';
+  }
+}
+
+/**
+ * Emite una secuencia audible de 3 pulsos mediante Web Audio API para avisar
+ * el intercambio de Piloto/Copiloto al cumplir 30 minutos de sesión.
+ */
+function reproducirAlarmaIntercambio(ctxExistente: AudioContext | null): AudioContext | null {
+  if (typeof window === 'undefined' || !('AudioContext' in window)) {
+    return null;
+  }
+
+  try {
+    const ctx =
+      ctxExistente && ctxExistente.state !== 'closed'
+        ? ctxExistente
+        : new window.AudioContext();
+
+    if (ctx.state === 'suspended') {
+      void ctx.resume();
+    }
+
+    const ahora = ctx.currentTime;
+    const tonos: readonly { offset: number; freq: number; duracion: number }[] = [
+      { offset: 0, freq: 880, duracion: 0.16 },
+      { offset: 0.24, freq: 880, duracion: 0.16 },
+      { offset: 0.48, freq: 1174.66, duracion: 0.34 },
+    ];
+
+    for (const tono of tonos) {
+      const osc = ctx.createOscillator();
+      const ganancia = ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(tono.freq, ahora + tono.offset);
+
+      ganancia.gain.setValueAtTime(0.0001, ahora + tono.offset);
+      ganancia.gain.exponentialRampToValueAtTime(0.22, ahora + tono.offset + 0.02);
+      ganancia.gain.exponentialRampToValueAtTime(
+        0.0001,
+        ahora + tono.offset + tono.duracion
+      );
+
+      osc.connect(ganancia);
+      ganancia.connect(ctx.destination);
+      osc.start(ahora + tono.offset);
+      osc.stop(ahora + tono.offset + tono.duracion + 0.02);
+    }
+
+    return ctx;
+  } catch {
+    return ctxExistente;
+  }
 }
 
 export default function ConsolaTactil({
@@ -175,7 +275,10 @@ export default function ConsolaTactil({
     puntaje_control_receptividad: undefined,
   });
   const [bonus, setBonus] = useState<0 | 10>(0);
-  const [asistencia, setAsistencia] = useState<AsistenciaCabina | null>(null);
+  const [nivelAsistencia, setNivelAsistencia] = useState<NivelAsistencia | null>(
+    null
+  );
+  const [bloqueSplit, setBloqueSplit] = useState<BloqueSplit>('PILOTO_A');
   const [hardFail, setHardFail] = useState(false);
   const [motivoHardFail, setMotivoHardFail] = useState('');
   const [instructor, setInstructor] = useState(instructorDefault);
@@ -184,12 +287,16 @@ export default function ConsolaTactil({
 
   const [segundos, setSegundos] = useState(0);
   const [corriendo, setCorriendo] = useState(false);
+  const [intercambioConfirmado, setIntercambioConfirmado] = useState(false);
+  const [audioSilenciado, setAudioSilenciado] = useState(false);
 
   const [feedback, setFeedback] = useState<{ ok: boolean; texto: string } | null>(
     null
   );
   const motivoHardFailRef = useRef<HTMLTextAreaElement | null>(null);
   const timerFeedback = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  const alarmaDisparadaRef = useRef(false);
   const [enTransicion, iniciarTransicion] = useTransition();
   // Bloqueo síncrono contra doble submit por dos toques rápidos.
   const lock = useRef(false);
@@ -212,11 +319,29 @@ export default function ConsolaTactil({
     return () => clearInterval(id);
   }, [corriendo]);
 
+  // Dispara una única vez el aviso sonoro Web Audio al alcanzar minuto 30 (1800s).
+  useEffect(() => {
+    if (segundos >= SEGUNDOS_MITAD_SPLIT && !alarmaDisparadaRef.current) {
+      alarmaDisparadaRef.current = true;
+      if (!audioSilenciado) {
+        audioCtxRef.current = reproducirAlarmaIntercambio(audioCtxRef.current);
+      }
+    }
+  }, [segundos, audioSilenciado]);
+
   useEffect(() => {
     return () => {
       if (timerFeedback.current) clearTimeout(timerFeedback.current);
+      const ctx = audioCtxRef.current;
+      if (ctx && ctx.state !== 'closed') {
+        void ctx.close().catch(() => undefined);
+      }
     };
   }, []);
+
+  const asistenciaCabinaDerivada = nivelAsistencia
+    ? mapearNivelAsistenciaACabina(nivelAsistencia)
+    : null;
 
   // Preview en vivo: usa exactamente el módulo puro `calcularDictamen`.
   const ejesCompletos = EJES.every(
@@ -232,7 +357,7 @@ export default function ConsolaTactil({
           control_receptividad: puntajes.puntaje_control_receptividad ?? 0,
         },
         bonus,
-        asistencia ?? 'ALTA',
+        asistenciaCabinaDerivada ?? 'ALTA',
         true
       );
       return {
@@ -240,7 +365,7 @@ export default function ConsolaTactil({
         dictamen: r.dictamen,
       };
     }
-    if (!ejesCompletos || !asistencia) {
+    if (!ejesCompletos || !asistenciaCabinaDerivada) {
       return { score_total: null, dictamen: null };
     }
     const r = calcularDictamen(
@@ -251,11 +376,25 @@ export default function ConsolaTactil({
         control_receptividad: puntajes.puntaje_control_receptividad!,
       },
       bonus,
-      asistencia,
+      asistenciaCabinaDerivada,
       false
     );
     return { score_total: r.score_total as number | null, dictamen: r.dictamen };
-  }, [ejesCompletos, puntajes, bonus, asistencia, hardFail]);
+  }, [ejesCompletos, puntajes, bonus, asistenciaCabinaDerivada, hardFail]);
+
+  function asegurarAudioActivo() {
+    if (typeof window === 'undefined' || !('AudioContext' in window)) return;
+    try {
+      if (!audioCtxRef.current || audioCtxRef.current.state === 'closed') {
+        audioCtxRef.current = new window.AudioContext();
+      }
+      if (audioCtxRef.current.state === 'suspended') {
+        void audioCtxRef.current.resume();
+      }
+    } catch {
+      // Ignorar restricciones de navegador sin bloquear la consola
+    }
+  }
 
   function resetPantalla() {
     setPuntajes({
@@ -265,19 +404,26 @@ export default function ConsolaTactil({
       puntaje_control_receptividad: undefined,
     });
     setBonus(0);
-    setAsistencia(null);
+    setNivelAsistencia(null);
     setHardFail(false);
     setMotivoHardFail('');
     setObservacionesRapidas([]);
     setObservacionesDetalle('');
     setSegundos(0);
     setCorriendo(false);
+    setIntercambioConfirmado(false);
+    alarmaDisparadaRef.current = false;
   }
 
   function toggleObservacionRapida(texto: string) {
     setObservacionesRapidas((prev) =>
       prev.includes(texto) ? prev.filter((item) => item !== texto) : [...prev, texto]
     );
+  }
+
+  function confirmarIntercambioSplit() {
+    setBloqueSplit((actual) => alternarBloqueSplit(actual));
+    setIntercambioConfirmado(true);
   }
 
   /** Siguiente postulante sin evaluar (búsqueda lineal con wrap). */
@@ -321,11 +467,13 @@ export default function ConsolaTactil({
       setFeedback({ ok: false, texto: 'FALTAN PUNTAJES DE EJES POR MARCAR' });
       return;
     }
-    if (!hardFail && !asistencia) {
+    if (!hardFail && !nivelAsistencia) {
       lock.current = false;
       setFeedback({ ok: false, texto: 'SELECCIONE EL NIVEL DE ASISTENCIA' });
       return;
     }
+
+    const nivelFinal: NivelAsistencia = nivelAsistencia ?? 'INTERVENCION_CRITICA';
 
     const datos: EvaluacionCabinaInput = {
       postulante_id: alumno.postulante_id,
@@ -336,7 +484,9 @@ export default function ConsolaTactil({
       puntaje_mastil: puntajes.puntaje_mastil ?? 0,
       puntaje_control_receptividad: puntajes.puntaje_control_receptividad ?? 0,
       bonus_segundo_intento: bonus,
-      asistencia_cabina: asistencia ?? 'ALTA',
+      nivel_asistencia: nivelFinal,
+      asistencia_cabina: mapearNivelAsistenciaACabina(nivelFinal),
+      bloque_split: bloqueSplit,
       hard_fail: hardFail,
       motivo_hard_fail: hardFail ? motivoLimpio : null,
       tiempo_vuelta_seg: segundos > 0 ? segundos : null,
@@ -355,7 +505,7 @@ export default function ConsolaTactil({
         if (resultado.ok) {
           setFeedback({
             ok: true,
-            texto: `GUARDADO (${etapa}) · ${resultado.dictamen ?? 'OK'} · ${resultado.score ?? 0} PTS`,
+            texto: `GUARDADO (${etapa} · ${bloqueSplit}) · ${resultado.dictamen ?? 'OK'} · ${resultado.score ?? 0} PTS`,
           });
           resetPantalla();
           const nuevosEvaluados = new Set(evaluados).add(idGuardado);
@@ -377,6 +527,16 @@ export default function ConsolaTactil({
   const pendientes = alumnos.filter((a) => !evaluados.has(a.inscripcion_id)).length;
   const jornadaFinalizada =
     alumnos.length === 0 || alumnos.every((a) => evaluados.has(a.inscripcion_id));
+
+  const alertaIntercambioActiva =
+    segundos >= SEGUNDOS_MITAD_SPLIT && !intercambioConfirmado;
+  const restanteSplitSeg = Math.max(0, SEGUNDOS_MITAD_SPLIT - segundos);
+  const progresoSplitPct = Math.min(
+    100,
+    Math.round((segundos / SEGUNDOS_SESION_TOTAL) * 100)
+  );
+  const segundoBloqueActivo =
+    bloqueSplit === 'PILOTO_B' || bloqueSplit === 'COPILOTO_A';
 
   const feedbackBanner = feedback ? (
     <p
@@ -453,7 +613,7 @@ export default function ConsolaTactil({
                 type="button"
                 aria-pressed={activa}
                 onClick={() => setEtapa(item.valor)}
-                className={`flex h-12 flex-col items-center justify-center rounded-sm border px-2 text-center transition-colors ${
+                className={`flex min-h-[48px] flex-col items-center justify-center rounded-sm border px-2 py-1.5 text-center transition-colors ${
                   activa
                     ? 'border-zinc-100 bg-zinc-100 text-zinc-950'
                     : 'border-zinc-800 bg-zinc-900 text-zinc-300 active:bg-zinc-800'
@@ -489,7 +649,7 @@ export default function ConsolaTactil({
               type="button"
               onClick={() => setIdSeleccionado(a.inscripcion_id)}
               aria-pressed={activo}
-              className={`flex h-14 shrink-0 flex-col items-start justify-center rounded-sm border px-4 transition-colors ${
+              className={`flex min-h-[48px] h-14 shrink-0 flex-col items-start justify-center rounded-sm border px-4 transition-colors ${
                 activo
                   ? 'border-zinc-100 bg-zinc-100 text-zinc-950'
                   : 'border-zinc-800 bg-zinc-900 text-zinc-300 active:bg-zinc-800'
@@ -521,43 +681,186 @@ export default function ConsolaTactil({
         })}
       </nav>
 
-      {/* ── Cronómetro táctil ────────────────────────────────────── */}
-      <section className="flex items-center gap-3 border-b border-zinc-800 px-4 py-3">
-        <div className="flex min-w-32 flex-col rounded-sm border border-zinc-800 bg-zinc-900 px-4 py-2">
-          <span className="text-[9px] uppercase tracking-[0.16em] text-zinc-500">
-            TIEMPO DE VUELTA
-          </span>
-          <span className="text-3xl font-bold tabular-nums tracking-[0.06em] text-zinc-50">
-            {formatearReloj(segundos)}
-          </span>
-        </div>
-        <div className="grid flex-1 grid-cols-3 gap-2">
-          <button
-            type="button"
-            onClick={() => setCorriendo(true)}
-            disabled={corriendo}
-            className="flex h-12 items-center justify-center rounded-sm border border-emerald-700 bg-emerald-950 text-[11px] font-bold tracking-[0.12em] text-emerald-300 transition-colors active:bg-emerald-900 disabled:border-zinc-800 disabled:bg-zinc-900 disabled:text-zinc-600"
-          >
-            {corriendo ? 'EN MARCHA' : 'INICIAR'}
-          </button>
-          <button
-            type="button"
-            onClick={() => setCorriendo(false)}
-            disabled={!corriendo}
-            className="flex h-12 items-center justify-center rounded-sm border border-amber-700 bg-amber-950 text-[11px] font-bold tracking-[0.12em] text-amber-300 transition-colors active:bg-amber-900 disabled:border-zinc-800 disabled:bg-zinc-900 disabled:text-zinc-600"
-          >
-            PAUSA
-          </button>
+      {/* ── Cronómetro Split 30/30 + Switch Piloto / Copiloto ────── */}
+      <section
+        aria-label="Cronómetro Split 30/30 y rol en dupla"
+        className="space-y-3 border-b border-zinc-800 px-4 py-3"
+      >
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-400">
+              SPLIT 30/30 · BLOQUE EN DUPLA
+            </span>
+            <span
+              className={`rounded-sm border px-2 py-0.5 text-[9.5px] font-bold uppercase tracking-[0.1em] ${
+                segundoBloqueActivo
+                  ? 'border-cyan-500/50 bg-cyan-950/50 text-cyan-300'
+                  : 'border-emerald-500/50 bg-emerald-950/50 text-emerald-300'
+              }`}
+            >
+              {segundoBloqueActivo ? '2° BLOQUE (30–60M)' : '1° BLOQUE (0–30M)'}
+            </span>
+          </div>
           <button
             type="button"
             onClick={() => {
-              setCorriendo(false);
-              setSegundos(0);
+              asegurarAudioActivo();
+              setAudioSilenciado((sil) => !sil);
             }}
-            className="flex h-12 items-center justify-center rounded-sm border border-zinc-700 bg-zinc-900 text-[11px] font-bold tracking-[0.12em] text-zinc-200 transition-colors active:bg-zinc-800"
+            aria-pressed={!audioSilenciado}
+            className="flex min-h-[48px] items-center gap-1.5 rounded-sm border border-zinc-700 bg-zinc-900 px-3 text-[10px] font-semibold uppercase tracking-[0.1em] text-zinc-300 transition-colors active:bg-zinc-800"
           >
-            RESET
+            {audioSilenciado ? (
+              <>
+                <VolumeX size={14} strokeWidth={1.75} aria-hidden />
+                ALARMA SILENCIADA
+              </>
+            ) : (
+              <>
+                <Volume2 size={14} strokeWidth={1.75} aria-hidden />
+                ALARMA 30M ACTIVA
+              </>
+            )}
           </button>
+        </div>
+
+        {/* Reloj + Botones de control */}
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          <div className="flex min-w-44 flex-col rounded-sm border border-zinc-800 bg-zinc-900 px-4 py-2">
+            <span className="text-[9px] uppercase tracking-[0.16em] text-zinc-500">
+              {segundos < SEGUNDOS_MITAD_SPLIT
+                ? `INTERCAMBIO EN ${formatearReloj(restanteSplitSeg)}`
+                : 'MITAD 30:00 COMPLETADA'}
+            </span>
+            <span className="text-3xl font-bold tabular-nums tracking-[0.06em] text-zinc-50">
+              {formatearReloj(segundos)}
+              <span className="ml-1.5 text-xs font-normal text-zinc-500">
+                / 60:00
+              </span>
+            </span>
+          </div>
+
+          <div className="grid flex-1 grid-cols-3 gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                asegurarAudioActivo();
+                setCorriendo(true);
+              }}
+              disabled={corriendo}
+              className="flex min-h-[48px] items-center justify-center rounded-sm border border-emerald-700 bg-emerald-950 text-[11px] font-bold tracking-[0.12em] text-emerald-300 transition-colors active:bg-emerald-900 disabled:border-zinc-800 disabled:bg-zinc-900 disabled:text-zinc-600"
+            >
+              {corriendo ? 'EN MARCHA' : 'INICIAR'}
+            </button>
+            <button
+              type="button"
+              onClick={() => setCorriendo(false)}
+              disabled={!corriendo}
+              className="flex min-h-[48px] items-center justify-center rounded-sm border border-amber-700 bg-amber-950 text-[11px] font-bold tracking-[0.12em] text-amber-300 transition-colors active:bg-amber-900 disabled:border-zinc-800 disabled:bg-zinc-900 disabled:text-zinc-600"
+            >
+              PAUSA
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setCorriendo(false);
+                setSegundos(0);
+                setIntercambioConfirmado(false);
+                alarmaDisparadaRef.current = false;
+              }}
+              className="flex min-h-[48px] items-center justify-center rounded-sm border border-zinc-700 bg-zinc-900 text-[11px] font-bold tracking-[0.12em] text-zinc-200 transition-colors active:bg-zinc-800"
+            >
+              RESET
+            </button>
+          </div>
+        </div>
+
+        {/* Barra de progreso Split 30/30 con marcador medio */}
+        <div className="space-y-1">
+          <div className="relative h-2.5 w-full overflow-hidden rounded-sm border border-zinc-800 bg-zinc-900">
+            <div
+              className={`h-full transition-all duration-300 ${
+                segundos >= SEGUNDOS_MITAD_SPLIT ? 'bg-amber-400' : 'bg-emerald-500'
+              }`}
+              style={{ width: `${progresoSplitPct}%` }}
+            />
+            <span
+              aria-hidden
+              title="Marca minuto 30:00 (Intercambio)"
+              className="absolute inset-y-0 left-1/2 w-0.5 bg-zinc-100/80"
+            />
+          </div>
+          <div className="flex justify-between text-[8.5px] uppercase tracking-[0.12em] text-zinc-500">
+            <span>00:00 INICIO</span>
+            <span className="text-amber-300">30:00 INTERCAMBIO</span>
+            <span>60:00 FIN</span>
+          </div>
+        </div>
+
+        {/* Alarma visual al alcanzar minuto 30 */}
+        {alertaIntercambioActiva && (
+          <div
+            role="status"
+            aria-live="assertive"
+            className="flex flex-wrap items-center justify-between gap-2 rounded-sm border border-amber-400 bg-amber-950/60 px-3 py-2.5"
+          >
+            <div className="min-w-0">
+              <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-amber-300">
+                MINUTO 30 ALCANZADO · INTERCAMBIAR PILOTO / COPILOTO
+              </p>
+              <p className="mt-0.5 text-[9.5px] uppercase tracking-[0.08em] text-amber-200/80">
+                Rotar puesto en cabina entre integrante A y B para el segundo bloque.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={confirmarIntercambioSplit}
+              className="flex min-h-[48px] shrink-0 items-center gap-1.5 rounded-sm border border-amber-400 bg-amber-400 px-3 text-[10px] font-bold uppercase tracking-[0.1em] text-amber-950 transition-colors active:bg-amber-300"
+            >
+              <ArrowLeftRight size={14} strokeWidth={2} aria-hidden />
+              INTERCAMBIAR BLOQUE
+            </button>
+          </div>
+        )}
+
+        {/* Switch táctil Piloto / Copiloto (BloqueSplit) */}
+        <div
+          role="group"
+          aria-label="Selector de rol en bloque Split 30/30"
+          className="grid grid-cols-2 gap-2 sm:grid-cols-4"
+        >
+          {BLOQUES_SPLIT.map((b) => {
+            const activo = bloqueSplit === b.valor;
+            return (
+              <button
+                key={b.valor}
+                type="button"
+                aria-pressed={activo}
+                onClick={() => {
+                  setBloqueSplit(b.valor);
+                  if (b.valor === 'PILOTO_B' || b.valor === 'COPILOTO_A') {
+                    setIntercambioConfirmado(true);
+                  }
+                }}
+                className={`flex min-h-[48px] flex-col items-center justify-center rounded-sm border px-2 py-1.5 text-center transition-colors ${
+                  activo
+                    ? 'border-cyan-400 bg-cyan-500 text-cyan-950'
+                    : 'border-zinc-800 bg-zinc-900 text-zinc-300 active:bg-zinc-800'
+                }`}
+              >
+                <span className="text-[11px] font-bold uppercase tracking-[0.08em]">
+                  {b.rolCorto}
+                </span>
+                <span
+                  className={`mt-0.5 text-[8.5px] font-semibold uppercase tracking-[0.06em] ${
+                    activo ? 'text-cyan-950/80' : 'text-zinc-500'
+                  }`}
+                >
+                  {b.mitad}
+                </span>
+              </button>
+            );
+          })}
         </div>
       </section>
 
@@ -585,7 +888,7 @@ export default function ConsolaTactil({
                     onClick={() =>
                       setPuntajes((p) => ({ ...p, [eje.clave]: op.valor }))
                     }
-                    className={`flex h-14 flex-col items-center justify-center rounded-sm border text-center transition-colors ${
+                    className={`flex min-h-[48px] h-14 flex-col items-center justify-center rounded-sm border text-center transition-colors ${
                       seleccionado
                         ? COLOR_PUNTAJE_ACTIVO[op.valor]
                         : 'border-zinc-700 bg-zinc-950 text-zinc-300 active:bg-zinc-800'
@@ -612,7 +915,7 @@ export default function ConsolaTactil({
           role="switch"
           aria-checked={bonus === 10}
           onClick={() => setBonus((b) => (b === 10 ? 0 : 10))}
-          className={`flex h-14 w-full items-center justify-between rounded-sm border px-4 transition-colors ${
+          className={`flex min-h-[48px] h-14 w-full items-center justify-between rounded-sm border px-4 transition-colors ${
             bonus === 10
               ? 'border-emerald-500 bg-emerald-950'
               : 'border-zinc-800 bg-zinc-900 active:bg-zinc-800'
@@ -640,36 +943,45 @@ export default function ConsolaTactil({
         </button>
       </section>
 
-      {/* ── Asistencia recibida ──────────────────────────────────── */}
+      {/* ── Selector de nivel de asistencia del instructor ───────── */}
       <section className="px-4 pb-4">
         <h2 className="mb-2 text-[10px] uppercase tracking-[0.16em] text-zinc-500">
-          ASISTENCIA RECIBIDA
+          NIVEL DE ASISTENCIA DEL INSTRUCTOR
         </h2>
-        <div role="group" aria-label="Asistencia recibida" className="grid grid-cols-3 gap-2">
-          {ASISTENCIAS.map((a) => {
-            const activa = asistencia === a.valor;
+        <div
+          role="group"
+          aria-label="Nivel de asistencia del instructor"
+          className="grid grid-cols-2 gap-2 sm:grid-cols-4"
+        >
+          {NIVELES_ASISTENCIA.map((nivel) => {
+            const activa = nivelAsistencia === nivel.valor;
             return (
               <button
-                key={a.valor}
+                key={nivel.valor}
                 type="button"
                 aria-pressed={activa}
-                onClick={() => setAsistencia(a.valor)}
-                className={`flex h-16 flex-col items-center justify-center rounded-sm border px-2 text-center transition-colors ${
+                onClick={() => setNivelAsistencia(nivel.valor)}
+                className={`flex min-h-[48px] h-16 flex-col items-center justify-center rounded-sm border px-2 py-1.5 text-center transition-colors ${
                   activa
-                    ? `${a.activoFondo} ${a.activoTexto} ${a.activoBorde}`
+                    ? nivel.activoClase
                     : 'border-zinc-700 bg-zinc-950 text-zinc-300 active:bg-zinc-800'
                 }`}
               >
-                <span className="text-xs font-bold uppercase tracking-[0.1em]">
-                  {a.etiqueta}
+                <span className="text-[11px] font-bold uppercase leading-tight tracking-[0.08em]">
+                  {nivel.etiqueta}
                 </span>
-                <span className="mt-0.5 text-[9px] font-semibold uppercase tracking-[0.06em] opacity-80">
-                  {a.detalle}
+                <span className="mt-0.5 text-[8.5px] font-semibold uppercase tracking-[0.06em] opacity-80">
+                  {nivel.detalle}
                 </span>
               </button>
             );
           })}
         </div>
+        {nivelAsistencia === 'INTERVENCION_CRITICA' && !hardFail && (
+          <p className="mt-2 rounded-sm border border-amber-500/40 bg-amber-950/30 px-3 py-1.5 text-[10px] uppercase tracking-[0.08em] text-amber-300">
+            ATENCIÓN: Con intervención crítica sobre mandos evalúe activar Hard-Fail si existió riesgo de seguridad.
+          </p>
+        )}
       </section>
 
       {/* ── Tarjeta hard-fail ────────────────────────────────────── */}
@@ -689,7 +1001,7 @@ export default function ConsolaTactil({
                 return !h;
               })
             }
-            className="flex h-14 w-full items-center justify-between"
+            className="flex min-h-[48px] h-14 w-full items-center justify-between"
           >
             <span className="flex items-center gap-2.5">
               <span
@@ -760,7 +1072,7 @@ export default function ConsolaTactil({
                   type="button"
                   aria-pressed={marcado}
                   onClick={() => toggleObservacionRapida(chip)}
-                  className={`min-h-10 rounded-sm border px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.08em] transition-colors ${
+                  className={`min-h-[48px] rounded-sm border px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.08em] transition-colors ${
                     marcado
                       ? 'border-zinc-100 bg-zinc-100 text-zinc-950'
                       : 'border-zinc-700 bg-zinc-950 text-zinc-300 active:bg-zinc-800'
@@ -782,7 +1094,7 @@ export default function ConsolaTactil({
                 value={instructor}
                 onChange={(ev) => setInstructor(ev.target.value)}
                 placeholder="Nombre o usuario del instructor"
-                className="h-11 w-full rounded-sm border border-zinc-700 bg-zinc-950 px-3 text-xs text-zinc-100 placeholder:text-zinc-600 focus:border-zinc-400 focus:outline-none"
+                className="min-h-[48px] w-full rounded-sm border border-zinc-700 bg-zinc-950 px-3 text-xs text-zinc-100 placeholder:text-zinc-600 focus:border-zinc-400 focus:outline-none"
               />
             </label>
             <label className="block">
@@ -795,7 +1107,7 @@ export default function ConsolaTactil({
                 value={observacionesDetalle}
                 onChange={(ev) => setObservacionesDetalle(ev.target.value)}
                 placeholder="Detalle técnico breve para legajo…"
-                className="h-11 w-full rounded-sm border border-zinc-700 bg-zinc-950 px-3 text-xs text-zinc-100 placeholder:text-zinc-600 focus:border-zinc-400 focus:outline-none"
+                className="min-h-[48px] w-full rounded-sm border border-zinc-700 bg-zinc-950 px-3 text-xs text-zinc-100 placeholder:text-zinc-600 focus:border-zinc-400 focus:outline-none"
               />
             </label>
           </div>
@@ -846,7 +1158,7 @@ export default function ConsolaTactil({
           type="button"
           onClick={guardar}
           disabled={enTransicion}
-          className="flex h-16 w-full items-center justify-center gap-2 rounded-sm border border-zinc-100 bg-zinc-100 text-sm font-bold uppercase tracking-[0.18em] text-zinc-950 transition-colors active:bg-zinc-300 disabled:border-zinc-700 disabled:bg-zinc-800 disabled:text-zinc-500"
+          className="flex min-h-[48px] h-16 w-full items-center justify-center gap-2 rounded-sm border border-zinc-100 bg-zinc-100 text-sm font-bold uppercase tracking-[0.18em] text-zinc-950 transition-colors active:bg-zinc-300 disabled:border-zinc-700 disabled:bg-zinc-800 disabled:text-zinc-500"
         >
           {enTransicion ? (
             <>

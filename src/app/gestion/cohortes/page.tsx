@@ -7,6 +7,7 @@ import CabeceraConfiguracion from '@/components/empleo/CabeceraConfiguracion';
 import ParrillaCabina from '@/components/empleo/ParrillaCabina';
 import TablaPostulantes from '@/components/empleo/TablaPostulantes';
 import BotonExportarCronograma from '@/components/empleo/BotonExportarCronograma';
+import AccionesCohorte from '@/components/empleo/AccionesCohorte';
 import {
   aFechaIso,
   describirEstadoViernesBuffer,
@@ -176,6 +177,10 @@ export default async function GestionCohortesPage() {
       }
     : null;
   const bloquesTurno = datos ? obtenerBloquesTurno(datos.franjas) : [];
+  const siguienteRankingSugerido =
+    (datos
+      ? datos.postulantes.reduce((max, p) => Math.max(max, p.ranking_orden), 0)
+      : 0) + 1;
 
   return (
     <div className="space-y-6">
@@ -204,6 +209,12 @@ export default async function GestionCohortesPage() {
               <ArrowLeft size={13} strokeWidth={1.75} aria-hidden />
               VOLVER AL PANEL
             </Link>
+            <AccionesCohorte
+              cohorteActivaId={datos?.cohorte.id ?? null}
+              cohorteActivaCodigo={datos?.cohorte.codigo ?? null}
+              siguienteRankingSugerido={siguienteRankingSugerido}
+              feriadosMunicipales={feriadosMunicipales}
+            />
             {datos && proyeccion && (
               <BotonExportarCronograma
                 cohorte={datos.cohorte}
@@ -221,9 +232,9 @@ export default async function GestionCohortesPage() {
             SIN COHORTE ACTIVA
           </p>
           <p className="mx-auto mt-2 max-w-md font-mono text-[10.5px] leading-relaxed tracking-[0.08em] text-zinc-600">
-            NO HAY NINGUNA COHORTE EN ESTADO &quot;ACTIVA&quot; O NO SE PUDO LEER LA
-            BASE. VERIFIQUE EN SUPABASE QUE EXISTA LA COHORTE Y QUE ESTÉN APLICADAS
-            LAS MIGRACIONES 0005 Y 0007.
+            NO HAY NINGUNA COHORTE EN ESTADO &quot;ACTIVA&quot;. UTILIZÁ EL BOTÓN
+            &quot;NUEVA COHORTE&quot; EN LA CABECERA PARA INICIALIZAR UNA COHORTE
+            CON GRUPOS A/B, 8 DUPLAS Y SU PARRILLA DE 7 FRANJAS.
           </p>
         </div>
       ) : (

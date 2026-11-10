@@ -8,11 +8,17 @@ import {
   ETAPAS_CABINA_VALIDAS,
   PUNTAJES_EJE_VALIDOS,
   calcularDictamen,
+  esBloqueSplitValido,
+  esNivelAsistenciaValido,
+  mapearNivelAsistenciaACabina,
 } from '@/lib/cabina/dictamen';
 import type {
   AlumnoTurno,
+  AsistenciaCabina,
+  BloqueSplit,
   EtapaEvaluacionCabina,
   EvaluacionCabinaInput,
+  NivelAsistencia,
   ResultadoGuardar,
 } from '@/types/cabina';
 
@@ -42,6 +48,19 @@ function normalizarTextoNullable(v: string | null | undefined): string | null {
   if (v === undefined || v === null) return null;
   const t = v.trim();
   return t.length > 0 ? t : null;
+}
+
+function resolverAsistenciaCabina(
+  nivel: NivelAsistencia | undefined,
+  legacy: AsistenciaCabina | undefined
+): AsistenciaCabina | null {
+  if (nivel && esNivelAsistenciaValido(nivel)) {
+    return mapearNivelAsistenciaACabina(nivel);
+  }
+  if (legacy && ASISTENCIAS_CABINA_VALIDAS.includes(legacy)) {
+    return legacy;
+  }
+  return null;
 }
 
 /**
@@ -115,7 +134,8 @@ export async function obtenerAlumnosTurno(): Promise<AlumnoTurno[]> {
 /**
  * Persiste la evaluación de cabina en la tabla singular `evaluacion_diagnostico`
  * (por etapa DIAG_INTENTO_1 | DIAG_INTENTO_2 | FINAL mediante upsert idempotente
- * sobre `(postulante_id, archivo_fuente)`) y sincroniza la inscripción:
+ * sobre `(postulante_id, archivo_fuente)`) incluyendo `nivel_asistencia` y
+ * `bloque_split`, y sincroniza la inscripción:
  * NO_APTO o hard-fail -> DESCARTADO; otros dictámenes conservan el estado útil
  * (o restauran DISPONIBLE si estaba descartado) limpiando `motivo_baja`.
  */
@@ -153,7 +173,23 @@ export async function registrarEvaluacionCabina(
     return { ok: false, error: 'Indicador de Hard-Fail inválido.' };
   }
 
-  const asistencia = datos.asistencia_cabina;
+  if (!esNivelAsistenciaValido(datos.nivel_asistencia)) {
+    return { ok: false, error: 'Nivel de asistencia inválido.' };
+  }
+
+  let bloqueSplit: BloqueSplit | null = null;
+  if (datos.bloque_split !== undefined && datos.bloque_split !== null) {
+    if (!esBloqueSplitValido(datos.bloque_split)) {
+      return { ok: false, error: 'Bloque Split 30/30 inválido.' };
+    }
+    bloqueSplit = datos.bloque_split;
+  }
+
+  const nivelAsistencia: NivelAsistencia = datos.nivel_asistencia;
+  const asistencia = resolverAsistenciaCabina(
+    nivelAsistencia,
+    datos.asistencia_cabina
+  );
   const bonus = datos.bonus_segundo_intento;
   const hardFail = datos.hard_fail === true;
 
@@ -163,7 +199,7 @@ export async function registrarEvaluacionCabina(
     !PUNTAJES_EJE_VALIDOS.includes(datos.puntaje_mastil) ||
     !PUNTAJES_EJE_VALIDOS.includes(datos.puntaje_control_receptividad) ||
     !BONUS_SEGUNDO_INTENTO_VALIDOS.includes(bonus) ||
-    !ASISTENCIAS_CABINA_VALIDAS.includes(asistencia)
+    !asistencia
   ) {
     return { ok: false, error: 'Puntajes o nivel de asistencia inválidos.' };
   }
@@ -238,7 +274,7 @@ export async function registrarEvaluacionCabina(
     asistencia,
     hardFail
   );
-  // Blindaje explícito: Hard-Fail fuerza dictamen NO_APTO en todos los casos.
+  // Blindaje explícito: Hard-Fail o intervención crítica extrema guardan trazabilidad clara.
   const dictamenFinal = hardFail ? 'NO_APTO' : dictamen;
 
   // Cotas en el punto de confianza: tiempo acotado a [0, 36000] s.
@@ -286,6 +322,8 @@ export async function registrarEvaluacionCabina(
         etapa,
         es_mejor_diagnostico: false,
         asistencia_cabina: asistencia,
+        nivel_asistencia: nivelAsistencia,
+        bloque_split: bloqueSplit,
         dictamen: dictamenFinal,
         puntaje_lateralidad: datos.puntaje_lateralidad,
         puntaje_tacto_mandos: datos.puntaje_tacto_mandos,
