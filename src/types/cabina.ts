@@ -14,6 +14,8 @@ export type ClaveEje =
 
 export type AsistenciaCabina = 'MINIMA_AUTONOMO' | 'MEDIA' | 'ALTA';
 
+export type EtapaEvaluacionCabina = 'DIAG_INTENTO_1' | 'DIAG_INTENTO_2' | 'FINAL';
+
 export type DictamenCabina =
   | 'APTO_DIRECTO'
   | 'APTO_OBSERVACION'
@@ -32,6 +34,7 @@ export interface AlumnoTurno {
 export interface EvaluacionCabinaInput {
   postulante_id: string;
   inscripcion_id: string;
+  etapa?: EtapaEvaluacionCabina;
   puntaje_lateralidad: PuntajeEje;
   puntaje_tacto_mandos: PuntajeEje;
   puntaje_mastil: PuntajeEje;

@@ -6,10 +6,12 @@ import {
   obtenerFechasDisponiblesAction,
   actualizarVisitaEducativaAction,
 } from '@/app/admin/visitas-educativas/actions';
-import type {
-  VisitaEducativa,
-  FechaDisponibleItem,
-  EditarVisitaInput,
+import {
+  ESTADOS_VISITA,
+  type EditarVisitaInput,
+  type EstadoVisita,
+  type FechaDisponibleItem,
+  type VisitaEducativa,
 } from '@/types/visitas';
 
 /* ═══════════════════════════════════════════════════════════════════════
@@ -27,27 +29,9 @@ const PANEL_CLASS = 'rounded-sm border border-zinc-800 bg-zinc-950';
 const ERROR_CLASS =
   'rounded-sm border border-red-900 bg-red-950 px-3 py-2 text-sm text-red-200';
 
-/* ═══════════════════════════════════════════════════════════════════════
- *  TIPOS LOCALES
- * ═══════════════════════════════════════════════════════════════════════ */
-
-/**
- * Extensión local de VisitaEducativa con los campos adicionales confirmados
- * en la base de datos que no figuran en el tipo público.
- */
-interface VisitaEducativaExtendida extends VisitaEducativa {
-  tup_chofer_nombre?: string | null;
-  observaciones_docente?: string | null;
+function esEstadoVisitaValido(valor: string): valor is EstadoVisita {
+  return (ESTADOS_VISITA as readonly string[]).includes(valor);
 }
-
-/** Estados permitidos en el selector de edición. */
-const ESTADOS_VISITA: EditarVisitaInput['estado_visita'][] = [
-  'Confirmada',
-  'Reprogramada',
-  'Cancelada',
-  'Completada',
-  'Pendiente',
-];
 
 interface ModalEditarVisitaProps {
   abierto: boolean;
@@ -78,8 +62,7 @@ export default function ModalEditarVisita({
   const [tupVueltaDesde, setTupVueltaDesde] = useState('');
   const [tupVueltaHasta, setTupVueltaHasta] = useState('');
   const [tupChoferNombre, setTupChoferNombre] = useState('');
-  const [estadoVisita, setEstadoVisita] =
-    useState<EditarVisitaInput['estado_visita']>('Confirmada');
+  const [estadoVisita, setEstadoVisita] = useState<EstadoVisita>('Confirmada');
   const [observacionesDocente, setObservacionesDocente] = useState('');
 
   /* ── Estado de carga/fechas ── */
@@ -88,51 +71,46 @@ export default function ModalEditarVisita({
   const [error, setError] = useState<string | null>(null);
   const [pendiente, startTransition] = useTransition();
 
-  /* ── Extender visita para campos extra de DB ── */
-  const visitaExtendida = visita as VisitaEducativaExtendida | null;
-
   /* ═══════════════════════════════════════════════════════════════════════
    *  EFECTOS
    * ═══════════════════════════════════════════════════════════════════════ */
 
   /** Sincronizar estados del formulario desde la visita seleccionada. */
   useEffect(() => {
-    if (!abierto || !visitaExtendida) return;
+    if (!abierto || !visita) return;
 
-    setFechaVisita(visitaExtendida.fecha_visita ?? '');
+    setFechaVisita(visita.fecha_visita ?? '');
     setTurno(
-      visitaExtendida.turno === 'Mañana' || visitaExtendida.turno === 'Tarde'
-        ? visitaExtendida.turno
+      visita.turno === 'Mañana' || visita.turno === 'Tarde'
+        ? visita.turno
         : ''
     );
-    setDivision(visitaExtendida.division ?? '');
-    setCantAlumnos(String(visitaExtendida.cant_alumnos ?? ''));
-    setNombreDirector(visitaExtendida.nombre_director ?? '');
-    setCelDirector(visitaExtendida.cel_director ?? '');
-    setNombreDocente(visitaExtendida.nombre_docente ?? '');
-    setCelDocente(visitaExtendida.cel_docente ?? '');
-    setEmailContacto(visitaExtendida.email_contacto ?? '');
-    setRequiereTup(visitaExtendida.requiere_tup ?? false);
-    setTupIdaDesde(visitaExtendida.tup_horario_ida_desde ?? '');
-    setTupIdaHasta(visitaExtendida.tup_horario_ida_hasta ?? '');
-    setTupVueltaDesde(visitaExtendida.tup_horario_vuelta_desde ?? '');
-    setTupVueltaHasta(visitaExtendida.tup_horario_vuelta_hasta ?? '');
-    setTupChoferNombre(visitaExtendida.tup_chofer_nombre ?? '');
-    setObservacionesDocente(visitaExtendida.observaciones_docente ?? '');
+    setDivision(visita.division ?? '');
+    setCantAlumnos(String(visita.cant_alumnos ?? ''));
+    setNombreDirector(visita.nombre_director ?? '');
+    setCelDirector(visita.cel_director ?? '');
+    setNombreDocente(visita.nombre_docente ?? '');
+    setCelDocente(visita.cel_docente ?? '');
+    setEmailContacto(visita.email_contacto ?? '');
+    setRequiereTup(visita.requiere_tup ?? false);
+    setTupIdaDesde(visita.tup_horario_ida_desde ?? '');
+    setTupIdaHasta(visita.tup_horario_ida_hasta ?? '');
+    setTupVueltaDesde(visita.tup_horario_vuelta_desde ?? '');
+    setTupVueltaHasta(visita.tup_horario_vuelta_hasta ?? '');
+    setTupChoferNombre(visita.tup_chofer_nombre ?? '');
+    setObservacionesDocente(visita.observaciones_docente ?? '');
     setError(null);
 
-    const estado = visitaExtendida.estado_visita;
     setEstadoVisita(
-      ESTADOS_VISITA.includes(estado as EditarVisitaInput['estado_visita'])
-        ? (estado as EditarVisitaInput['estado_visita'])
+      esEstadoVisitaValido(visita.estado_visita)
+        ? visita.estado_visita
         : 'Confirmada'
     );
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [visita?.id]);
+  }, [abierto, visita]);
 
   /** Cargar fechas disponibles desde la Server Action. */
   useEffect(() => {
-    if (!abierto || !visita) return;
+    if (!abierto || !visita?.id) return;
 
     let cancelado = false;
     setCargandoFechas(true);
@@ -149,7 +127,6 @@ export default function ModalEditarVisita({
     return () => {
       cancelado = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [abierto, visita?.id]);
 
   /** Cerrar con tecla Escape. */
@@ -162,8 +139,7 @@ export default function ModalEditarVisita({
 
     document.addEventListener('keydown', manejarTecla);
     return () => document.removeEventListener('keydown', manejarTecla);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [abierto]);
+  }, [abierto, onCerrar]);
 
   /* ═══════════════════════════════════════════════════════════════════════
    *  GUARD TEMPRANO
@@ -348,9 +324,12 @@ export default function ModalEditarVisita({
                 <select
                   id="editar_turno"
                   value={turno}
-                  onChange={(e) =>
-                    setTurno(e.target.value as 'Mañana' | 'Tarde' | '')
-                  }
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (val === 'Mañana' || val === 'Tarde' || val === '') {
+                      setTurno(val);
+                    }
+                  }}
                   className={SELECT_CLASS}
                 >
                   <option value="">— Sin especificar —</option>
@@ -567,11 +546,12 @@ export default function ModalEditarVisita({
                 <select
                   id="editar_estado_visita"
                   value={estadoVisita}
-                  onChange={(e) =>
-                    setEstadoVisita(
-                      e.target.value as EditarVisitaInput['estado_visita']
-                    )
-                  }
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (esEstadoVisitaValido(val)) {
+                      setEstadoVisita(val);
+                    }
+                  }}
                   className={SELECT_CLASS}
                 >
                   {ESTADOS_VISITA.map((estado) => (

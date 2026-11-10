@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import PanelLogisticaTup from '@/components/admin/tup/PanelLogisticaTup';
 import type { EstadoTrasladoTup, TrasladoTupItem } from '@/types/tup';
@@ -6,14 +7,10 @@ import type { EstadoTrasladoTup, TrasladoTupItem } from '@/types/tup';
 /**
  * /admin/tup — Server Component del módulo LOGÍSTICA TUP (H4).
  *
- * La tabla `visitas_educativas` NO tiene columnas `nombre_institucion` /
- * `direccion_institucion` directas: la institución se resuelve vía FK
- * `id_escuela -> escuelas` o, en su defecto, con el texto libre
- * `otra_institucion_nombre`. Por eso se usa el embed de PostgREST
- * `escuelas(nombre_institucion, direccion)` y se aplica el fallback en el map.
- *
- * Solo se listan traslados activos: `requiere_tup = true` y visitas que no
- * estén canceladas. Orden cronológico por fecha y por horario de ida.
+ * Muestra únicamente traslados activos (`requiere_tup = true` y `estado_visita`
+ * en `'Confirmada' | 'Reprogramada'`) desde la fecha actual en huso horario de
+ * Argentina (`America/Argentina/Buenos_Aires`), ordenados cronológicamente por
+ * fecha y franja horaria.
  */
 
 export const dynamic = 'force-dynamic';
@@ -21,10 +18,22 @@ export const dynamic = 'force-dynamic';
 export const metadata: Metadata = {
   title: 'Logística TUP · Hub Simuladores',
   description:
-    'Panel móvil de traslados municipales (TUP) para visitas educativas: estados, horarios y contacto con docentes.',
+    'Panel móvil de traslados municipales (TUP) para visitas educativas: estados, horarios, chofer y contacto directo.',
 };
 
-/** Forma cruda devuelta por PostgREST con el embed de `escuelas`. */
+type EscuelaJoinTup =
+  | {
+      nombre_institucion: string | null;
+      direccion: string | null;
+      telefono: string | null;
+    }
+  | Array<{
+      nombre_institucion: string | null;
+      direccion: string | null;
+      telefono: string | null;
+    }>
+  | null;
+
 interface FilaTrasladoTup {
   id: string;
   codigo_reserva: string | null;
@@ -40,10 +49,10 @@ interface FilaTrasladoTup {
   tup_horario_vuelta_desde: string | null;
   tup_horario_vuelta_hasta: string | null;
   tup_chofer_nombre: string | null;
-  tup_estado_traslado: EstadoTrasladoTup | null;
+  tup_estado_traslado: string | null;
   estado_visita: string | null;
   requiere_tup: boolean | null;
-  escuelas?: { nombre_institucion: string | null; direccion: string | null } | null;
+  escuelas?: EscuelaJoinTup;
 }
 
 const SELECT_TRASLADOS = `
@@ -64,28 +73,59 @@ const SELECT_TRASLADOS = `
   tup_estado_traslado,
   estado_visita,
   requiere_tup,
-  escuelas(nombre_institucion, direccion)
+  escuelas(nombre_institucion, direccion, telefono)
 `;
 
-/** Resuelve el nombre visible de la institución (FK o texto libre). */
-function resolverInstitucionNombre(fila: FilaTrasladoTup): string {
-  const desdeFk = fila.escuelas?.nombre_institucion?.trim();
-  if (desdeFk) return desdeFk;
-  const libre = fila.otra_institucion_nombre?.trim();
-  if (libre) return libre;
-  return 'Institución sin registrar';
+function obtenerFechaHoyArgentinaISO(): string {
+  const partes = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/Argentina/Buenos_Aires',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(new Date());
+
+  const anio = partes.find((p) => p.type === 'year')?.value ?? '2026';
+  const mes = partes.find((p) => p.type === 'month')?.value ?? '01';
+  const dia = partes.find((p) => p.type === 'day')?.value ?? '01';
+  return `${anio}-${mes}-${dia}`;
 }
 
-/** Normaliza la fila cruda al DTO público que consume el panel. */
+function obtenerEscuelaObjeto(join: EscuelaJoinTup): {
+  nombre_institucion: string | null;
+  direccion: string | null;
+  telefono: string | null;
+} | null {
+  if (!join) return null;
+  return Array.isArray(join) ? (join[0] ?? null) : join;
+}
+
+function normalizarEstadoTraslado(raw: string | null | undefined): EstadoTrasladoTup {
+  const norm = (raw ?? '').trim().toLowerCase().replace(/\s+/g, '_');
+  if (norm === 'en_camino') return 'en_camino';
+  if (norm === 'en_destino') return 'en_destino';
+  if (norm === 'finalizado' || norm === 'completado') return 'finalizado';
+  return 'pendiente';
+}
+
 function mapearTraslado(fila: FilaTrasladoTup): TrasladoTupItem {
+  const escuela = obtenerEscuelaObjeto(fila.escuelas ?? null);
+  const institucionNombre =
+    escuela?.nombre_institucion?.trim() ||
+    fila.otra_institucion_nombre?.trim() ||
+    'Institución sin registrar';
+
   return {
     id: fila.id,
     codigo_reserva: fila.codigo_reserva ?? '',
-    fecha_visita: fila.fecha_visita ?? '',
+    fecha_visita: (fila.fecha_visita ?? '').split('T')[0],
     turno: fila.turno ?? null,
-    cant_alumnos: fila.cant_alumnos ?? 0,
-    institucion_nombre: resolverInstitucionNombre(fila),
-    institucion_direccion: fila.escuelas?.direccion ?? null,
+    cant_alumnos:
+      typeof fila.cant_alumnos === 'number' && Number.isFinite(fila.cant_alumnos)
+        ? fila.cant_alumnos
+        : 0,
+    institucion_nombre: institucionNombre,
+    institucion_direccion: escuela?.direccion?.trim() || null,
+    institucion_telefono: escuela?.telefono?.trim() || null,
     nombre_docente: fila.nombre_docente ?? null,
     cel_docente: fila.cel_docente ?? null,
     tup_horario_ida_desde: fila.tup_horario_ida_desde ?? null,
@@ -93,34 +133,63 @@ function mapearTraslado(fila: FilaTrasladoTup): TrasladoTupItem {
     tup_horario_vuelta_desde: fila.tup_horario_vuelta_desde ?? null,
     tup_horario_vuelta_hasta: fila.tup_horario_vuelta_hasta ?? null,
     tup_chofer_nombre: fila.tup_chofer_nombre ?? null,
-    tup_estado_traslado: fila.tup_estado_traslado ?? 'pendiente',
+    tup_estado_traslado: normalizarEstadoTraslado(fila.tup_estado_traslado),
     estado_visita: fila.estado_visita ?? '',
   };
 }
 
+function ordenarCronologicamente(a: TrasladoTupItem, b: TrasladoTupItem): number {
+  const cmpFecha = a.fecha_visita.localeCompare(b.fecha_visita);
+  if (cmpFecha !== 0) return cmpFecha;
+
+  const horaA = a.tup_horario_ida_desde ?? '99:99';
+  const horaB = b.tup_horario_ida_desde ?? '99:99';
+  const cmpHora = horaA.localeCompare(horaB);
+  if (cmpHora !== 0) return cmpHora;
+
+  const pesoTurno = (turno: string | null): number =>
+    turno?.toLowerCase().includes('mañana') ? 0 : 1;
+  return pesoTurno(a.turno) - pesoTurno(b.turno);
+}
+
 export default async function TupPage() {
   const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect('/login');
+  }
+
+  const hoyISO = obtenerFechaHoyArgentinaISO();
 
   const { data, error } = await supabase
     .from('visitas_educativas')
     .select(SELECT_TRASLADOS)
     .eq('requiere_tup', true)
-    .neq('estado_visita', 'Cancelada')
+    .in('estado_visita', ['Confirmada', 'Reprogramada'])
+    .gte('fecha_visita', hoyISO)
     .order('fecha_visita', { ascending: true })
     .order('tup_horario_ida_desde', { ascending: true })
     .returns<FilaTrasladoTup[]>();
 
-  // Un fallo de lectura no bloquea el render: se muestra el panel vacío y el
-  // operador puede reintentar recargando. Registramos solo code/message (sin
-  // PII de menores) por consistencia con las demás páginas del admin.
+  let errorLectura: string | null = null;
   if (error) {
+    errorLectura = 'No se pudieron consultar los traslados TUP en este momento.';
     console.error('[/admin/tup] Error al cargar traslados TUP:', {
       code: error.code,
       message: error.message,
     });
   }
 
-  const traslados: TrasladoTupItem[] = (data ?? []).map(mapearTraslado);
+  const traslados = (data ?? [])
+    .filter(
+      (fila) =>
+        (fila.tup_estado_traslado ?? '').trim().toLowerCase() !== 'cancelado'
+    )
+    .map(mapearTraslado)
+    .sort(ordenarCronologicamente);
 
   return (
     <div className="mx-auto w-full max-w-lg">
@@ -134,11 +203,15 @@ export default async function TupPage() {
           <span className="font-mono text-zinc-500">{'// TRASLADOS MUNICIPALES'}</span>
         </h2>
         <p className="mt-1 font-mono text-[10.5px] leading-relaxed tracking-[0.08em] text-zinc-500">
-          PANEL TÁCTIL DE DESPACHO · CHOFERES TUP
+          PANEL TÁCTIL DE DESPACHO · CHOFERES TUP · HOY {hoyISO}
         </p>
       </header>
 
-      <PanelLogisticaTup traslados={traslados} />
+      <PanelLogisticaTup
+        traslados={traslados}
+        hoyISO={hoyISO}
+        errorLectura={errorLectura}
+      />
     </div>
   );
 }

@@ -1,23 +1,19 @@
 /**
- * Motor de calendario dinámico de cohorte (módulo puro, sin 'use server').
+ * @deprecated Módulo legado del modelo de cupo dinámico (21 alumnos/día).
+ * Reemplazado de forma exclusiva por el motor determinista de 16 alumnos en
+ * duplas con absorción de feriados en Viernes Buffer (`@/lib/calendario-duplas`).
+ * Mantener únicamente como referencia histórica; ninguna ruta activa debe
+ * importarlo.
  *
- * Regla operativa del Centro de Simuladores:
- * - Capacidad por día = 7 franjas * 3 puestos = 21 alumnos/día.
- * - Cupo <= 21 titulares: 6 jornadas hábiles de simulador (fijo).
- * - Cupo > 21: jornadas = ceil((cupo * horasRequeridas) / 21).
- * - Días hábiles de simulador: Lunes a Jueves (se saltan Viernes=5,
- *   Sábado=6 y Domingo=0 de forma estricta).
- * - fechaInicioSim: primer día hábil posterior a la fecha de teoría.
- * - fechaPasePlanta: primer día hábil posterior al fin del simulador.
- *
- * Compartido entre el Server Action (persistencia en `cohortes`) y la
- * CabeceraConfiguracion (badge de proyección en vivo antes de guardar).
+ * @see {@link @/lib/calendario-duplas#proyectarCalendarioCohorteV2}
  */
 
+/** @deprecated Usar el modelo de 16 alumnos / 8 duplas en `@/lib/calendario-duplas`. */
 export const CAPACIDAD_ALUMNOS_DIA = 21; // 7 franjas * 3 puestos
 const JORNADAS_MINIMAS = 6;
 const DIAS_NO_HABILES: readonly number[] = [0, 5, 6]; // Domingo, Viernes, Sábado
 
+/** @deprecated Usar `ProyeccionCohorteV2Input` de `@/lib/calendario-duplas`. */
 export interface InputProyeccionCohorte {
   /** Fecha de teoría en formato YYYY-MM-DD. */
   fechaTeoria: string;
@@ -26,6 +22,7 @@ export interface InputProyeccionCohorte {
   horasRequeridas?: number;
 }
 
+/** @deprecated Usar `ProyeccionCohorteV2Resultado` de `@/lib/calendario-duplas`. */
 export interface ProyeccionCohorte {
   /** YYYY-MM-DD · primer día hábil (Lun-Jue) posterior a la teoría. */
   fechaInicioSim: string;
@@ -59,13 +56,14 @@ function siguienteDiaHabil(fecha: Date): Date {
   return candidata;
 }
 
-/** YYYY-MM-DD en hora local (sin corrimientos por timezone al persistir DATE). */
+/** @deprecated Usar `aFechaIso` de `@/lib/calendario-duplas`. */
 export function aFechaIso(d: Date): string {
   const mes = `${d.getMonth() + 1}`.padStart(2, '0');
   const dia = `${d.getDate()}`.padStart(2, '0');
   return `${d.getFullYear()}-${mes}-${dia}`;
 }
 
+/** @deprecated Usar `proyectarCalendarioCohorteV2` de `@/lib/calendario-duplas`. */
 export function proyectarCohorteDinamica(
   input: InputProyeccionCohorte
 ): ProyeccionCohorte {

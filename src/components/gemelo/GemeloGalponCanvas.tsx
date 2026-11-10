@@ -6,7 +6,9 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import type {
   ConfiguracionEstacion,
   EstadoSimulador,
+  FichaTecnicaSimulador,
   GemeloGalponCanvasProps,
+  SimuladorSlug,
 } from '@/types/gemelo';
 
 // ═══════════════════════════════════════════════════════════════════
@@ -39,6 +41,8 @@ const COTA = {
 const ESTACIONES_CONFIG: Array<ConfiguracionEstacion & { pantallas?: string; mandos?: string }> = [
   {
     id: 'autoelevador',
+    codigoBahia: 'SIM-01',
+    numeroPuesto: 1,
     nombre: 'Autoelevador Industrial',
     tipo: 'autoelevador',
     pos: [6.4, 0, -0.5],
@@ -49,9 +53,11 @@ const ESTACIONES_CONFIG: Array<ConfiguracionEstacion & { pantallas?: string; man
     detalles: 'Simulador bi-pantalla apaisado paralelo a pared este',
   },
   {
-    id: 'pala-frontal',
+    id: 'excavadora',
+    codigoBahia: 'SIM-02',
+    numeroPuesto: 2,
     nombre: 'Pala Cargadora Frontal / Excavadora Hidráulica',
-    tipo: 'pala-frontal',
+    tipo: 'excavadora',
     pos: [5.5, 0, -4.8],
     rotY: -Math.PI / 4,
     color: 0x00a887,
@@ -61,6 +67,8 @@ const ESTACIONES_CONFIG: Array<ConfiguracionEstacion & { pantallas?: string; man
   },
   {
     id: 'retroexcavadora',
+    codigoBahia: 'SIM-03',
+    numeroPuesto: 3,
     nombre: 'Retroexcavadora / Telehandler',
     tipo: 'retroexcavadora',
     pos: [0.0, 0, -5.4],
@@ -71,9 +79,11 @@ const ESTACIONES_CONFIG: Array<ConfiguracionEstacion & { pantallas?: string; man
     detalles: 'Pared norte, monitores hacia la pared, asiento hacia el centro',
   },
   {
-    id: 'grua-telescopica',
-    nombre: 'Grúa Telescópica / Izaje Industrial',
-    tipo: 'grua-telescopica',
+    id: 'grua',
+    codigoBahia: 'SIM-04',
+    numeroPuesto: 4,
+    nombre: 'Grúa Móvil / Izaje Industrial',
+    tipo: 'grua',
     pos: [-5.5, 0, -4.8],
     rotY: Math.PI / 4,
     color: 0x0d9488,
@@ -83,6 +93,8 @@ const ESTACIONES_CONFIG: Array<ConfiguracionEstacion & { pantallas?: string; man
   },
   {
     id: 'tractor',
+    codigoBahia: 'SIM-05',
+    numeroPuesto: 5,
     nombre: 'Tractor Agrícola / Implementos',
     tipo: 'tractor',
     pos: [-6.4, 0, -0.5],
@@ -94,6 +106,8 @@ const ESTACIONES_CONFIG: Array<ConfiguracionEstacion & { pantallas?: string; man
   },
   {
     id: 'camion',
+    codigoBahia: 'SIM-06',
+    numeroPuesto: 6,
     nombre: 'Camión Pesado de Cargas',
     tipo: 'camion',
     pos: [-6.0, 0, 3.8],
@@ -105,6 +119,8 @@ const ESTACIONES_CONFIG: Array<ConfiguracionEstacion & { pantallas?: string; man
   },
   {
     id: 'simspray',
+    codigoBahia: 'SIM-07',
+    numeroPuesto: 7,
     nombre: 'SimSpray VR · Pintura Industrial',
     tipo: 'simspray',
     pos: [-2.5, 0, 4.8],
@@ -116,7 +132,7 @@ const ESTACIONES_CONFIG: Array<ConfiguracionEstacion & { pantallas?: string; man
 
 interface OperarioAnimado {
   id: number;
-  estacionId: string;
+  estacionId: SimuladorSlug;
   root: THREE.Group;
   pelvis: THREE.Group;
   torso: THREE.Group;
@@ -138,7 +154,7 @@ interface OperarioAnimado {
 }
 
 interface EstacionInterna {
-  config: ConfiguracionEstacion & { pantallas?: string; mandos?: string };
+  config: (typeof ESTACIONES_CONFIG)[number];
   grupo: THREE.Group;
   DC: THREE.Group | null;
   butaca: THREE.Group | null;
@@ -150,6 +166,7 @@ interface EstacionInterna {
   pistolaColgada?: THREE.Group;
   seed: number;
   enOperacion: boolean;
+  estado: EstadoSimulador;
 }
 
 interface ExtendedGemeloProps extends GemeloGalponCanvasProps {
@@ -160,7 +177,7 @@ interface ExtendedGemeloProps extends GemeloGalponCanvasProps {
 }
 
 export default function GemeloGalponCanvas({
-  estados,
+  simuladores,
   estacionSeleccionada,
   camaraSeguimiento,
   grillaVisible = false,
@@ -171,6 +188,7 @@ export default function GemeloGalponCanvas({
   onEstadoOperariosChange,
 }: ExtendedGemeloProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const simuladoresRef = useRef(simuladores);
   const toggleRef = useRef(onToggleEstacion);
   const selectRef = useRef(onSeleccionarEstacion);
   const opChangeRef = useRef(onEstadoOperariosChange);
@@ -178,6 +196,7 @@ export default function GemeloGalponCanvas({
   const rotarCamaraRef = useRef(rotarCamara);
   const estacionSeleccionadaRef = useRef(estacionSeleccionada);
 
+  simuladoresRef.current = simuladores;
   toggleRef.current = onToggleEstacion;
   selectRef.current = onSeleccionarEstacion;
   opChangeRef.current = onEstadoOperariosChange;
@@ -190,7 +209,7 @@ export default function GemeloGalponCanvas({
     setGridVisible: (v: boolean) => void;
     setRotar: (v: boolean) => void;
     resetCamera: () => void;
-    syncEstados: (estados: Record<string, EstadoSimulador>) => void;
+    syncEstados: (simuladores: FichaTecnicaSimulador[]) => void;
   } | null>(null);
 
   useEffect(() => {
@@ -213,9 +232,9 @@ export default function GemeloGalponCanvas({
 
   useEffect(() => {
     if (controlSceneRef.current) {
-      controlSceneRef.current.syncEstados(estados);
+      controlSceneRef.current.syncEstados(simuladores);
     }
-  }, [estados]);
+  }, [simuladores]);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -928,6 +947,7 @@ export default function GemeloGalponCanvas({
         cascoButaca,
         seed,
         enOperacion: false,
+        estado: 'libre',
       };
     }
 
@@ -1045,6 +1065,7 @@ export default function GemeloGalponCanvas({
         cascoButaca: null,
         seed,
         enOperacion: false,
+        estado: 'libre',
       };
     }
 
@@ -1057,7 +1078,11 @@ export default function GemeloGalponCanvas({
     // ═══════════════════════════════════════════════════════════════════
     // OPERARIOS MÓVILES INDIVIDUALES
     // ═══════════════════════════════════════════════════════════════════
-    function crearOperario(id: number, estacionId: string, colorChaleco = 0xea580c): OperarioAnimado {
+    function crearOperario(
+      id: number,
+      estacionId: SimuladorSlug,
+      colorChaleco = 0xea580c
+    ): OperarioAnimado {
       const root = new THREE.Group();
       root.name = 'Operario_' + id;
       root.visible = false;
@@ -1219,19 +1244,36 @@ export default function GemeloGalponCanvas({
       return wps;
     }
 
-    function setEstadoInterno(inst: EstacionInterna, enOperacion: boolean) {
-      inst.enOperacion = enOperacion;
-      if (enOperacion) {
-        inst.matPantalla.color.setHex(0x0d3327);
-        inst.matPantalla.emissive.setHex(0x10b981);
-        inst.matPantalla.emissiveIntensity = 0.85;
-        inst.luz.intensity = 0.7;
-        if (inst.cascoButaca) inst.cascoButaca.visible = false;
+    function aplicarEstadoVisualEstacion(
+      inst: EstacionInterna,
+      nuevoEstado: EstadoSimulador
+    ) {
+      inst.estado = nuevoEstado;
+      inst.enOperacion = nuevoEstado === 'en_operacion';
+
+      if (nuevoEstado === 'en_operacion') {
+        inst.matPantalla.color.setHex(0x451a03);
+        inst.matPantalla.emissive.setHex(0xf59e0b);
+        inst.matPantalla.emissiveIntensity = 0.9;
+        inst.luz.color.setHex(0xf59e0b);
+        inst.luz.intensity = 0.85;
+      } else if (nuevoEstado === 'mantenimiento') {
+        inst.matPantalla.color.setHex(0x450a0a);
+        inst.matPantalla.emissive.setHex(0xef4444);
+        inst.matPantalla.emissiveIntensity = 0.75;
+        inst.luz.color.setHex(0xef4444);
+        inst.luz.intensity = 0.65;
+        if (inst.cascoButaca) inst.cascoButaca.visible = true;
+        if (inst.DC) inst.DC.position.y = 0.0;
+        if (inst.visorColgado) inst.visorColgado.visible = true;
+        if (inst.pistolaColgada) inst.pistolaColgada.visible = true;
       } else {
-        inst.matPantalla.color.setHex(0x0a0a0a);
-        inst.matPantalla.emissive.setHex(0x000000);
-        inst.matPantalla.emissiveIntensity = 0.0;
-        inst.luz.intensity = 0.0;
+        // 'libre'
+        inst.matPantalla.color.setHex(0x064e3b);
+        inst.matPantalla.emissive.setHex(0x10b981);
+        inst.matPantalla.emissiveIntensity = 0.28;
+        inst.luz.color.setHex(0x10b981);
+        inst.luz.intensity = 0.25;
         if (inst.cascoButaca) inst.cascoButaca.visible = true;
         if (inst.DC) inst.DC.position.y = 0.0;
         if (inst.visorColgado) inst.visorColgado.visible = true;
@@ -1360,7 +1402,7 @@ export default function GemeloGalponCanvas({
 
         if (p >= 1.0) {
           op.estado = 'operando';
-          setEstadoInterno(op.estacion, true);
+          aplicarEstadoVisualEstacion(op.estacion, 'en_operacion');
           if (op.estacion.cascoButaca) op.estacion.cascoButaca.visible = false;
           emitirCambioOperarios();
         }
@@ -1426,6 +1468,10 @@ export default function GemeloGalponCanvas({
 
         if (p >= 1.0) {
           if (op.estacion.cascoButaca) op.estacion.cascoButaca.visible = true;
+          if (op.estacion.visorColgado) op.estacion.visorColgado.visible = true;
+          if (op.estacion.pistolaColgada) op.estacion.pistolaColgada.visible = true;
+          op.pistolaMano.visible = false;
+          op.visorVR.visible = false;
           op.ruta = planificarRutaHaciaPuerta(puntos.acceso);
           op.idxRuta = 0;
           op.estado = 'saliendo';
@@ -1439,8 +1485,11 @@ export default function GemeloGalponCanvas({
       const op = OPERARIOS[instIndex];
       ultimoOperarioActivo = op;
 
-      if (inst.enOperacion || op.estado === 'operando' || op.estado === 'subiendo') {
-        setEstadoInterno(inst, false);
+      const nuevoEstado: EstadoSimulador =
+        inst.estado === 'en_operacion' ? 'libre' : 'en_operacion';
+      aplicarEstadoVisualEstacion(inst, nuevoEstado);
+
+      if (nuevoEstado === 'libre') {
         op.estado = 'bajando';
         op.progresoBajada = 0;
       } else {
@@ -1456,12 +1505,24 @@ export default function GemeloGalponCanvas({
       toggleRef.current?.(inst.config.id);
     }
 
-    function syncEstadosInterno(currentEstados: Record<string, EstadoSimulador>) {
+    function syncEstadosInterno(listaSimuladores: FichaTecnicaSimulador[]) {
+      const mapaEstados: Partial<Record<SimuladorSlug, EstadoSimulador>> = {};
+      for (const sim of listaSimuladores) {
+        mapaEstados[sim.id] = sim.estado;
+      }
+
       INSTANCIAS.forEach((inst, idx) => {
-        const estadoDeseado = currentEstados[inst.config.id];
+        const nuevoEstado = mapaEstados[inst.config.id] ?? 'libre';
         const op = OPERARIOS[idx];
-        if (estadoDeseado === 'operando') {
-          if (!inst.enOperacion && op.estado !== 'operando' && op.estado !== 'subiendo' && op.estado !== 'caminando') {
+
+        aplicarEstadoVisualEstacion(inst, nuevoEstado);
+
+        if (nuevoEstado === 'en_operacion') {
+          if (
+            op.estado !== 'operando' &&
+            op.estado !== 'subiendo' &&
+            op.estado !== 'caminando'
+          ) {
             op.estacion = inst;
             const puntos = getPuntosEstacion(inst.config);
             op.root.visible = true;
@@ -1472,10 +1533,14 @@ export default function GemeloGalponCanvas({
             ultimoOperarioActivo = op;
           }
         } else {
-          if (inst.enOperacion || op.estado === 'operando' || op.estado === 'subiendo') {
-            setEstadoInterno(inst, false);
+          if (op.estado === 'operando' || op.estado === 'subiendo') {
             op.estado = 'bajando';
             op.progresoBajada = 0;
+            ultimoOperarioActivo = op;
+          } else if (op.estado === 'caminando') {
+            op.ruta = planificarRutaHaciaPuerta(op.root.position.clone());
+            op.idxRuta = 0;
+            op.estado = 'saliendo';
             ultimoOperarioActivo = op;
           }
         }
@@ -1498,6 +1563,9 @@ export default function GemeloGalponCanvas({
       resetCamera,
       syncEstados: syncEstadosInterno,
     };
+
+    // Sincronización inicial con el snapshot recibido en props
+    syncEstadosInterno(simuladoresRef.current);
 
     // Anillo visual de selección para la estación activa
     const ringGeo = new THREE.RingGeometry(1.25, 1.34, 40);
@@ -1556,7 +1624,7 @@ export default function GemeloGalponCanvas({
 
         raycaster.setFromCamera(mouse, camera);
         const hits = raycaster.intersectObjects(scene.children, true);
-        let foundStationId: string | null = null;
+        let foundStationId: SimuladorSlug | null = null;
         for (const hit of hits) {
           let obj: THREE.Object3D | null = hit.object;
           while (obj && obj !== scene) {
@@ -1607,6 +1675,14 @@ export default function GemeloGalponCanvas({
           selectionRing.position.z = sel.config.pos[2];
           selectionRing.visible = true;
           selectionRing.rotation.z += 0.015;
+
+          if (sel.estado === 'en_operacion') {
+            ringMat.color.setHex(0xf59e0b);
+          } else if (sel.estado === 'mantenimiento') {
+            ringMat.color.setHex(0xef4444);
+          } else {
+            ringMat.color.setHex(0x10b981);
+          }
         } else {
           selectionRing.visible = false;
         }

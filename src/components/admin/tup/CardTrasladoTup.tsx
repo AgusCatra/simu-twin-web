@@ -1,22 +1,27 @@
 'use client';
 
-import { useOptimistic, useTransition } from 'react';
-import { MessageCircle, Phone, Truck } from 'lucide-react';
+import { useOptimistic, useState, useTransition, type FormEvent } from 'react';
+import {
+  AlertCircle,
+  Check,
+  MapPin,
+  MessageCircle,
+  Phone,
+  Truck,
+  UserCheck,
+} from 'lucide-react';
 import { actualizarEstadoTrasladoAction } from '@/app/admin/tup/actions';
 import type { EstadoTrasladoTup, TrasladoTupItem } from '@/types/tup';
 
 /**
- * Tarjeta de traslado TUP optimizada para pantalla táctil (360–430 px).
+ * Tarjeta de traslado TUP optimizada para pantalla táctil móvil (360–430 px).
  *
  * Estética: terminal de despacho de flota — bordes duros, tipografía mono
- * uppercase con tracking, LEDs de estado, sin sombras ni gradientes.
- * Los botones respetan área táctil mínima de 44 px (`h-11`).
+ * uppercase con tracking, LEDs de estado y botones táctiles grandes (`h-12`).
  */
 
-type EstadoSelector = Extract<EstadoTrasladoTup, 'pendiente' | 'en_camino' | 'completado'>;
-
 const OPCIONES_ESTADO: readonly {
-  valor: EstadoSelector;
+  valor: EstadoTrasladoTup;
   etiqueta: string;
   ledActivo: string;
   ledInactivo: string;
@@ -27,8 +32,8 @@ const OPCIONES_ESTADO: readonly {
   {
     valor: 'pendiente',
     etiqueta: 'PENDIENTE',
-    ledActivo: 'bg-zinc-300',
-    ledInactivo: 'bg-zinc-700',
+    ledActivo: 'bg-zinc-900',
+    ledInactivo: 'bg-zinc-600',
     textoActivo: 'text-zinc-950',
     fondoActivo: 'bg-zinc-200',
     bordeActivo: 'border-zinc-200',
@@ -36,29 +41,32 @@ const OPCIONES_ESTADO: readonly {
   {
     valor: 'en_camino',
     etiqueta: 'EN CAMINO',
-    ledActivo: 'bg-amber-400 animate-pulse',
-    ledInactivo: 'bg-zinc-700',
+    ledActivo: 'bg-amber-950 animate-pulse',
+    ledInactivo: 'bg-zinc-600',
     textoActivo: 'text-amber-950',
     fondoActivo: 'bg-amber-400',
     bordeActivo: 'border-amber-400',
   },
   {
-    valor: 'completado',
-    etiqueta: 'COMPLETADO',
-    ledActivo: 'bg-emerald-400',
-    ledInactivo: 'bg-zinc-700',
+    valor: 'en_destino',
+    etiqueta: 'EN DESTINO',
+    ledActivo: 'bg-sky-950',
+    ledInactivo: 'bg-zinc-600',
+    textoActivo: 'text-sky-950',
+    fondoActivo: 'bg-sky-400',
+    bordeActivo: 'border-sky-400',
+  },
+  {
+    valor: 'finalizado',
+    etiqueta: 'FINALIZADO',
+    ledActivo: 'bg-emerald-950',
+    ledInactivo: 'bg-zinc-600',
     textoActivo: 'text-emerald-950',
     fondoActivo: 'bg-emerald-400',
     bordeActivo: 'border-emerald-400',
   },
 ];
 
-/**
- * Normaliza un celular argentino al formato internacional para wa.me / tel:.
- * - Quita todo lo que no sea dígito.
- * - Si no arranca con 54, le agrega el prefijo país.
- * - Para WhatsApp convierte el prefijo 54 a 549 (móvil) y elimina el 15.
- */
 function normalizarDigitos(raw: string): string {
   return raw.replace(/\D/g, '');
 }
@@ -66,10 +74,9 @@ function normalizarDigitos(raw: string): string {
 function normalizarTelefono(raw?: string | null): string | null {
   if (!raw) return null;
   let digitos = normalizarDigitos(raw);
-  if (digitos.length < 8) return null;
+  if (digitos.length < 7) return null;
 
   if (!digitos.startsWith('54')) {
-    // Número local sin prefijo país: quitamos el 0 de larga distancia si existe.
     if (digitos.startsWith('0')) digitos = digitos.slice(1);
     digitos = `54${digitos}`;
   }
@@ -96,7 +103,6 @@ function normalizarWhatsApp(raw?: string | null): string | null {
   return `549${digitos}`;
 }
 
-/** Convierte "YYYY-MM-DD" a "DD/MM" para el chip compacto del header. */
 function formatearFechaCorta(iso: string): string {
   if (!iso) return '—';
   const [anio, mes, dia] = iso.split('-');
@@ -104,7 +110,6 @@ function formatearFechaCorta(iso: string): string {
   return `${dia}/${mes}`;
 }
 
-/** Recorta "HH:MM:SS" a "HH:MM" (PostgREST devuelve TIME con segundos). */
 function formatearHora(valor: string | null): string {
   if (!valor) return '--:--';
   return valor.slice(0, 5);
@@ -112,15 +117,30 @@ function formatearHora(valor: string | null): string {
 
 interface Props {
   traslado: TrasladoTupItem;
+  esHoy?: boolean;
 }
 
-export default function CardTrasladoTup({ traslado }: Props) {
+export default function CardTrasladoTup({ traslado, esHoy = false }: Props) {
   const [estadoOptimista, setEstadoOptimista] = useOptimistic<EstadoTrasladoTup>(
     traslado.tup_estado_traslado
   );
-  const [enTransicion, iniciarTransicion] = useTransition();
+  const [enTransicionEstado, iniciarTransicionEstado] = useTransition();
 
-  const telefono = normalizarTelefono(traslado.cel_docente);
+  const [choferInput, setChoferInput] = useState<string>(
+    traslado.tup_chofer_nombre ?? ''
+  );
+  const [choferPersistido, setChoferPersistido] = useState<string | null>(
+    traslado.tup_chofer_nombre
+  );
+  const [enTransicionChofer, iniciarTransicionChofer] = useTransition();
+  const [feedbackChofer, setFeedbackChofer] = useState<string | null>(null);
+  const [errorAccion, setErrorAccion] = useState<string | null>(null);
+
+  const telefonoDocente = normalizarTelefono(traslado.cel_docente);
+  const telefonoEscuela = normalizarTelefono(traslado.institucion_telefono);
+  const telefonoPrincipal = telefonoDocente ?? telefonoEscuela;
+  const etiquetaTelefonoPrincipal = telefonoDocente ? 'LLAMAR DOC.' : 'LLAMAR ESC.';
+
   const whatsapp = normalizarWhatsApp(traslado.cel_docente);
   const mensajeWhatsapp = `Hola ${
     traslado.nombre_docente?.trim() ? traslado.nombre_docente.trim() : ''
@@ -128,45 +148,77 @@ export default function CardTrasladoTup({ traslado }: Props) {
     traslado.codigo_reserva
   } del ${formatearFechaCorta(traslado.fecha_visita)}.`.replace(/\s+/g, ' ');
 
-  function cambiarEstado(nuevo: EstadoSelector) {
-    if (nuevo === estadoOptimista || enTransicion) return;
+  function cambiarEstado(nuevo: EstadoTrasladoTup) {
+    if (nuevo === estadoOptimista || enTransicionEstado) return;
+    setErrorAccion(null);
 
-    iniciarTransicion(async () => {
+    iniciarTransicionEstado(async () => {
       setEstadoOptimista(nuevo);
       const resultado = await actualizarEstadoTrasladoAction({
         visita_id: traslado.id,
         tup_estado_traslado: nuevo,
       });
       if (!resultado.ok) {
-        // La UI optimista se revierte automáticamente al salir de la transición
-        // porque el valor base (prop) no cambió. Solo logueamos el motivo.
-        console.warn('[CardTrasladoTup] No se pudo actualizar el estado:', resultado.error);
+        setErrorAccion(resultado.error);
       }
     });
   }
 
-  // LED superior derecho según el estado actual (optimista).
+  function guardarChofer(evento: FormEvent<HTMLFormElement>) {
+    evento.preventDefault();
+    if (enTransicionChofer) return;
+
+    const limpio = choferInput.trim();
+    const valorNormalizado = limpio.length > 0 ? limpio : null;
+    if (valorNormalizado === (choferPersistido ?? null)) return;
+
+    setErrorAccion(null);
+    setFeedbackChofer(null);
+
+    iniciarTransicionChofer(async () => {
+      const resultado = await actualizarEstadoTrasladoAction({
+        visita_id: traslado.id,
+        tup_chofer_nombre: valorNormalizado,
+      });
+      if (!resultado.ok) {
+        setErrorAccion(resultado.error);
+        return;
+      }
+      setChoferPersistido(valorNormalizado);
+      setChoferInput(valorNormalizado ?? '');
+      setFeedbackChofer(valorNormalizado ? 'Chofer guardado' : 'Chofer liberado');
+    });
+  }
+
   const ledEstado =
     estadoOptimista === 'en_camino'
       ? 'bg-amber-400 animate-pulse'
-      : estadoOptimista === 'completado'
-        ? 'bg-emerald-400'
-        : estadoOptimista === 'en_destino'
-          ? 'bg-sky-400'
-          : estadoOptimista === 'cancelado'
-            ? 'bg-red-500'
-            : 'bg-zinc-600';
+      : estadoOptimista === 'en_destino'
+        ? 'bg-sky-400'
+        : estadoOptimista === 'finalizado'
+          ? 'bg-emerald-400'
+          : 'bg-zinc-500';
+
+  const choferSucio =
+    (choferInput.trim() || null) !== (choferPersistido ?? null);
 
   return (
     <article
-      className={`mb-3 rounded-sm border bg-zinc-950 p-4 transition-colors ${
-        enTransicion ? 'border-zinc-600 opacity-80' : 'border-zinc-800'
-      }`}
+      className={`mb-3.5 rounded-sm border bg-zinc-950 p-4 transition-colors ${
+        esHoy
+          ? 'border-amber-500/75 border-l-4 border-l-amber-400'
+          : 'border-zinc-800'
+      } ${enTransicionEstado ? 'opacity-90' : ''}`}
     >
-      {/* ── Header: código + fecha + LED de estado ─────────────── */}
+      {/* ── Header: código + fecha + destaque HOY + LED de estado ── */}
       <header className="mb-3 flex items-start justify-between gap-2 border-b border-zinc-800 pb-3">
         <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+          <div className="flex flex-wrap items-center gap-1.5">
+            {esHoy && (
+              <span className="rounded-sm bg-amber-400 px-1.5 py-0.5 font-mono text-[10px] font-bold tracking-[0.14em] text-zinc-950">
+                HOY
+              </span>
+            )}
             <span className="rounded-sm border border-zinc-700 bg-zinc-900 px-1.5 py-0.5 font-mono text-[11px] font-semibold tracking-[0.12em] text-zinc-100">
               {traslado.codigo_reserva || 'S/C'}
             </span>
@@ -174,36 +226,44 @@ export default function CardTrasladoTup({ traslado }: Props) {
               {formatearFechaCorta(traslado.fecha_visita)}
               {traslado.turno ? ` · ${traslado.turno.toUpperCase()}` : ''}
             </span>
+            <span className="rounded-sm border border-zinc-800 bg-zinc-900 px-1.5 py-0.5 font-mono text-[9.5px] uppercase tracking-[0.1em] text-zinc-400">
+              {traslado.estado_visita}
+            </span>
           </div>
+
           <p className="mt-2 truncate text-[15px] font-bold leading-tight text-zinc-50">
             {traslado.institucion_nombre || 'Institución sin registrar'}
           </p>
-          {traslado.institucion_direccion ? (
-            <p className="mt-0.5 truncate font-mono text-[10.5px] tracking-[0.06em] text-zinc-500">
-              {traslado.institucion_direccion}
-            </p>
-          ) : null}
+
+          <p className="mt-1 flex items-center gap-1.5 truncate font-mono text-[11px] tracking-[0.04em] text-zinc-400">
+            <MapPin size={12} className="shrink-0 text-zinc-500" aria-hidden />
+            <span className="truncate">
+              {traslado.institucion_direccion || 'Dirección a confirmar'}
+            </span>
+          </p>
         </div>
+
         <div className="flex shrink-0 flex-col items-end gap-1">
           <span
             aria-hidden
             className={`h-2.5 w-2.5 rounded-full ${ledEstado}`}
             title={`Estado: ${estadoOptimista}`}
           />
-          <span className="font-mono text-[9px] tracking-[0.14em] text-zinc-600">
+          <span className="font-mono text-[9px] tracking-[0.14em] text-zinc-400">
             {estadoOptimista.replace('_', ' ').toUpperCase()}
           </span>
         </div>
       </header>
 
-      {/* ── Métricas: cupo + horarios ──────────────────────────── */}
+      {/* ── Métricas: pasajeros + horarios ─────────────────────── */}
       <div className="mb-3 grid grid-cols-1 gap-2 sm:grid-cols-[auto_1fr]">
-        <div className="flex items-center gap-1.5 rounded-sm border border-zinc-800 bg-zinc-900 px-2 py-1.5 font-mono text-[11px] tracking-[0.1em] text-zinc-200">
-          <Truck size={12} strokeWidth={2} className="shrink-0 text-zinc-500" />
-          <span>[ {traslado.cant_alumnos} ALUM + DOC ]</span>
+        <div className="flex items-center gap-2 rounded-sm border border-zinc-800 bg-zinc-900 px-2.5 py-2 font-mono text-[11px] tracking-[0.1em] text-zinc-200">
+          <Truck size={13} strokeWidth={2} className="shrink-0 text-zinc-400" />
+          <span>[ {traslado.cant_alumnos} PASAJ. + DOC ]</span>
         </div>
+
         <div className="grid grid-cols-2 gap-2">
-          <div className="rounded-sm border border-zinc-800 bg-zinc-900 px-2 py-1.5">
+          <div className="rounded-sm border border-zinc-800 bg-zinc-900 px-2.5 py-1.5">
             <p className="font-mono text-[9px] tracking-[0.16em] text-zinc-500">IDA</p>
             <p className="font-mono text-[13px] font-semibold tracking-[0.06em] text-zinc-100">
               {formatearHora(traslado.tup_horario_ida_desde)}
@@ -211,7 +271,7 @@ export default function CardTrasladoTup({ traslado }: Props) {
               {formatearHora(traslado.tup_horario_ida_hasta)}
             </p>
           </div>
-          <div className="rounded-sm border border-zinc-800 bg-zinc-900 px-2 py-1.5">
+          <div className="rounded-sm border border-zinc-800 bg-zinc-900 px-2.5 py-1.5">
             <p className="font-mono text-[9px] tracking-[0.16em] text-zinc-500">VUELTA</p>
             <p className="font-mono text-[13px] font-semibold tracking-[0.06em] text-zinc-100">
               {formatearHora(traslado.tup_horario_vuelta_desde)}
@@ -222,28 +282,62 @@ export default function CardTrasladoTup({ traslado }: Props) {
         </div>
       </div>
 
-      {/* ── Chofer asignado (si existe) ────────────────────────── */}
-      {traslado.tup_chofer_nombre ? (
-        <p className="mb-3 font-mono text-[10.5px] tracking-[0.1em] text-zinc-500">
-          CHOFER: <span className="text-zinc-300">{traslado.tup_chofer_nombre}</span>
-        </p>
-      ) : null}
+      {/* ── Edición rápida de chofer asignado ──────────────────── */}
+      <form onSubmit={guardarChofer} className="mb-3 space-y-1.5">
+        <label
+          htmlFor={`chofer-${traslado.id}`}
+          className="flex items-center justify-between font-mono text-[10px] uppercase tracking-[0.12em] text-zinc-400"
+        >
+          <span className="inline-flex items-center gap-1.5">
+            <UserCheck size={12} className="text-zinc-500" aria-hidden />
+            CHOFER ASIGNADO
+          </span>
+          {feedbackChofer && !choferSucio && (
+            <span className="inline-flex items-center gap-1 text-emerald-400">
+              <Check size={11} />
+              {feedbackChofer}
+            </span>
+          )}
+        </label>
+        <div className="flex items-center gap-2">
+          <input
+            id={`chofer-${traslado.id}`}
+            type="text"
+            maxLength={120}
+            value={choferInput}
+            onChange={(e) => {
+              setChoferInput(e.target.value);
+              if (feedbackChofer) setFeedbackChofer(null);
+            }}
+            placeholder="Ingresá tu nombre o asigná chofer"
+            disabled={enTransicionChofer}
+            className="h-11 min-w-0 flex-1 rounded-sm border border-zinc-800 bg-zinc-900 px-3 text-sm text-zinc-100 placeholder:text-zinc-600 focus:border-zinc-500 focus:outline-none disabled:opacity-60"
+          />
+          <button
+            type="submit"
+            disabled={enTransicionChofer || !choferSucio}
+            className="h-11 shrink-0 rounded-sm border border-zinc-700 bg-zinc-900 px-3 font-mono text-[10.5px] font-semibold tracking-[0.12em] text-zinc-100 transition-colors hover:border-zinc-500 hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            {enTransicionChofer ? 'GUARDANDO…' : 'GUARDAR'}
+          </button>
+        </div>
+      </form>
 
-      {/* ── Botones de contacto (área táctil ≥ 44px) ───────────── */}
+      {/* ── Botones de contacto directo (área táctil ≥ 44px) ───── */}
       <div className="mb-3 grid grid-cols-2 gap-2">
-        {telefono ? (
+        {telefonoPrincipal ? (
           <a
-            href={`tel:+${telefono}`}
-            className="flex h-11 items-center justify-center gap-2 rounded-sm border border-zinc-700 bg-zinc-900 font-mono text-[11px] font-semibold tracking-[0.14em] text-zinc-100 transition-colors active:bg-zinc-800 hover:border-zinc-500"
+            href={`tel:+${telefonoPrincipal}`}
+            className="flex h-12 items-center justify-center gap-2 rounded-sm border border-zinc-700 bg-zinc-900 px-2 font-mono text-[11px] font-semibold tracking-[0.12em] text-zinc-100 transition-colors active:bg-zinc-800 hover:border-zinc-500"
           >
             <Phone size={14} strokeWidth={2} />
-            LLAMAR
+            {etiquetaTelefonoPrincipal}
           </a>
         ) : (
           <button
             type="button"
             disabled
-            className="flex h-11 items-center justify-center gap-2 rounded-sm border border-zinc-800 bg-zinc-900/50 font-mono text-[11px] tracking-[0.14em] text-zinc-600"
+            className="flex h-12 items-center justify-center gap-2 rounded-sm border border-zinc-800 bg-zinc-900/50 font-mono text-[11px] tracking-[0.12em] text-zinc-600"
           >
             <Phone size={14} strokeWidth={2} />
             SIN TEL.
@@ -255,7 +349,7 @@ export default function CardTrasladoTup({ traslado }: Props) {
             href={`https://wa.me/${whatsapp}?text=${encodeURIComponent(mensajeWhatsapp)}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex h-11 items-center justify-center gap-2 rounded-sm border border-emerald-800 bg-emerald-950 font-mono text-[11px] font-semibold tracking-[0.14em] text-emerald-200 transition-colors active:bg-emerald-900 hover:border-emerald-600"
+            className="flex h-12 items-center justify-center gap-2 rounded-sm border border-emerald-800 bg-emerald-950 px-2 font-mono text-[11px] font-semibold tracking-[0.12em] text-emerald-200 transition-colors active:bg-emerald-900 hover:border-emerald-600"
           >
             <MessageCircle size={14} strokeWidth={2} />
             WHATSAPP
@@ -264,7 +358,7 @@ export default function CardTrasladoTup({ traslado }: Props) {
           <button
             type="button"
             disabled
-            className="flex h-11 items-center justify-center gap-2 rounded-sm border border-zinc-800 bg-zinc-900/50 font-mono text-[11px] tracking-[0.14em] text-zinc-600"
+            className="flex h-12 items-center justify-center gap-2 rounded-sm border border-zinc-800 bg-zinc-900/50 font-mono text-[11px] tracking-[0.12em] text-zinc-600"
           >
             <MessageCircle size={14} strokeWidth={2} />
             SIN WHATSAPP
@@ -272,29 +366,36 @@ export default function CardTrasladoTup({ traslado }: Props) {
         )}
       </div>
 
-      {/* ── Selector segmentado de estado (touch, 44px) ────────── */}
+      {telefonoEscuela && telefonoEscuela !== telefonoDocente && (
+        <a
+          href={`tel:+${telefonoEscuela}`}
+          className="mb-3 flex h-10 items-center justify-center gap-2 rounded-sm border border-zinc-800 bg-zinc-900/70 font-mono text-[10.5px] tracking-[0.1em] text-zinc-300 hover:border-zinc-600 hover:text-white"
+        >
+          <Phone size={12} strokeWidth={2} />
+          TEL. ESCUELA: {traslado.institucion_telefono}
+        </a>
+      )}
+
+      {/* ── Selector segmentado de estado (touch, 48px, 4 estados) ─ */}
       <div
         role="group"
         aria-label="Estado del traslado"
-        className="grid grid-cols-3 gap-0 overflow-hidden rounded-sm border border-zinc-800"
+        className="grid grid-cols-2 gap-1.5 sm:grid-cols-4"
       >
-        {OPCIONES_ESTADO.map((opcion, indice) => {
+        {OPCIONES_ESTADO.map((opcion) => {
           const activo = estadoOptimista === opcion.valor;
-          const clasesBase =
-            'flex h-11 items-center justify-center gap-1.5 font-mono text-[10.5px] font-semibold tracking-[0.1em] transition-colors disabled:cursor-not-allowed';
-          const clases = activo
-            ? `${clasesBase} ${opcion.fondoActivo} ${opcion.textoActivo}`
-            : `${clasesBase} bg-zinc-950 text-zinc-400 hover:bg-zinc-900 hover:text-zinc-100`;
           return (
             <button
               key={opcion.valor}
               type="button"
               onClick={() => cambiarEstado(opcion.valor)}
-              disabled={enTransicion || activo}
+              disabled={enTransicionEstado || activo}
               aria-pressed={activo}
-              className={`${clases} ${
-                indice > 0 ? 'border-l border-zinc-800' : ''
-              } ${activo ? opcion.bordeActivo : ''}`}
+              className={`flex h-12 items-center justify-center gap-1.5 rounded-sm border font-mono text-[10.5px] font-semibold tracking-[0.08em] transition-colors disabled:cursor-not-allowed ${
+                activo
+                  ? `${opcion.fondoActivo} ${opcion.textoActivo} ${opcion.bordeActivo}`
+                  : 'border-zinc-800 bg-zinc-900 text-zinc-400 hover:border-zinc-600 hover:text-zinc-100'
+              }`}
             >
               <span
                 aria-hidden
@@ -308,11 +409,21 @@ export default function CardTrasladoTup({ traslado }: Props) {
         })}
       </div>
 
-      {enTransicion ? (
-        <p className="mt-2 font-mono text-[10px] tracking-[0.14em] text-zinc-500">
-          ▸ SINCRONIZANDO…
+      {enTransicionEstado && (
+        <p className="mt-2 font-mono text-[10px] tracking-[0.14em] text-zinc-400">
+          ▸ SINCRONIZANDO ESTADO…
         </p>
-      ) : null}
+      )}
+
+      {errorAccion && (
+        <p
+          role="alert"
+          className="mt-2 flex items-center gap-1.5 rounded-sm border border-rose-900 bg-rose-950/50 px-2.5 py-1.5 font-mono text-[11px] text-rose-200"
+        >
+          <AlertCircle size={13} className="shrink-0 text-rose-400" />
+          {errorAccion}
+        </p>
+      )}
     </article>
   );
 }

@@ -8,6 +8,29 @@ import type {
   VisitaEducativa,
 } from '@/types/visitas';
 
+/** Fecha calendario de hoy en huso horario de Argentina (YYYY-MM-DD). */
+function obtenerFechaHoyArgentinaISO(): string {
+  const partes = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/Argentina/Buenos_Aires',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(new Date());
+
+  const anio = partes.find((p) => p.type === 'year')?.value ?? '2026';
+  const mes = partes.find((p) => p.type === 'month')?.value ?? '01';
+  const dia = partes.find((p) => p.type === 'day')?.value ?? '01';
+  return `${anio}-${mes}-${dia}`;
+}
+
+function esObjeto(valor: unknown): valor is Record<string, unknown> {
+  return typeof valor === 'object' && valor !== null;
+}
+
+function aTexto(valor: unknown, fallback = ''): string {
+  return typeof valor === 'string' ? valor : fallback;
+}
+
 export async function obtenerEscuelas(): Promise<Escuela[]> {
   const supabase = createClient();
   const { data, error } = await supabase
@@ -17,20 +40,55 @@ export async function obtenerEscuelas(): Promise<Escuela[]> {
 
   if (error) throw error;
 
-  return (data ?? []) as Escuela[];
+  const lista: unknown[] = Array.isArray(data) ? data : [];
+  return lista.filter(esObjeto).map((fila) => ({
+    id: aTexto(fila.id),
+    nombre_institucion: aTexto(fila.nombre_institucion),
+    nombre_corto: aTexto(fila.nombre_corto),
+    direccion: aTexto(fila.direccion),
+  }));
 }
 
 export async function obtenerFechasHabilitadas(): Promise<FechaHabilitada[]> {
   const supabase = createClient();
-  const { data, error } = await supabase
-    .from('fechas_habilitadas')
-    .select('id, fecha, habilitada, observaciones')
-    .eq('habilitada', true)
-    .order('fecha', { ascending: true });
+  const hoyISO = obtenerFechaHoyArgentinaISO();
 
-  if (error) throw error;
+  const [resFechas, resOcupadas] = await Promise.all([
+    supabase
+      .from('fechas_habilitadas')
+      .select('id, fecha, habilitada, observaciones')
+      .eq('habilitada', true)
+      .gte('fecha', hoyISO)
+      .order('fecha', { ascending: true }),
+    supabase
+      .from('visitas_educativas')
+      .select('fecha_visita')
+      .gte('fecha_visita', hoyISO)
+      .neq('estado_visita', 'Cancelada'),
+  ]);
 
-  return (data ?? []) as FechaHabilitada[];
+  if (resFechas.error) throw resFechas.error;
+
+  const filasOcupadas: unknown[] =
+    !resOcupadas.error && Array.isArray(resOcupadas.data) ? resOcupadas.data : [];
+  const fechasOcupadas = new Set(
+    filasOcupadas
+      .filter(esObjeto)
+      .map((fila) => aTexto(fila.fecha_visita))
+      .filter((f) => f.length > 0)
+  );
+
+  const filasFechas: unknown[] = Array.isArray(resFechas.data) ? resFechas.data : [];
+  return filasFechas.filter(esObjeto).map((fila) => {
+    const fecha = aTexto(fila.fecha);
+    return {
+      id: aTexto(fila.id),
+      fecha,
+      habilitada: Boolean(fila.habilitada),
+      observaciones: typeof fila.observaciones === 'string' ? fila.observaciones : null,
+      ocupada: fechasOcupadas.has(fecha),
+    };
+  });
 }
 
 export async function verificarTurnoDisponible(

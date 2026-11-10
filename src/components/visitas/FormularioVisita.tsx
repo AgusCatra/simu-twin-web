@@ -92,11 +92,23 @@ function formatearFecha(iso: string): string {
   return `${dia}/${mes}/${anio}`;
 }
 
-export default function FormularioVisita() {
-  const [escuelas, setEscuelas] = useState<Escuela[]>([]);
-  const [fechas, setFechas] = useState<FechaHabilitada[]>([]);
-  const [cargando, setCargando] = useState<boolean>(true);
-  const [errorCarga, setErrorCarga] = useState<string | null>(null);
+interface FormularioVisitaProps {
+  escuelasIniciales?: Escuela[];
+  fechasIniciales?: FechaHabilitada[];
+  errorCargaInicial?: string | null;
+}
+
+export default function FormularioVisita({
+  escuelasIniciales,
+  fechasIniciales,
+  errorCargaInicial = null,
+}: FormularioVisitaProps) {
+  const tieneDatosSsr =
+    escuelasIniciales !== undefined && fechasIniciales !== undefined;
+  const [escuelas, setEscuelas] = useState<Escuela[]>(escuelasIniciales ?? []);
+  const [fechas, setFechas] = useState<FechaHabilitada[]>(fechasIniciales ?? []);
+  const [cargando, setCargando] = useState<boolean>(!tieneDatosSsr);
+  const [errorCarga, setErrorCarga] = useState<string | null>(errorCargaInicial);
   const [form, setForm] = useState<FormState>(FORM_INICIAL);
   const [enviando, setEnviando] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -124,8 +136,10 @@ export default function FormularioVisita() {
   }, []);
 
   useEffect(() => {
-    void cargarDatos();
-  }, [cargarDatos]);
+    if (!tieneDatosSsr) {
+      void cargarDatos();
+    }
+  }, [cargarDatos, tieneDatosSsr]);
 
   const cantAlumnosNumero = Number(form.cant_alumnos);
   const cupoExcedido =
@@ -216,25 +230,29 @@ export default function FormularioVisita() {
       };
 
       const resultado = await crearSolicitudVisitaAction(payload);
-      if (!resultado.ok) {
-        setError(resultado.error);
+      if (resultado.ok) {
+        setExito({
+          // Valores autoritativos devueltos por el servidor (fuente única de verdad):
+          codigo_reserva: resultado.codigo_reserva,
+          fecha_visita: resultado.fecha_visita,
+          estado_visita: resultado.estado_visita,
+          estado_poliza: resultado.estado_poliza,
+          requiere_tup: resultado.requiere_tup,
+          // Datos de eco del propio formulario (no son autoridad del servidor):
+          anio: payload.anio,
+          division: payload.division,
+          cant_alumnos: payload.cant_alumnos,
+          cel_docente: payload.cel_docente,
+        });
+        setForm(FORM_INICIAL);
+        void cargarDatos();
         return;
       }
 
-      setExito({
-        // Valores autoritativos devueltos por el servidor (fuente única de verdad):
-        codigo_reserva: resultado.codigo_reserva,
-        fecha_visita: resultado.fecha_visita,
-        estado_visita: resultado.estado_visita,
-        estado_poliza: resultado.estado_poliza,
-        requiere_tup: resultado.requiere_tup,
-        // Datos de eco del propio formulario (no son autoridad del servidor):
-        anio: payload.anio,
-        division: payload.division,
-        cant_alumnos: payload.cant_alumnos,
-        cel_docente: payload.cel_docente,
-      });
-      setForm(FORM_INICIAL);
+      setError(resultado.error);
+      if (resultado.error.toLowerCase().includes('ya tiene una reserva')) {
+        void cargarDatos();
+      }
     } catch {
       setError('Ocurrió un error inesperado. Intente nuevamente.');
     } finally {
@@ -519,9 +537,14 @@ export default function FormularioVisita() {
                     : 'Seleccione una fecha habilitada'}
               </option>
               {fechas.map((fecha) => (
-                <option key={fecha.id} value={fecha.fecha}>
+                <option
+                  key={fecha.id}
+                  value={fecha.fecha}
+                  disabled={fecha.ocupada === true}
+                >
                   {formatearFecha(fecha.fecha)}
                   {fecha.observaciones ? ` — ${fecha.observaciones}` : ''}
+                  {fecha.ocupada ? ' (Ya reservada)' : ''}
                 </option>
               ))}
             </select>

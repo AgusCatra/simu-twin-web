@@ -7,6 +7,7 @@ import {
   BookOpen,
   ClipboardList,
   ExternalLink,
+  Package,
   Server,
   Truck,
   UsersRound,
@@ -28,6 +29,7 @@ export const RUTAS_ADMIN: readonly RutaAdmin[] = [
   { href: '/admin/visitas-educativas', label: 'Visitas Educativas (H4)', icono: BookOpen },
   { href: '/admin/registro-actividades', label: 'Registro de Actividades', icono: ClipboardList },
   { href: '/admin/tup', label: 'Logística TUP', icono: Truck },
+  { href: '/admin/insumos', label: 'Stock e Insumos', icono: Package },
   { href: '/gestion/cohortes', label: 'Cohortes y Cabina (Empleo)', icono: UsersRound },
 ];
 

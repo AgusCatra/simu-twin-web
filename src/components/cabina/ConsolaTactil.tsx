@@ -7,6 +7,7 @@ import type {
   AlumnoTurno,
   AsistenciaCabina,
   DictamenCabina,
+  EtapaEvaluacionCabina,
   EvaluacionCabinaInput,
   PuntajeEje,
 } from '@/types/cabina';
@@ -23,6 +24,7 @@ import type {
 
 interface Props {
   alumnos: AlumnoTurno[];
+  instructorDefault?: string;
 }
 
 type ClavePuntaje =
@@ -32,6 +34,25 @@ type ClavePuntaje =
   | 'puntaje_control_receptividad';
 
 type PuntajesEstado = Record<ClavePuntaje, PuntajeEje | undefined>;
+
+const ETAPAS: readonly {
+  valor: EtapaEvaluacionCabina;
+  codigo: string;
+  subtitulo: string;
+}[] = [
+  { valor: 'DIAG_INTENTO_1', codigo: 'V1 · DIAG 1', subtitulo: 'PRIMERA PASADA' },
+  { valor: 'DIAG_INTENTO_2', codigo: 'V2 · DIAG 2', subtitulo: 'SEGUNDA PASADA' },
+  { valor: 'FINAL', codigo: 'FINAL · EGRESO', subtitulo: 'PRUEBA FINAL' },
+];
+
+const OBSERVACIONES_RAPIDAS_PRESETS: readonly string[] = [
+  'Sin espejo lateral',
+  'Sobregiro brusco',
+  'Mástil fuera de cota',
+  'Duda en retroceso',
+  'Buena lectura espacial',
+  'Asimiló corrección',
+];
 
 const EJES: readonly {
   clave: ClavePuntaje;
@@ -129,15 +150,19 @@ function formatearReloj(totalSeg: number): string {
   return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
 }
 
-export default function ConsolaTactil({ alumnos }: Props) {
+export default function ConsolaTactil({
+  alumnos,
+  instructorDefault = '',
+}: Props) {
   const [idSeleccionado, setIdSeleccionado] = useState<string | null>(
     () => alumnos[0]?.inscripcion_id ?? null
   );
   const [evaluados, setEvaluados] = useState<ReadonlySet<string>>(
     () => new Set<string>()
   );
+  const [etapa, setEtapa] = useState<EtapaEvaluacionCabina>('DIAG_INTENTO_1');
 
-  // FIX F3: selección por id (no por índice). Tras revalidatePath la lista se
+  // Selección por id (no por índice). Tras revalidatePath la lista se
   // acorta al remover descartados; si el id ya no existe, sincroniza al primero.
   const idx = alumnos.findIndex((a) => a.inscripcion_id === idSeleccionado);
   const idxSeguro = idx >= 0 ? idx : 0;
@@ -153,6 +178,9 @@ export default function ConsolaTactil({ alumnos }: Props) {
   const [asistencia, setAsistencia] = useState<AsistenciaCabina | null>(null);
   const [hardFail, setHardFail] = useState(false);
   const [motivoHardFail, setMotivoHardFail] = useState('');
+  const [instructor, setInstructor] = useState(instructorDefault);
+  const [observacionesRapidas, setObservacionesRapidas] = useState<string[]>([]);
+  const [observacionesDetalle, setObservacionesDetalle] = useState('');
 
   const [segundos, setSegundos] = useState(0);
   const [corriendo, setCorriendo] = useState(false);
@@ -160,10 +188,10 @@ export default function ConsolaTactil({ alumnos }: Props) {
   const [feedback, setFeedback] = useState<{ ok: boolean; texto: string } | null>(
     null
   );
+  const motivoHardFailRef = useRef<HTMLTextAreaElement | null>(null);
   const timerFeedback = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [enTransicion, iniciarTransicion] = useTransition();
-  // FIX F6: bloqueo síncrono contra doble submit por dos toques rápidos
-  // (useTransition no marca pending hasta el siguiente render).
+  // Bloqueo síncrono contra doble submit por dos toques rápidos.
   const lock = useRef(false);
 
   useEffect(() => {
@@ -190,14 +218,27 @@ export default function ConsolaTactil({ alumnos }: Props) {
     };
   }, []);
 
-  // FIX F5: preview en vivo neutro. Sin hard-fail, si faltan ejes o asistencia
-  // no se calcula (evita pintar NO_APTO · 0/90 engañoso desde el inicio).
+  // Preview en vivo: usa exactamente el módulo puro `calcularDictamen`.
   const ejesCompletos = EJES.every(
     (e) => puntajes[e.clave] !== undefined && puntajes[e.clave] !== null
   );
   const preview = useMemo(() => {
     if (hardFail) {
-      return { score_total: null as number | null, dictamen: 'NO_APTO' as DictamenCabina };
+      const r = calcularDictamen(
+        {
+          lateralidad: puntajes.puntaje_lateralidad ?? 0,
+          tacto_mandos: puntajes.puntaje_tacto_mandos ?? 0,
+          mastil: puntajes.puntaje_mastil ?? 0,
+          control_receptividad: puntajes.puntaje_control_receptividad ?? 0,
+        },
+        bonus,
+        asistencia ?? 'ALTA',
+        true
+      );
+      return {
+        score_total: ejesCompletos ? (r.score_total as number) : null,
+        dictamen: r.dictamen,
+      };
     }
     if (!ejesCompletos || !asistencia) {
       return { score_total: null, dictamen: null };
@@ -227,11 +268,19 @@ export default function ConsolaTactil({ alumnos }: Props) {
     setAsistencia(null);
     setHardFail(false);
     setMotivoHardFail('');
+    setObservacionesRapidas([]);
+    setObservacionesDetalle('');
     setSegundos(0);
     setCorriendo(false);
   }
 
-  /** FIX F4: siguiente postulante sin evaluar (búsqueda lineal con wrap). */
+  function toggleObservacionRapida(texto: string) {
+    setObservacionesRapidas((prev) =>
+      prev.includes(texto) ? prev.filter((item) => item !== texto) : [...prev, texto]
+    );
+  }
+
+  /** Siguiente postulante sin evaluar (búsqueda lineal con wrap). */
   function siguienteSinEvaluar(
     lista: AlumnoTurno[],
     yaEvaluados: ReadonlySet<string>,
@@ -252,17 +301,27 @@ export default function ConsolaTactil({ alumnos }: Props) {
       return;
     }
 
-    // FIX F6: tomar el lock antes de cualquier camino asíncrono; se libera en
-    // cada return de validación y en el finally del callback de la transición.
+    // Bloqueo síncrono antes de validar o lanzar la transición asíncrona.
     lock.current = true;
 
+    const motivoLimpio = motivoHardFail.trim();
+    if (hardFail && motivoLimpio.length === 0) {
+      lock.current = false;
+      setFeedback({
+        ok: false,
+        texto: 'DEBE INDICAR EL MOTIVO OBLIGATORIO DEL HARD-FAIL',
+      });
+      motivoHardFailRef.current?.focus();
+      return;
+    }
+
     const faltanEjes = EJES.some((e) => puntajes[e.clave] === undefined);
-    if (faltanEjes) {
+    if (!hardFail && faltanEjes) {
       lock.current = false;
       setFeedback({ ok: false, texto: 'FALTAN PUNTAJES DE EJES POR MARCAR' });
       return;
     }
-    if (!asistencia) {
+    if (!hardFail && !asistencia) {
       lock.current = false;
       setFeedback({ ok: false, texto: 'SELECCIONE EL NIVEL DE ASISTENCIA' });
       return;
@@ -271,16 +330,20 @@ export default function ConsolaTactil({ alumnos }: Props) {
     const datos: EvaluacionCabinaInput = {
       postulante_id: alumno.postulante_id,
       inscripcion_id: alumno.inscripcion_id,
+      etapa,
       puntaje_lateralidad: puntajes.puntaje_lateralidad ?? 0,
       puntaje_tacto_mandos: puntajes.puntaje_tacto_mandos ?? 0,
       puntaje_mastil: puntajes.puntaje_mastil ?? 0,
       puntaje_control_receptividad: puntajes.puntaje_control_receptividad ?? 0,
       bonus_segundo_intento: bonus,
-      asistencia_cabina: asistencia,
+      asistencia_cabina: asistencia ?? 'ALTA',
       hard_fail: hardFail,
-      // FIX F1: el motivo solo viaja si el hard-fail sigue activo al guardar.
-      motivo_hard_fail: hardFail ? motivoHardFail.trim() || null : null,
+      motivo_hard_fail: hardFail ? motivoLimpio : null,
       tiempo_vuelta_seg: segundos > 0 ? segundos : null,
+      instructor_evaluador: instructor.trim() || null,
+      observaciones_rapidas:
+        observacionesRapidas.length > 0 ? observacionesRapidas : null,
+      observaciones_detalle: observacionesDetalle.trim() || null,
     };
 
     const idGuardado = alumno.inscripcion_id;
@@ -292,11 +355,9 @@ export default function ConsolaTactil({ alumnos }: Props) {
         if (resultado.ok) {
           setFeedback({
             ok: true,
-            texto: `GUARDADO · ${resultado.dictamen ?? 'OK'} · ${resultado.score ?? 0} PTS`,
+            texto: `GUARDADO (${etapa}) · ${resultado.dictamen ?? 'OK'} · ${resultado.score ?? 0} PTS`,
           });
           resetPantalla();
-          // FIX F4: marca el puesto como evaluado y avanza al siguiente
-          // pendiente real (nunca recicla al puesto 0 ni duplica INSERT).
           const nuevosEvaluados = new Set(evaluados).add(idGuardado);
           setEvaluados(nuevosEvaluados);
           setIdSeleccionado(siguienteSinEvaluar(alumnos, nuevosEvaluados, idxGuardado));
@@ -304,7 +365,7 @@ export default function ConsolaTactil({ alumnos }: Props) {
           setFeedback({ ok: false, texto: resultado.error ?? 'ERROR AL GUARDAR' });
         }
         if (timerFeedback.current) clearTimeout(timerFeedback.current);
-        timerFeedback.current = setTimeout(() => setFeedback(null), 3500);
+        timerFeedback.current = setTimeout(() => setFeedback(null), 4000);
       } finally {
         lock.current = false;
       }
@@ -312,11 +373,26 @@ export default function ConsolaTactil({ alumnos }: Props) {
   }
 
   const badge = preview.dictamen ? BADGE_DICTAMEN[preview.dictamen] : null;
+  const etapaActual = ETAPAS.find((item) => item.valor === etapa) ?? ETAPAS[0];
   const pendientes = alumnos.filter((a) => !evaluados.has(a.inscripcion_id)).length;
   const jornadaFinalizada =
     alumnos.length === 0 || alumnos.every((a) => evaluados.has(a.inscripcion_id));
 
-  // FIX F4: pantalla de cierre cuando no queda ningún postulante pendiente.
+  const feedbackBanner = feedback ? (
+    <p
+      role="status"
+      className={`mb-2 w-full rounded-sm border px-3 py-2 text-[11px] font-bold uppercase tracking-[0.12em] ${
+        feedback.ok
+          ? 'border-emerald-700 bg-emerald-950 text-emerald-300'
+          : 'border-red-700 bg-red-950 text-red-300'
+      }`}
+    >
+      {feedback.ok ? '▸ ' : '✕ '}
+      {feedback.texto}
+    </p>
+  ) : null;
+
+  // Pantalla de cierre cuando no queda ningún postulante pendiente en sesión.
   if (jornadaFinalizada) {
     return (
       <div className="mx-auto flex min-h-dvh w-full max-w-3xl flex-col items-center justify-center gap-5 px-6 text-center">
@@ -324,12 +400,13 @@ export default function ConsolaTactil({ alumnos }: Props) {
           aria-hidden
           className="h-2.5 w-2.5 rounded-full bg-emerald-400"
         />
+        {feedbackBanner ? <div className="w-full max-w-sm">{feedbackBanner}</div> : null}
         <h2 className="text-base font-bold uppercase tracking-[0.18em] text-zinc-100">
           SIN POSTULANTES PENDIENTES · JORNADA FINALIZADA
         </h2>
         <p className="max-w-sm text-[10.5px] uppercase leading-relaxed tracking-[0.12em] text-zinc-500">
-          Se evaluaron {evaluados.size} puestos en esta sesión. Recargue la
-          pantalla para reflejar los últimos cambios del servidor.
+          Se evaluaron {evaluados.size} puestos en etapa {etapaActual.codigo}.
+          Recargue la pantalla para reflejar los últimos cambios del servidor.
         </p>
         <button
           type="button"
@@ -357,9 +434,46 @@ export default function ConsolaTactil({ alumnos }: Props) {
           <span aria-hidden className="h-2.5 w-2.5 rounded-full bg-emerald-400 animate-pulse" />
         </div>
         <p className="mt-1 text-[10px] uppercase tracking-[0.14em] text-zinc-500">
-          EVALUACIÓN EN VIVO · COHORTE ACTIVA · {pendientes} PENDIENTES DE {alumnos.length}
+          ETAPA {etapaActual.codigo} · COHORTE ACTIVA · {pendientes} PENDIENTES DE{' '}
+          {alumnos.length}
         </p>
       </header>
+
+      {/* ── Selector de etapa de evaluación ──────────────────────── */}
+      <section className="border-b border-zinc-800 px-4 py-3">
+        <p className="mb-2 text-[9px] uppercase tracking-[0.16em] text-zinc-500">
+          ETAPA DE EVALUACIÓN EN CABINA
+        </p>
+        <div role="group" aria-label="Etapa de evaluación" className="grid grid-cols-3 gap-2">
+          {ETAPAS.map((item) => {
+            const activa = etapa === item.valor;
+            return (
+              <button
+                key={item.valor}
+                type="button"
+                aria-pressed={activa}
+                onClick={() => setEtapa(item.valor)}
+                className={`flex h-12 flex-col items-center justify-center rounded-sm border px-2 text-center transition-colors ${
+                  activa
+                    ? 'border-zinc-100 bg-zinc-100 text-zinc-950'
+                    : 'border-zinc-800 bg-zinc-900 text-zinc-300 active:bg-zinc-800'
+                }`}
+              >
+                <span className="text-[11px] font-bold uppercase tracking-[0.1em]">
+                  {item.codigo}
+                </span>
+                <span
+                  className={`text-[8.5px] uppercase tracking-[0.08em] ${
+                    activa ? 'text-zinc-700' : 'text-zinc-500'
+                  }`}
+                >
+                  {item.subtitulo}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </section>
 
       {/* ── Selector de alumnos (chips con scroll horizontal) ────── */}
       <nav
@@ -571,7 +685,6 @@ export default function ConsolaTactil({ alumnos }: Props) {
             aria-checked={hardFail}
             onClick={() =>
               setHardFail((h) => {
-                // FIX F1: al desactivar, limpiar el motivo residual.
                 if (h) setMotivoHardFail('');
                 return !h;
               })
@@ -608,18 +721,84 @@ export default function ConsolaTactil({ alumnos }: Props) {
           </button>
           {hardFail ? (
             <label className="mt-2 block">
-              <span className="mb-1 block text-[9px] uppercase tracking-[0.16em] text-red-400/80">
-                MOTIVO (OPCIONAL)
+              <span className="mb-1 block text-[9px] font-bold uppercase tracking-[0.16em] text-red-400">
+                MOTIVO OBLIGATORIO * (FUERZA NO APTO)
               </span>
               <textarea
+                ref={motivoHardFailRef}
+                required
+                aria-required="true"
+                aria-invalid={motivoHardFail.trim().length === 0}
+                maxLength={500}
                 value={motivoHardFail}
                 onChange={(ev) => setMotivoHardFail(ev.target.value)}
                 rows={2}
-                placeholder="Describa la falta crítica…"
-                className="w-full resize-none rounded-sm border border-red-500/50 bg-zinc-950 px-3 py-2 text-xs text-zinc-100 placeholder:text-zinc-600 focus:border-red-500 focus:outline-none"
+                placeholder="Describa la falta crítica (obligatorio para guardar)…"
+                className={`w-full resize-none rounded-sm border bg-zinc-950 px-3 py-2 text-xs text-zinc-100 placeholder:text-zinc-600 focus:outline-none ${
+                  motivoHardFail.trim().length === 0
+                    ? 'border-red-500 focus:border-red-400'
+                    : 'border-red-500/50 focus:border-red-500'
+                }`}
               />
             </label>
           ) : null}
+        </div>
+      </section>
+
+      {/* ── Observaciones e Instructor ───────────────────────────── */}
+      <section className="px-4 pb-4">
+        <div className="rounded-sm border border-zinc-800 bg-zinc-900 p-3">
+          <p className="mb-2 text-[10px] uppercase tracking-[0.16em] text-zinc-500">
+            OBSERVACIONES RÁPIDAS DEL INSTRUCTOR
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {OBSERVACIONES_RAPIDAS_PRESETS.map((chip) => {
+              const marcado = observacionesRapidas.includes(chip);
+              return (
+                <button
+                  key={chip}
+                  type="button"
+                  aria-pressed={marcado}
+                  onClick={() => toggleObservacionRapida(chip)}
+                  className={`min-h-10 rounded-sm border px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.08em] transition-colors ${
+                    marcado
+                      ? 'border-zinc-100 bg-zinc-100 text-zinc-950'
+                      : 'border-zinc-700 bg-zinc-950 text-zinc-300 active:bg-zinc-800'
+                  }`}
+                >
+                  {chip}
+                </button>
+              );
+            })}
+          </div>
+          <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <label className="block">
+              <span className="mb-1 block text-[9px] uppercase tracking-[0.16em] text-zinc-500">
+                INSTRUCTOR EVALUADOR
+              </span>
+              <input
+                type="text"
+                maxLength={120}
+                value={instructor}
+                onChange={(ev) => setInstructor(ev.target.value)}
+                placeholder="Nombre o usuario del instructor"
+                className="h-11 w-full rounded-sm border border-zinc-700 bg-zinc-950 px-3 text-xs text-zinc-100 placeholder:text-zinc-600 focus:border-zinc-400 focus:outline-none"
+              />
+            </label>
+            <label className="block">
+              <span className="mb-1 block text-[9px] uppercase tracking-[0.16em] text-zinc-500">
+                NOTAS DE DESEMPEÑO (OPCIONAL)
+              </span>
+              <input
+                type="text"
+                maxLength={2000}
+                value={observacionesDetalle}
+                onChange={(ev) => setObservacionesDetalle(ev.target.value)}
+                placeholder="Detalle técnico breve para legajo…"
+                className="h-11 w-full rounded-sm border border-zinc-700 bg-zinc-950 px-3 text-xs text-zinc-100 placeholder:text-zinc-600 focus:border-zinc-400 focus:outline-none"
+              />
+            </label>
+          </div>
         </div>
       </section>
 
@@ -643,7 +822,7 @@ export default function ConsolaTactil({ alumnos }: Props) {
           </div>
           <div className="flex flex-col items-end gap-1.5">
             <span className="text-[9px] uppercase tracking-[0.16em] text-zinc-500">
-              DICTAMEN
+              DICTAMEN · {etapaActual.codigo}
             </span>
             {badge && preview.dictamen ? (
               <span
@@ -662,19 +841,7 @@ export default function ConsolaTactil({ alumnos }: Props) {
 
       {/* ── Feedback + botón final ───────────────────────────────── */}
       <footer className="mt-auto border-t border-zinc-800 px-4 pb-5 pt-3">
-        {feedback ? (
-          <p
-            role="status"
-            className={`mb-2 rounded-sm border px-3 py-2 text-[11px] font-bold uppercase tracking-[0.12em] ${
-              feedback.ok
-                ? 'border-emerald-700 bg-emerald-950 text-emerald-300'
-                : 'border-red-700 bg-red-950 text-red-300'
-            }`}
-          >
-            {feedback.ok ? '▸ ' : '✕ '}
-            {feedback.texto}
-          </p>
-        ) : null}
+        {feedbackBanner}
         <button
           type="button"
           onClick={guardar}

@@ -13,11 +13,17 @@
  */
 
 import type { CohorteActiva, FranjaCabina, TurnoFranja } from '@/types/empleo';
+import {
+  describirEstadoViernesBuffer,
+  type ProyeccionCohorteV2Resultado,
+} from '@/lib/calendario-duplas';
 
 /** Tercer parámetro de `generarTextoWhatsApp`: datos ya proyectados del calendario. */
 export interface ProyeccionCronograma {
   /** Texto de la ETAPA 3 (sin el prefijo de viñeta). */
   leyendaPlanta: string;
+  /** Proyección determinista V2 bajo modelo de 16 alumnos en duplas y feriados. */
+  calendarioV2?: ProyeccionCohorteV2Resultado | null;
 }
 
 export interface TernaCronograma {
@@ -98,9 +104,14 @@ export function formatearHorarioFranja(franja: FranjaCabina): string {
  * Leyenda de la ETAPA 3 (evaluación y pase a planta) derivada de la cohorte.
  * Se calcula en la página y se pasa como `proyeccion.leyendaPlanta`.
  */
-export function generarLeyendaPlanta(cohorte: CohorteActiva): string {
-  const fecha = formatearFechaLegible(cohorte.fecha_pase_planta);
-  return `Evaluación final y pase a planta: ${fecha}.`;
+export function generarLeyendaPlanta(
+  cohorte: CohorteActiva,
+  calendarioV2?: ProyeccionCohorteV2Resultado | null
+): string {
+  const fecha = formatearFechaLegible(
+    calendarioV2?.fechaPaseTerreno ?? cohorte.fecha_pase_planta
+  );
+  return `Evaluación final y pase a terreno: ${fecha}.`;
 }
 
 /**
@@ -151,15 +162,30 @@ export function generarTextoWhatsApp(
   lineas.push('• Asistencia obligatoria previa al ingreso a cabina.');
   lineas.push('');
 
-  lineas.push('🚜 *ETAPA 2: PRÁCTICA EN SIMULADOR (Lunes a Jueves)*');
-  lineas.push(`• Inicio: ${formatearFechaLegible(cohorte.fecha_inicio_sim)}`);
-  lineas.push(`• Finalización: ${formatearFechaLegible(cohorte.fecha_fin_sim)}`);
+  const cal = proyeccion.calendarioV2 ?? null;
+  const inicioSim = cal?.fechaInicioSimulador ?? cohorte.fecha_inicio_sim;
+  const finSim = cal?.fechaFinSimulador ?? cohorte.fecha_fin_sim;
+
+  lineas.push('🚜 *ETAPA 2: PRÁCTICA EN SIMULADOR (MODELO DUPLAS · 3 SEMANAS)*');
+  lineas.push(`• Inicio: ${formatearFechaLegible(inicioSim)}`);
+  lineas.push(`• Finalización: ${formatearFechaLegible(finSim)}`);
   lineas.push(
-    '• Régimen: 1 hora diaria fija por terna. Viernes sin actividad.'
+    '• Régimen: 16 alumnos en 8 duplas (Grupo A: Lun/Mié · Grupo B: Mar/Jue · 6 sesiones de 1 h).'
   );
+  if (cal && cal.viernesEstado.length > 0) {
+    cal.viernesEstado.forEach((v, idx) => {
+      lineas.push(
+        `• Semana ${idx + 1} (${formatearFechaLegible(v.fecha)}): ${describirEstadoViernesBuffer(v.estado)}`
+      );
+    });
+  } else {
+    lineas.push(
+      '• Viernes: Viernes Buffer (Mantenimiento / Recuperatorio libre) sujeto a feriados.'
+    );
+  }
   lineas.push('');
 
-  lineas.push('🏭 *ETAPA 3: EVALUACIÓN Y PASE A PLANTA*');
+  lineas.push('🏭 *ETAPA 3: EVALUACIÓN Y PASE A TERRENO*');
   lineas.push(`• ${proyeccion.leyendaPlanta}`);
   lineas.push('');
 

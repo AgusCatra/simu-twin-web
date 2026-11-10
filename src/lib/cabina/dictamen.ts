@@ -1,4 +1,9 @@
-import type { AsistenciaCabina, DictamenCabina } from '@/types/cabina';
+import type {
+  AsistenciaCabina,
+  DictamenCabina,
+  EtapaEvaluacionCabina,
+  PuntajeEje,
+} from '@/types/cabina';
 
 /**
  * Módulo puro isomórfico (sin 'use server' ni dependencias de Node): la regla de
@@ -6,11 +11,24 @@ import type { AsistenciaCabina, DictamenCabina } from '@/types/cabina';
  * (registrarEvaluacionCabina) y el front (feedback en vivo del instructor).
  */
 
+export const PUNTAJES_EJE_VALIDOS: readonly PuntajeEje[] = [0, 10, 20];
+export const BONUS_SEGUNDO_INTENTO_VALIDOS: readonly (0 | 10)[] = [0, 10];
+export const ASISTENCIAS_CABINA_VALIDAS: readonly AsistenciaCabina[] = [
+  'MINIMA_AUTONOMO',
+  'MEDIA',
+  'ALTA',
+];
+export const ETAPAS_CABINA_VALIDAS: readonly EtapaEvaluacionCabina[] = [
+  'DIAG_INTENTO_1',
+  'DIAG_INTENTO_2',
+  'FINAL',
+];
+
 export type PuntajesEjes = {
-  lateralidad: number;
-  tacto_mandos: number;
-  mastil: number;
-  control_receptividad: number;
+  lateralidad: PuntajeEje;
+  tacto_mandos: PuntajeEje;
+  mastil: PuntajeEje;
+  control_receptividad: PuntajeEje;
 };
 
 /**
@@ -22,7 +40,7 @@ export type PuntajesEjes = {
  */
 export function calcularDictamen(
   puntajes: PuntajesEjes,
-  bonus: number,
+  bonus: 0 | 10,
   asistencia: AsistenciaCabina,
   hardFail: boolean
 ): { score_total: number; dictamen: DictamenCabina } {

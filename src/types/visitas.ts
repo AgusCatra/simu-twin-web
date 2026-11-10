@@ -10,6 +10,8 @@ export interface FechaHabilitada {
   fecha: string;
   habilitada: boolean;
   observaciones?: string | null;
+  /** En `/visitas`, indica si la fecha ya posee una reserva activa. */
+  ocupada?: boolean;
 }
 
 export type TurnoVisita = 'Mañana' | 'Tarde';
@@ -17,6 +19,19 @@ export type TurnoVisita = 'Mañana' | 'Tarde';
 export type AnioEscolar = '5°' | '6°';
 
 export type RolAsistente = 'Alumno' | 'Docente';
+
+/**
+ * Estados válidos de `visitas_educativas.estado_visita` verificados contra la
+ * restricción CHECK `visitas_educativas_estado_visita_check` en PostgreSQL.
+ */
+export const ESTADOS_VISITA = [
+  'Confirmada',
+  'Reprogramada',
+  'Finalizada',
+  'Cancelada',
+] as const;
+
+export type EstadoVisita = (typeof ESTADOS_VISITA)[number];
 
 export interface AsistenteInput {
   apellido_nombre: string;
@@ -53,13 +68,16 @@ export interface SolicitudVisitaInput {
  * Columnas booleanas de seguimiento operativo que se marcan desde el panel
  * de administración (seguro, transporte, facturas y carga en Drive).
  */
-export type CampoCheckOperativo =
-  | 'check_poliza'
-  | 'check_tup'
-  | 'check_facturas'
-  | 'check_drive_sum';
+export const CAMPOS_CHECK_OPERATIVO = [
+  'check_poliza',
+  'check_tup',
+  'check_facturas',
+  'check_drive_sum',
+] as const;
 
-export interface VisitaEducativa extends SolicitudVisitaInput {
+export type CampoCheckOperativo = (typeof CAMPOS_CHECK_OPERATIVO)[number];
+
+export interface VisitaEducativa extends Omit<SolicitudVisitaInput, 'asistentes'> {
   id: string;
   /** La fila persistida siempre incluye este campo (lo fija el servidor). */
   requiere_tup: boolean;
@@ -70,7 +88,12 @@ export interface VisitaEducativa extends SolicitudVisitaInput {
   tup_horario_ida_hasta: string;
   tup_horario_vuelta_desde: string;
   tup_horario_vuelta_hasta: string;
-  created_at: string;
+  tup_estado_traslado?: string | null;
+  tup_chofer_nombre?: string | null;
+  observaciones_docente?: string | null;
+  asistentes?: AsistenteInput[];
+  created_at?: string;
+  creado_el?: string;
   check_poliza?: boolean | null;
   check_tup?: boolean | null;
   check_facturas?: boolean | null;
@@ -117,7 +140,7 @@ export interface EditarVisitaInput {
   tup_horario_vuelta_desde?: string | null;
   tup_horario_vuelta_hasta?: string | null;
   tup_chofer_nombre?: string | null;
-  estado_visita: 'Confirmada' | 'Reprogramada' | 'Cancelada' | 'Completada' | 'Pendiente';
+  estado_visita: EstadoVisita;
   observaciones_docente?: string | null;
 }
 
@@ -125,3 +148,42 @@ export interface EditarVisitaInput {
 export type ResultadoEdicionVisita =
   | { ok: true }
   | { ok: false; error: string };
+
+export type ResultadoVisitasAdmin =
+  | { ok: true; visitas: VisitaEducativa[]; escuelas: Escuela[] }
+  | { ok: false; error: string };
+
+export type ResultadoAlternarCheck =
+  | { ok: true; campo: CampoCheckOperativo; valor: boolean }
+  | { ok: false; error: string };
+
+export type ResultadoCambiarEstadoVisita =
+  | { ok: true; estado_visita: EstadoVisita }
+  | { ok: false; error: string };
+
+export type ResultadoAsistentesVisita =
+  | { ok: true; asistentes: AsistenteVisita[] }
+  | { ok: false; error: string };
+
+/**
+ * Proyección pública estrictamente sanitizada para el buscador de reservas en la
+ * landing (`SeccionVisitas`). NO incluye PII (DNI, nombres de docentes/directores,
+ * celulares, correos electrónicos ni nóminas).
+ */
+export interface ReservaPublicaDTO {
+  codigo_reserva: string;
+  fecha_visita: string;
+  turno: string | null;
+  estado_visita: string;
+  institucion_nombre: string;
+  requiere_tup: boolean;
+  tup_estado_traslado: string | null;
+}
+
+export type ResultadoConsultaReservaPublica =
+  | { ok: true; reserva: ReservaPublicaDTO }
+  | {
+      ok: false;
+      motivo: 'validacion' | 'no_encontrada' | 'error_sistema';
+      error: string;
+    };

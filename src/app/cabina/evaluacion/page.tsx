@@ -1,4 +1,6 @@
 import type { Metadata } from 'next';
+import { redirect } from 'next/navigation';
+import { createClient } from '@/lib/supabase/server';
 import { obtenerAlumnosTurno } from '@/services/cabina';
 import ConsolaTactil from '@/components/cabina/ConsolaTactil';
 
@@ -18,7 +20,16 @@ export const metadata: Metadata = {
 };
 
 export default async function CabinaEvaluacionPage() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    redirect('/login');
+  }
+
   const alumnos = await obtenerAlumnosTurno();
+  const instructorDefault = user.email ?? '';
 
   return (
     <main className="min-h-dvh bg-zinc-950 font-mono text-zinc-100">
@@ -40,7 +51,10 @@ export default async function CabinaEvaluacionPage() {
           </p>
         </div>
       ) : (
-        <ConsolaTactil alumnos={alumnos} />
+        <ConsolaTactil
+          alumnos={alumnos}
+          instructorDefault={instructorDefault}
+        />
       )}
     </main>
   );

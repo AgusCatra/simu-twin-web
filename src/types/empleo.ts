@@ -40,22 +40,31 @@ export interface OcupanteFranja {
 }
 
 /**
- * Telemetría TITAN reconstruida desde el texto de la columna legacy
- * `eje_lateralidad` ("serrucho=X; volantazos_extremos=Y") que escribe
- * scripts/sync_supabase.py. null cuando el postulante no tiene reporte.
+ * Telemetría TITAN reconstruida desde filas con `archivo_fuente != CABINA_TABLET*`.
+ * `tiene_datos` es false cuando el postulante aún no tiene reporte TITAN procesado.
  */
 export interface TelemetriaTitan {
+  tiene_datos: boolean;
   score_puntos: number | null;
   tiempo_vuelta_seg: number | null;
   colisiones: number | null;
+  colisiones_descartadas: number | null;
   indice_serrucho: number | null;
   volantazos_extremos: number | null;
 }
 
-/** Última evaluación de diagnóstico del postulante (tabla singular, 0005+0006). */
+/** Última evaluación de diagnóstico del postulante (tabla singular, 0005+0006+0008). */
 export interface FichaEvaluacion {
   dictamen: string | null;
   asistencia_cabina: string | null;
+  tiene_evaluacion_tablet: boolean;
+  etapa_tablet: EtapaEvaluacion | null;
+  score_tablet: number | null;
+  hard_fail: boolean;
+  motivo_hard_fail: string | null;
+  instructor_evaluador: string | null;
+  observaciones_rapidas: string[] | null;
+  observaciones_detalle: string | null;
   /** Puntajes enteros 0/10/20 de la consola táctil; null si no fue evaluado allí. */
   puntaje_lateralidad: number | null;
   puntaje_tacto_mandos: number | null;
@@ -150,10 +159,18 @@ export interface PuntoRadar {
 /** Payload estructurado para Radar/Spider chart y comparativa temporal. */
 export interface ComparativaProgreso {
   postulanteId: string;
-  v1: MetricasIntento;
-  /** null mientras el postulante no tenga segunda pasada sincronizada. */
+  tieneTelemetriaTitan: boolean;
+  tieneEvaluacionTablet: boolean;
+  v1: MetricasIntento | null;
+  /** null mientras el postulante no tenga segunda pasada TITAN sincronizada. */
   v2: MetricasIntento | null;
   deltaDiagnostico: {
+    /** delta_tiempo_seg de V2 (negativo = mejoró). null si falta V2 o dato. */
+    deltaTiempoSeg: number | null;
+    /** delta_colisiones de V2 (negativo = redujo colisiones). null si falta V2. */
+    deltaColisiones: number | null;
+    /** delta_score de V2 (positivo = mejoró). null si falta V2 o dato. */
+    deltaScore: number | null;
     /** delta_tiempo_seg de V2 (negativo = mejoró). 0 si no hay V2. */
     mejoraTiempoSeg: number;
     /** reducción de colisiones V1→V2 (positivo = mejoró). 0 si no hay V2. */
@@ -161,8 +178,8 @@ export interface ComparativaProgreso {
     /** delta_score de V2 (positivo = mejoró). 0 si no hay V2. */
     evolucionScore: number;
     evaluacionReceptividad: EvaluacionReceptividad;
-  };
-  mejorDiagnostico: MetricasIntento;
+  } | null;
+  mejorDiagnostico: MetricasIntento | null;
   pruebaFinal?: MetricasIntento;
   deltaFinal?: DeltasIntento & {
     /** (scoreFinal - scoreMejorDiag) / scoreMejorDiag × 100. */
@@ -171,6 +188,7 @@ export interface ComparativaProgreso {
     aptoParaPlanta: boolean;
   };
   radarEjes: PuntoRadar[];
+  tieneComparativaFinalRadar: boolean;
 }
 
 export type ResultadoAccion = { ok: true } | { ok: false; error: string };

@@ -12,6 +12,7 @@ import type {
   FranjaCabina,
   MetricasIntento,
   PostulanteFila,
+  PuntoRadar,
 } from '@/types/empleo';
 import Sheet from './Sheet';
 import RadarCuatroEjes from './RadarCuatroEjes';
@@ -76,11 +77,44 @@ const EJES: readonly {
   },
 ];
 
-function formatoSegundos(seg: number | null): string {
-  if (seg === null) return '—';
+function formatoSegundos(seg: number | null | undefined): string {
+  if (typeof seg !== 'number' || !Number.isFinite(seg) || seg < 0) return '—';
   const m = Math.floor(seg / 60);
   const s = Math.round(seg % 60);
   return `${m}:${`${s}`.padStart(2, '0')} min`;
+}
+
+function formatoNumeroSeguro(
+  val: number | null | undefined,
+  sufijo = '',
+  decimalesMax = 2
+): string {
+  if (typeof val !== 'number' || !Number.isFinite(val)) return '—';
+  const factor = 10 ** decimalesMax;
+  const redondeado = Number.isInteger(val)
+    ? val
+    : Math.round(val * factor) / factor;
+  return `${redondeado}${sufijo}`;
+}
+
+function construirRadarDesdeTablet(
+  evaluacion: PostulanteFila['evaluacion']
+): PuntoRadar[] | null {
+  if (!evaluacion || !evaluacion.tiene_evaluacion_tablet) return null;
+  const aEscala = (v: number | null): number => {
+    if (typeof v !== 'number' || !Number.isFinite(v)) return 0;
+    return Math.min(100, Math.max(0, Math.round(v * 5)));
+  };
+  const lat = aEscala(evaluacion.puntaje_lateralidad);
+  const man = aEscala(evaluacion.puntaje_tacto_mandos);
+  const mas = aEscala(evaluacion.puntaje_mastil);
+  const con = aEscala(evaluacion.puntaje_control_receptividad);
+  return [
+    { eje: 'Lateralidad', valorDiagnostico: lat, valorFinal: lat },
+    { eje: 'Mandos', valorDiagnostico: man, valorFinal: man },
+    { eje: 'Mástil', valorDiagnostico: mas, valorFinal: mas },
+    { eje: 'Control', valorDiagnostico: con, valorFinal: con },
+  ];
 }
 
 function Metrica({ etiqueta, valor }: { etiqueta: string; valor: string }) {
@@ -92,25 +126,41 @@ function Metrica({ etiqueta, valor }: { etiqueta: string; valor: string }) {
   );
 }
 
-/** Chip de delta V1→V2: verde si hay mejora, rojo si empeoró, gris si es 0. */
+/**
+ * Chip de delta entre intentos: protege null / undefined / NaN mostrando '—',
+ * distingue 0 como 'SIN CAMBIO' y colorea según el sentido de mejora.
+ */
 function DeltaChip({
   etiqueta,
   valor,
-  unidad,
+  unidad = '',
+  sentido = 'menor_mejor',
 }: {
   etiqueta: string;
-  valor: number;
+  valor: number | null | undefined;
   unidad?: string;
+  sentido?: 'menor_mejor' | 'mayor_mejor';
 }) {
-  const cero = valor === 0;
-  const mejora = valor < 0;
+  if (typeof valor !== 'number' || !Number.isFinite(valor)) {
+    return (
+      <div className="rounded-sm border border-zinc-800 bg-zinc-950 px-2 py-1.5">
+        <p className="font-mono text-[8px] tracking-[0.12em] text-zinc-600">{etiqueta}</p>
+        <p className="mt-0.5 font-mono text-xs text-zinc-500">—</p>
+      </div>
+    );
+  }
+
+  const limpio = Number.isInteger(valor) ? valor : Math.round(valor * 100) / 100;
+  const cero = limpio === 0;
+  const mejora = sentido === 'menor_mejor' ? limpio < 0 : limpio > 0;
   const clase = cero ? 'text-zinc-400' : mejora ? 'text-emerald-400' : 'text-red-400';
-  const signo = valor > 0 ? '+' : '';
+  const signo = limpio > 0 ? '+' : '';
+
   return (
     <div className="rounded-sm border border-zinc-800 bg-zinc-950 px-2 py-1.5">
       <p className="font-mono text-[8px] tracking-[0.12em] text-zinc-600">{etiqueta}</p>
       <p className={`mt-0.5 font-mono text-xs ${clase}`}>
-        {cero ? 'SIN CAMBIO' : `${signo}${valor}${unidad ?? ''}`}
+        {cero ? `0${unidad} (SIN CAMBIO)` : `${signo}${limpio}${unidad}`}
       </p>
     </div>
   );
@@ -166,6 +216,21 @@ export default function DrawerPostulante({ postulante, franjas, onCerrar }: Prop
   const evaluacion = postulante.evaluacion;
   const asistencia = evaluacion?.asistencia_cabina
     ? BADGE_ASISTENCIA[evaluacion.asistencia_cabina]
+    : null;
+
+  const ejesRadar: PuntoRadar[] | null =
+    comparativa && comparativa.radarEjes.length > 0
+      ? comparativa.radarEjes
+      : construirRadarDesdeTablet(evaluacion);
+
+  const tieneTelemetriaTitan = Boolean(
+    comparativa?.tieneTelemetriaTitan || evaluacion?.telemetria.tiene_datos
+  );
+
+  const intentoActivo: MetricasIntento | null = comparativa
+    ? vistaActiva === 'V2'
+      ? comparativa.v2 ?? comparativa.v1
+      : comparativa.v1 ?? comparativa.pruebaFinal ?? null
     : null;
 
   const franjasLibres = franjas.filter(
@@ -234,14 +299,53 @@ export default function DrawerPostulante({ postulante, franjas, onCerrar }: Prop
               DICTAMEN: {evaluacion.dictamen.replaceAll('_', ' ')}
             </span>
           )}
+          {evaluacion?.tiene_evaluacion_tablet && evaluacion.score_tablet !== null && (
+            <span className="rounded-sm border border-emerald-500/40 bg-emerald-500/10 px-2.5 py-1 font-mono text-[10px] tracking-[0.12em] text-emerald-300">
+              CABINA ({evaluacion.etapa_tablet ?? 'DIAG_INTENTO_1'}):{' '}
+              {formatoNumeroSeguro(evaluacion.score_tablet, '/90 pts', 0)}
+            </span>
+          )}
         </div>
 
-        {/* ── Los 4 ejes técnicos ────────────────────────────── */}
-        <section aria-label="Ejes técnicos">
-          <p className="font-mono text-[10px] tracking-[0.18em] text-zinc-500">
-            4 EJES TÉCNICOS
-          </p>
-          <ul className="mt-2 space-y-1.5">
+        {evaluacion?.hard_fail && (
+          <div
+            role="alert"
+            className="rounded-sm border border-red-500/60 bg-red-950/40 px-3 py-2 font-mono text-[10px] tracking-[0.1em] text-red-300"
+          >
+            <p className="font-bold text-red-400">HARD-FAIL REGISTRADO EN CABINA</p>
+            {evaluacion.motivo_hard_fail && (
+              <p className="mt-0.5 text-red-200">{evaluacion.motivo_hard_fail}</p>
+            )}
+          </div>
+        )}
+
+        {/* ── 4 Ejes Pedagógicos + Radar ─────────────────────── */}
+        <section aria-label="Ejes pedagógicos y radar" className="space-y-3">
+          <div className="flex items-center justify-between gap-2">
+            <p className="font-mono text-[10px] tracking-[0.18em] text-zinc-500">
+              4 EJES PEDAGÓGICOS Y RADAR
+            </p>
+            {evaluacion?.tiene_evaluacion_tablet && (
+              <span className="font-mono text-[9px] tracking-[0.12em] text-emerald-400">
+                CABINA TABLET ACTIVA
+              </span>
+            )}
+          </div>
+
+          {ejesRadar ? (
+            <div className="rounded-sm border border-zinc-800 bg-zinc-900/60 px-3 py-3">
+              <RadarCuatroEjes
+                ejes={ejesRadar}
+                mostrarFinal={comparativa?.tieneComparativaFinalRadar ?? false}
+              />
+            </div>
+          ) : !cargandoComp ? (
+            <p className="rounded-sm border border-dashed border-zinc-800 bg-zinc-950 px-3 py-2.5 font-mono text-[10px] tracking-[0.08em] text-zinc-500">
+              Sin evaluación de cabina ni datos suficientes para proyectar el radar.
+            </p>
+          ) : null}
+
+          <ul className="space-y-1.5">
             {EJES.map((eje) => {
               const puntaje = evaluacion?.[eje.clavePuntaje] ?? null;
               const texto = evaluacion?.[eje.claveTexto] ?? null;
@@ -275,164 +379,208 @@ export default function DrawerPostulante({ postulante, franjas, onCerrar }: Prop
               );
             })}
           </ul>
+
+          {(evaluacion?.instructor_evaluador ||
+            (evaluacion?.observaciones_rapidas &&
+              evaluacion.observaciones_rapidas.length > 0) ||
+            evaluacion?.observaciones_detalle) && (
+            <div className="rounded-sm border border-zinc-800 bg-zinc-900 px-3 py-2 font-mono text-[10px] text-zinc-300">
+              {evaluacion.instructor_evaluador && (
+                <p className="text-[9px] tracking-[0.12em] text-zinc-500">
+                  INSTRUCTOR: {evaluacion.instructor_evaluador}
+                </p>
+              )}
+              {evaluacion.observaciones_rapidas &&
+                evaluacion.observaciones_rapidas.length > 0 && (
+                  <div className="mt-1.5 flex flex-wrap gap-1">
+                    {evaluacion.observaciones_rapidas.map((obs) => (
+                      <span
+                        key={obs}
+                        className="rounded-sm border border-zinc-700 bg-zinc-950 px-1.5 py-0.5 text-[9px] text-zinc-300"
+                      >
+                        {obs}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              {evaluacion.observaciones_detalle && (
+                <p className="mt-1.5 leading-relaxed text-zinc-400">
+                  {evaluacion.observaciones_detalle}
+                </p>
+              )}
+            </div>
+          )}
         </section>
 
-        {/* ── Telemetría TITAN ───────────────────────────────── */}
-        <section aria-label="Telemetría TITAN">
+        {/* ── Tarjeta de Telemetría Física TITAN ─────────────── */}
+        <section aria-label="Telemetría Física TITAN" className="space-y-3">
           <p className="font-mono text-[10px] tracking-[0.18em] text-zinc-500">
-            TELEMETRÍA TITAN
-          </p>
-          <div className="mt-2 grid grid-cols-2 gap-1.5 sm:grid-cols-3">
-            <Metrica
-              etiqueta="SCORE"
-              valor={
-                evaluacion?.telemetria.score_puntos !== null &&
-                evaluacion?.telemetria.score_puntos !== undefined
-                  ? `${evaluacion.telemetria.score_puntos} pts`
-                  : '—'
-              }
-            />
-            <Metrica
-              etiqueta="TIEMPO"
-              valor={formatoSegundos(evaluacion?.telemetria.tiempo_vuelta_seg ?? null)}
-            />
-            <Metrica
-              etiqueta="COLISIONES"
-              valor={`${evaluacion?.telemetria.colisiones ?? '—'}`}
-            />
-            <Metrica
-              etiqueta="SERRUCHO"
-              valor={`${evaluacion?.telemetria.indice_serrucho ?? '—'}`}
-            />
-            <Metrica
-              etiqueta="VOLANTAZOS"
-              valor={`${evaluacion?.telemetria.volantazos_extremos ?? '—'}`}
-            />
-          </div>
-        </section>
-
-        {/* ── Progreso multi-intento V1 / V2 (pipeline TITAN) ─── */}
-        <section aria-label="Progreso de evaluaciones" className="space-y-3">
-          <p className="font-mono text-[10px] tracking-[0.18em] text-zinc-500">
-            PROGRESO · V1 / V2
+            TELEMETRÍA FÍSICA TITAN · V1 / V2
           </p>
 
-          {cargandoComp ? (
+          {cargandoComp && !evaluacion?.telemetria.tiene_datos ? (
             <p className="font-mono text-[10px] tracking-[0.1em] text-zinc-600">
-              CARGANDO COMPARATIVA…
+              CARGANDO TELEMETRÍA TITAN…
             </p>
-          ) : !comparativa ? (
-            <p className="rounded-sm border border-zinc-800 bg-zinc-900 px-3 py-2 font-mono text-[10px] leading-relaxed tracking-[0.08em] text-zinc-500">
-              SIN DIAGNÓSTICOS DEL PIPELINE TITAN PARA ESTE POSTULANTE.
-            </p>
+          ) : !tieneTelemetriaTitan ? (
+            <div className="rounded-sm border border-dashed border-zinc-800 bg-zinc-900/40 px-3 py-3">
+              <p className="font-mono text-[11px] font-semibold tracking-[0.08em] text-zinc-300">
+                Sin telemetría de simulador procesada
+              </p>
+              <p className="mt-1 font-mono text-[10px] leading-relaxed tracking-[0.06em] text-zinc-500">
+                Aún no ingresaron reportes PDF de TITAN para este postulante. El
+                radar pedagógico de cabina permanece operativo de forma independiente.
+              </p>
+            </div>
           ) : (
             <>
               {/* Pestañas V1 / V2 con badge ★ Mejor Diagnóstico */}
-              <div className="flex gap-2" role="tablist" aria-label="Vueltas de diagnóstico">
-                {(
-                  [
-                    ['V1', comparativa.v1],
-                    ['V2', comparativa.v2],
-                  ] as const
-                ).map(([clave, m]) => {
-                  const activo = vistaActiva === clave && !!m;
-                  return (
-                    <button
-                      key={clave}
-                      type="button"
-                      role="tab"
-                      aria-selected={activo}
-                      disabled={!m}
-                      onClick={() => setVistaActiva(clave)}
-                      className={`h-9 flex-1 rounded-sm border px-2 font-mono text-[10px] tracking-[0.1em] transition-colors disabled:cursor-not-allowed disabled:border-zinc-800 disabled:text-zinc-700 ${
-                        activo
-                          ? 'border-emerald-500 bg-emerald-500/10 text-emerald-300'
-                          : 'border-zinc-700 text-zinc-400 hover:border-zinc-500 hover:text-white'
+              {comparativa && (comparativa.v1 || comparativa.v2) && (
+                <div className="flex gap-2" role="tablist" aria-label="Vueltas de diagnóstico">
+                  {(
+                    [
+                      ['V1', comparativa.v1],
+                      ['V2', comparativa.v2],
+                    ] as const
+                  ).map(([clave, m]) => {
+                    const activo = vistaActiva === clave && !!m;
+                    return (
+                      <button
+                        key={clave}
+                        type="button"
+                        role="tab"
+                        aria-selected={activo}
+                        disabled={!m}
+                        onClick={() => setVistaActiva(clave)}
+                        className={`h-9 flex-1 rounded-sm border px-2 font-mono text-[10px] tracking-[0.1em] transition-colors disabled:cursor-not-allowed disabled:border-zinc-800 disabled:text-zinc-700 ${
+                          activo
+                            ? 'border-emerald-500 bg-emerald-500/10 text-emerald-300'
+                            : 'border-zinc-700 text-zinc-400 hover:border-zinc-500 hover:text-white'
+                        }`}
+                      >
+                        {clave === 'V1' ? 'VUELTA 1' : 'VUELTA 2'}
+                        {m?.esMejorDiagnostico && (
+                          <span className="ml-1 text-amber-300">★ MEJOR</span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Métricas físicas TITAN */}
+              <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3">
+                <Metrica
+                  etiqueta="SCORE TITAN"
+                  valor={formatoNumeroSeguro(
+                    intentoActivo?.scorePuntos ??
+                      evaluacion?.telemetria.score_puntos ??
+                      null,
+                    ' pts'
+                  )}
+                />
+                <Metrica
+                  etiqueta="TIEMPO VUELTA"
+                  valor={formatoSegundos(
+                    intentoActivo?.tiempoVueltaSeg ??
+                      evaluacion?.telemetria.tiempo_vuelta_seg ??
+                      null
+                  )}
+                />
+                <Metrica
+                  etiqueta="COLISIONES REALES"
+                  valor={formatoNumeroSeguro(
+                    intentoActivo?.colisiones ??
+                      evaluacion?.telemetria.colisiones ??
+                      null,
+                    '',
+                    0
+                  )}
+                />
+                <Metrica
+                  etiqueta="DESCARTADAS (PISO)"
+                  valor={formatoNumeroSeguro(
+                    intentoActivo?.colisionesDescartadas ??
+                      evaluacion?.telemetria.colisiones_descartadas ??
+                      null,
+                    '',
+                    0
+                  )}
+                />
+                <Metrica
+                  etiqueta="SERRUCHO"
+                  valor={formatoNumeroSeguro(
+                    intentoActivo?.indiceSerrucho ??
+                      evaluacion?.telemetria.indice_serrucho ??
+                      null,
+                    '',
+                    3
+                  )}
+                />
+                <Metrica
+                  etiqueta="VOLANTAZOS"
+                  valor={formatoNumeroSeguro(
+                    intentoActivo?.volantazosExtremos ??
+                      evaluacion?.telemetria.volantazos_extremos ??
+                      null,
+                    '',
+                    0
+                  )}
+                />
+              </div>
+
+              {/* Deltas de mejora V1 → V2 */}
+              {comparativa?.deltaDiagnostico && (
+                <div className="rounded-sm border border-zinc-800 bg-zinc-900 px-3 py-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="font-mono text-[9px] tracking-[0.14em] text-zinc-500">
+                      DELTAS DE MEJORA · V1 → V2
+                    </p>
+                    <span
+                      className={`rounded-sm px-2 py-0.5 font-mono text-[9px] font-semibold tracking-[0.1em] ${
+                        BADGE_RECEPTIVIDAD[
+                          comparativa.deltaDiagnostico.evaluacionReceptividad
+                        ] ?? 'bg-zinc-700 text-zinc-200'
                       }`}
                     >
-                      {clave === 'V1' ? 'VUELTA 1' : 'VUELTA 2'}
-                      {m?.esMejorDiagnostico && (
-                        <span className="ml-1 text-amber-300">★ MEJOR</span>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-
-              {/* Métricas de la vuelta activa */}
-              {(() => {
-                const m: MetricasIntento | null =
-                  vistaActiva === 'V2' ? comparativa.v2 : comparativa.v1;
-                if (!m) return null;
-                return (
-                  <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3">
-                    <Metrica
-                      etiqueta="SCORE"
-                      valor={m.scorePuntos != null ? `${m.scorePuntos} pts` : '—'}
+                      {comparativa.deltaDiagnostico.evaluacionReceptividad.toUpperCase()}
+                    </span>
+                  </div>
+                  <div className="mt-2 grid grid-cols-3 gap-1.5">
+                    <DeltaChip
+                      etiqueta="Δ SCORE"
+                      valor={comparativa.deltaDiagnostico.deltaScore}
+                      unidad=" pts"
+                      sentido="mayor_mejor"
                     />
-                    <Metrica etiqueta="TIEMPO" valor={formatoSegundos(m.tiempoVueltaSeg)} />
-                    <Metrica etiqueta="COLISIONES" valor={`${m.colisiones ?? '—'}`} />
-                    <Metrica etiqueta="SERRUCHO" valor={`${m.indiceSerrucho ?? '—'}`} />
-                    <Metrica
-                      etiqueta="VOLANTAZOS"
-                      valor={`${m.volantazosExtremos ?? '—'}`}
+                    <DeltaChip
+                      etiqueta="Δ TIEMPO"
+                      valor={comparativa.deltaDiagnostico.deltaTiempoSeg}
+                      unidad=" s"
+                      sentido="menor_mejor"
                     />
-                    <Metrica
-                      etiqueta="DESCARTADAS"
-                      valor={`${m.colisionesDescartadas ?? 0}`}
+                    <DeltaChip
+                      etiqueta="Δ COLISIONES"
+                      valor={comparativa.deltaDiagnostico.deltaColisiones}
+                      sentido="menor_mejor"
                     />
                   </div>
-                );
-              })()}
-
-              {/* Tarjeta de receptividad V1→V2 */}
-              <div className="rounded-sm border border-zinc-800 bg-zinc-900 px-3 py-2">
-                <div className="flex items-center justify-between gap-2">
-                  <p className="font-mono text-[9px] tracking-[0.14em] text-zinc-500">
-                    RECEPTIVIDAD V1→V2
-                  </p>
-                  <span
-                    className={`rounded-sm px-2 py-0.5 font-mono text-[9px] font-semibold tracking-[0.1em] ${
-                      BADGE_RECEPTIVIDAD[
-                        comparativa.deltaDiagnostico.evaluacionReceptividad
-                      ] ?? 'bg-zinc-700 text-zinc-200'
-                    }`}
-                  >
-                    {comparativa.deltaDiagnostico.evaluacionReceptividad.toUpperCase()}
-                  </span>
                 </div>
-                <div className="mt-2 grid grid-cols-2 gap-1.5">
-                  <DeltaChip
-                    etiqueta="Δ TIEMPO (SEG)"
-                    valor={comparativa.deltaDiagnostico.mejoraTiempoSeg}
-                  />
-                  <DeltaChip
-                    etiqueta="Δ COLISIONES"
-                    valor={-comparativa.deltaDiagnostico.reduccionColisiones}
-                  />
-                </div>
-              </div>
+              )}
 
-              {/* Visualizador de ejes (radar) */}
-              <RadarCuatroEjes
-                ejes={comparativa.radarEjes}
-                mostrarFinal={!!comparativa.pruebaFinal}
-              />
-
-              {/* Slot de Prueba Final */}
-              {comparativa.pruebaFinal ? (
+              {/* Slot de Prueba Final TITAN */}
+              {comparativa?.pruebaFinal ? (
                 <div className="rounded-sm border border-cyan-500/40 bg-cyan-500/5 px-3 py-2">
                   <p className="font-mono text-[10px] tracking-[0.14em] text-cyan-300">
-                    EVALUACIÓN FINAL · REALIZADA
+                    EVALUACIÓN FINAL TITAN · REALIZADA
                   </p>
-                  <div className="mt-2 grid grid-cols-2 gap-1.5 sm:grid-cols-3">
+                  <div className="mt-2 grid grid-cols-2 gap-1.5 sm:grid-cols-4">
                     <Metrica
                       etiqueta="SCORE FINAL"
-                      valor={
-                        comparativa.pruebaFinal.scorePuntos != null
-                          ? `${comparativa.pruebaFinal.scorePuntos} pts`
-                          : '—'
-                      }
+                      valor={formatoNumeroSeguro(
+                        comparativa.pruebaFinal.scorePuntos,
+                        ' pts'
+                      )}
                     />
                     <Metrica
                       etiqueta="TIEMPO"
@@ -440,35 +588,71 @@ export default function DrawerPostulante({ postulante, franjas, onCerrar }: Prop
                     />
                     <Metrica
                       etiqueta="COLISIONES"
-                      valor={`${comparativa.pruebaFinal.colisiones ?? '—'}`}
+                      valor={formatoNumeroSeguro(
+                        comparativa.pruebaFinal.colisiones,
+                        '',
+                        0
+                      )}
+                    />
+                    <Metrica
+                      etiqueta="DESCARTADAS"
+                      valor={formatoNumeroSeguro(
+                        comparativa.pruebaFinal.colisionesDescartadas,
+                        '',
+                        0
+                      )}
                     />
                   </div>
                   {comparativa.deltaFinal && (
-                    <div className="mt-2 flex flex-wrap items-center gap-2">
-                      <span className="rounded-sm bg-zinc-800 px-2 py-0.5 font-mono text-[9px] tracking-[0.1em] text-zinc-300">
-                        MEJORA TOTAL:{' '}
-                        {comparativa.deltaFinal.mejoraTotalPorcentaje > 0 ? '+' : ''}
-                        {comparativa.deltaFinal.mejoraTotalPorcentaje}%
-                      </span>
-                      <span
-                        className={`rounded-sm px-2 py-0.5 font-mono text-[9px] font-semibold tracking-[0.1em] ${
-                          comparativa.deltaFinal.aptoParaPlanta
-                            ? 'bg-emerald-500 text-emerald-950'
-                            : 'bg-zinc-700 text-zinc-200'
-                        }`}
-                      >
-                        {comparativa.deltaFinal.aptoParaPlanta
-                          ? 'APTO PARA PLANTA'
-                          : 'NO HABILITADO A PLANTA'}
-                      </span>
+                    <div className="mt-2 space-y-2">
+                      <div className="grid grid-cols-3 gap-1.5">
+                        <DeltaChip
+                          etiqueta="Δ SCORE FINAL"
+                          valor={comparativa.deltaFinal.deltaScore}
+                          unidad=" pts"
+                          sentido="mayor_mejor"
+                        />
+                        <DeltaChip
+                          etiqueta="Δ TIEMPO FINAL"
+                          valor={comparativa.deltaFinal.deltaTiempoSeg}
+                          unidad=" s"
+                          sentido="menor_mejor"
+                        />
+                        <DeltaChip
+                          etiqueta="Δ COLIS. FINAL"
+                          valor={comparativa.deltaFinal.deltaColisiones}
+                          sentido="menor_mejor"
+                        />
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="rounded-sm bg-zinc-800 px-2 py-0.5 font-mono text-[9px] tracking-[0.1em] text-zinc-300">
+                          MEJORA TOTAL:{' '}
+                          {Number.isFinite(comparativa.deltaFinal.mejoraTotalPorcentaje)
+                            ? `${
+                                comparativa.deltaFinal.mejoraTotalPorcentaje > 0 ? '+' : ''
+                              }${comparativa.deltaFinal.mejoraTotalPorcentaje}%`
+                            : '—'}
+                        </span>
+                        <span
+                          className={`rounded-sm px-2 py-0.5 font-mono text-[9px] font-semibold tracking-[0.1em] ${
+                            comparativa.deltaFinal.aptoParaPlanta
+                              ? 'bg-emerald-500 text-emerald-950'
+                              : 'bg-zinc-700 text-zinc-200'
+                          }`}
+                        >
+                          {comparativa.deltaFinal.aptoParaPlanta
+                            ? 'APTO PARA PLANTA'
+                            : 'NO HABILITADO A PLANTA'}
+                        </span>
+                      </div>
                     </div>
                   )}
                 </div>
               ) : (
                 <div className="rounded-sm border border-dashed border-zinc-700 bg-zinc-900/40 px-3 py-3">
                   <p className="font-mono text-[10px] leading-relaxed tracking-[0.1em] text-zinc-500">
-                    EVALUACIÓN FINAL: PENDIENTE DE REALIZACIÓN AL COMPLETAR LAS 6 HS
-                    DE SIMULADOR
+                    EVALUACIÓN FINAL TITAN: PENDIENTE DE REALIZACIÓN AL COMPLETAR LAS 6
+                    HS DE SIMULADOR
                   </p>
                 </div>
               )}

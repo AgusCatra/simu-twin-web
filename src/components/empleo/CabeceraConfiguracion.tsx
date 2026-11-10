@@ -3,13 +3,17 @@
 import { useMemo, useState, useTransition } from 'react';
 import { CalendarDays, Users } from 'lucide-react';
 import { actualizarConfiguracionCohorte } from '@/services/empleo';
-import { proyectarCohorteDinamica } from '@/lib/calculo-cohorte';
+import {
+  obtenerProximoLunesPosterior,
+  proyectarCalendarioCohorteV2,
+  TOTAL_SESIONES_CICLO,
+} from '@/lib/calendario-duplas';
 
 /**
- * Cabecera de configuración dinámica de la cohorte: cupo táctil (chips
- * 10/20/22/30 + input manual), fecha de teoría y badge de proyección en vivo
- * calculada con el motor puro compartido con el backend. "APLICAR" persiste
- * vía Server Action (la misma proyección se recalcula y guarda en `cohortes`).
+ * Cabecera de configuración de la cohorte bajo el modelo de duplas de 16
+ * alumnos: cupo táctil (chips 16/20/22/30 + input manual), fecha de teoría y
+ * proyección en vivo con `calendario-duplas.ts` considerando `feriados_municipales`.
+ * "APLICAR CONFIGURACIÓN" persiste vía Server Action en `cohortes`.
  */
 
 interface Props {
@@ -20,9 +24,10 @@ interface Props {
   fechaInicioSim: string | null;
   fechaFinSim: string | null;
   fechaPasePlanta: string | null;
+  feriadosMunicipales: string[];
 }
 
-const OPCIONES_CUPO: readonly number[] = [10, 20, 22, 30];
+const OPCIONES_CUPO: readonly number[] = [16, 20, 22, 30];
 
 /** YYYY-MM-DD -> DD/MM (sin Date: evita corrimientos por timezone). */
 function formatoCorto(iso: string | null): string {
@@ -39,8 +44,9 @@ export default function CabeceraConfiguracion({
   fechaInicioSim,
   fechaFinSim,
   fechaPasePlanta,
+  feriadosMunicipales,
 }: Props) {
-  const [cupo, setCupo] = useState(cupoInicial > 0 ? cupoInicial : 22);
+  const [cupo, setCupo] = useState(cupoInicial > 0 ? cupoInicial : 16);
   const [fechaTeoria, setFechaTeoria] = useState(fechaTeoriaInicial ?? '');
   const [mensaje, setMensaje] = useState<{ texto: string; tipo: 'ok' | 'error' } | null>(
     null
@@ -50,11 +56,27 @@ export default function CabeceraConfiguracion({
   const proyeccion = useMemo(() => {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(fechaTeoria)) return null;
     try {
-      return proyectarCohorteDinamica({ fechaTeoria, cupoTitulares: cupo });
+      const fechaInicioSimulador = obtenerProximoLunesPosterior(fechaTeoria);
+      return proyectarCalendarioCohorteV2({
+        fechaInicioTeoria: fechaTeoria,
+        fechaInicioSimulador,
+        diasBloqueados: feriadosMunicipales,
+        estrategiaFeriados: 'MOVER_A_VIERNES',
+      });
     } catch {
       return null;
     }
-  }, [fechaTeoria, cupo]);
+  }, [fechaTeoria, feriadosMunicipales]);
+
+  const recuperatoriosCount = useMemo(
+    () =>
+      proyeccion
+        ? proyeccion.viernesEstado.filter(
+            (v) => v.estado === 'RECUPERATORIO_FERIADO'
+          ).length
+        : 0,
+    [proyeccion]
+  );
 
   function aplicar() {
     setMensaje(null);
@@ -149,14 +171,23 @@ export default function CabeceraConfiguracion({
             {proyeccion ? (
               <>
                 <p className="text-white">
-                  {proyeccion.cantJornadas} JORNADAS DE SIMULADOR
+                  MOTOR DUPLAS · 16 ALUMNOS ({TOTAL_SESIONES_CICLO} SESIONES C/U)
                 </p>
                 <p>
-                  INICIO SIM: {formatoCorto(proyeccion.fechaInicioSim)} · FIN:{' '}
-                  {formatoCorto(proyeccion.fechaFinSim)}
+                  INICIO SIM: {formatoCorto(proyeccion.fechaInicioSimulador)} · FIN:{' '}
+                  {formatoCorto(proyeccion.fechaFinSimulador)}
                 </p>
                 <p>
-                  PASE A PLANTA: {formatoCorto(proyeccion.fechaPasePlanta)}
+                  PASE A TERRENO: {formatoCorto(proyeccion.fechaPaseTerreno)}
+                </p>
+                <p
+                  className={
+                    recuperatoriosCount > 0 ? 'text-amber-300' : 'text-emerald-400'
+                  }
+                >
+                  {recuperatoriosCount > 0
+                    ? `${recuperatoriosCount} VIERNES RECUPERATORIO (FERIADO ABSORBIDO)`
+                    : `${proyeccion.viernesEstado.length} VIERNES BUFFER LIBRES`}
                 </p>
               </>
             ) : (
@@ -166,7 +197,7 @@ export default function CabeceraConfiguracion({
                   INICIO SIM: {formatoCorto(fechaInicioSim)} · FIN:{' '}
                   {formatoCorto(fechaFinSim)}
                 </p>
-                <p>PASE A PLANTA: {formatoCorto(fechaPasePlanta)}</p>
+                <p>PASE A TERRENO: {formatoCorto(fechaPasePlanta)}</p>
               </>
             )}
           </div>

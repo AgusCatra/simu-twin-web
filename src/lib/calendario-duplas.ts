@@ -141,6 +141,35 @@ export function calcularPrimerDiaHabilPosterior(
   return aFechaIso(candidata);
 }
 
+/**
+ * Calcula el primer Lunes estrictamente posterior a la fecha de teoría para
+ * iniciar el ciclo de simulador bajo el modelo de duplas (Lunes–Viernes).
+ */
+export function obtenerProximoLunesPosterior(fechaTeoriaIso: string): string {
+  const fechaTeoria = parsearFechaUtc(fechaTeoriaIso);
+  const dia = fechaTeoria.getUTCDay();
+  const diasHastaLunes = (8 - dia) % 7 || 7;
+  return aFechaIso(sumarDias(fechaTeoria, diasHastaLunes));
+}
+
+export const ETIQUETA_VIERNES_BUFFER_LIBRE =
+  'Viernes Buffer (Mantenimiento / Recuperatorio libre)';
+
+export const ETIQUETA_VIERNES_RECUPERATORIO =
+  'Viernes Recuperatorio (Feriado absorbido)';
+
+/**
+ * Devuelve la etiqueta operativa oficial del Viernes según si absorbió o no
+ * un feriado de la semana.
+ */
+export function describirEstadoViernesBuffer(
+  estado: EstadoViernesBuffer['estado']
+): string {
+  return estado === 'RECUPERATORIO_FERIADO'
+    ? ETIQUETA_VIERNES_RECUPERATORIO
+    : ETIQUETA_VIERNES_BUFFER_LIBRE;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Motor Principal de Proyección
 // ─────────────────────────────────────────────────────────────────────────────

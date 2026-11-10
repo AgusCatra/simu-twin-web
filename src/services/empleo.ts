@@ -2,7 +2,11 @@
 
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
-import { proyectarCohorteDinamica } from '@/lib/calculo-cohorte';
+import {
+  obtenerProximoLunesPosterior,
+  proyectarCalendarioCohorteV2,
+  TOTAL_SESIONES_CICLO,
+} from '@/lib/calendario-duplas';
 import type {
   ComparativaProgreso,
   ConfiguracionCohorteInput,
@@ -76,6 +80,11 @@ interface FilaEvaluacion {
   created_at: string | null;
   dictamen: string | null;
   asistencia_cabina: string | null;
+  hard_fail: boolean | null;
+  motivo_hard_fail: string | null;
+  instructor_evaluador: string | null;
+  observaciones_rapidas: string[] | null;
+  observaciones_detalle: string | null;
   puntaje_lateralidad: number | null;
   puntaje_tacto_mandos: number | null;
   puntaje_mastil: number | null;
@@ -134,6 +143,34 @@ function numeroOrNull(v: number | string | null | undefined): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
+function esArchivoTablet(fuente: string | null | undefined): boolean {
+  return typeof fuente === 'string' && fuente.startsWith('CABINA_TABLET');
+}
+
+function esArchivoTitan(fuente: string | null | undefined): boolean {
+  return (
+    typeof fuente === 'string' &&
+    fuente.trim().length > 0 &&
+    !fuente.startsWith('CABINA_TABLET')
+  );
+}
+
+function tienePuntajeTablet(f: FilaEvaluacion): boolean {
+  return (
+    numeroOrNull(f.puntaje_lateralidad) !== null ||
+    numeroOrNull(f.puntaje_tacto_mandos) !== null ||
+    numeroOrNull(f.puntaje_mastil) !== null ||
+    numeroOrNull(f.puntaje_control_receptividad) !== null
+  );
+}
+
+function prioridadEtapa(etapa: string | null): number {
+  if (etapa === 'FINAL') return 3;
+  if (etapa === 'DIAG_INTENTO_2') return 2;
+  if (etapa === 'DIAG_INTENTO_1') return 1;
+  return 0;
+}
+
 /**
  * Extrae el índice de serrucho y los volantazos extremos del texto legacy
  * "serrucho=X; volantazos_extremos=Y" escrito por scripts/sync_supabase.py.
@@ -148,38 +185,92 @@ function parsearTelemetriaLateralidad(texto: string | null): {
     /volantazos_extremos\s*=\s*(-?\d+(?:[.,]\d+)?)/i
   );
   return {
-    indice_serrucho: serrucho ? Number(serrucho[1].replace(',', '.')) : null,
+    indice_serrucho: serrucho ? numeroOrNull(serrucho[1].replace(',', '.')) : null,
     volantazos_extremos: volantazos
-      ? Number(volantazos[1].replace(',', '.'))
+      ? numeroOrNull(volantazos[1].replace(',', '.'))
       : null,
   };
 }
 
 function mapearEvaluacion(filas: FilaEvaluacion[] | null): FichaEvaluacion | null {
   if (!filas || filas.length === 0) return null;
-  // Última evaluación del postulante (la consola táctil inserta una fila nueva).
-  const fila = [...filas].sort((a, b) =>
+
+  const ordenadasReciente = [...filas].sort((a, b) =>
     (b.created_at ?? '').localeCompare(a.created_at ?? '')
-  )[0];
-  const telemetriaTexto = parsearTelemetriaLateralidad(fila.eje_lateralidad);
-  const telemetria: TelemetriaTitan = {
-    score_puntos: numeroOrNull(fila.score_puntos),
-    tiempo_vuelta_seg: numeroOrNull(fila.tiempo_vuelta_seg),
-    colisiones: numeroOrNull(fila.colisiones),
-    indice_serrucho: telemetriaTexto.indice_serrucho,
-    volantazos_extremos: telemetriaTexto.volantazos_extremos,
-  };
+  );
+
+  const filasTablet = ordenadasReciente
+    .filter((f) => esArchivoTablet(f.archivo_fuente) || (f.archivo_fuente === null && tienePuntajeTablet(f)))
+    .sort((a, b) => {
+      const diffEtapa = prioridadEtapa(b.etapa) - prioridadEtapa(a.etapa);
+      return diffEtapa !== 0
+        ? diffEtapa
+        : (b.created_at ?? '').localeCompare(a.created_at ?? '');
+    });
+
+  const filasTitan = ordenadasReciente
+    .filter((f) => esArchivoTitan(f.archivo_fuente))
+    .sort((a, b) => {
+      if (a.es_mejor_diagnostico !== b.es_mejor_diagnostico) {
+        return a.es_mejor_diagnostico ? -1 : 1;
+      }
+      const diffEtapa = prioridadEtapa(b.etapa) - prioridadEtapa(a.etapa);
+      return diffEtapa !== 0
+        ? diffEtapa
+        : (b.created_at ?? '').localeCompare(a.created_at ?? '');
+    });
+
+  const filaTablet = filasTablet[0] ?? null;
+  const filaTitan = filasTitan[0] ?? null;
+  const filaBase = filaTablet ?? filaTitan ?? ordenadasReciente[0];
+
+  const telemetriaTexto = parsearTelemetriaLateralidad(
+    filaTitan?.eje_lateralidad ?? null
+  );
+  const telemetria: TelemetriaTitan = filaTitan
+    ? {
+        tiene_datos: true,
+        score_puntos: numeroOrNull(filaTitan.score_puntos),
+        tiempo_vuelta_seg: numeroOrNull(filaTitan.tiempo_vuelta_seg),
+        colisiones: numeroOrNull(filaTitan.colisiones),
+        colisiones_descartadas: numeroOrNull(filaTitan.colisiones_descartadas),
+        indice_serrucho: telemetriaTexto.indice_serrucho,
+        volantazos_extremos: telemetriaTexto.volantazos_extremos,
+      }
+    : {
+        tiene_datos: false,
+        score_puntos: null,
+        tiempo_vuelta_seg: null,
+        colisiones: null,
+        colisiones_descartadas: null,
+        indice_serrucho: null,
+        volantazos_extremos: null,
+      };
+
   return {
-    dictamen: fila.dictamen,
-    asistencia_cabina: fila.asistencia_cabina,
-    puntaje_lateralidad: numeroOrNull(fila.puntaje_lateralidad),
-    puntaje_tacto_mandos: numeroOrNull(fila.puntaje_tacto_mandos),
-    puntaje_mastil: numeroOrNull(fila.puntaje_mastil),
-    puntaje_control_receptividad: numeroOrNull(fila.puntaje_control_receptividad),
-    eje_lateralidad: fila.eje_lateralidad,
-    eje_tacto_mandos: fila.eje_tacto_mandos,
-    eje_mastil: fila.eje_mastil,
-    eje_control_receptividad: fila.eje_control_receptividad,
+    dictamen: filaBase.dictamen,
+    asistencia_cabina: filaBase.asistencia_cabina,
+    tiene_evaluacion_tablet: filaTablet !== null,
+    etapa_tablet: filaTablet ? normalizarEtapa(filaTablet.etapa) : null,
+    score_tablet: filaTablet ? numeroOrNull(filaTablet.score_puntos) : null,
+    hard_fail: filaTablet?.hard_fail === true,
+    motivo_hard_fail: filaTablet?.motivo_hard_fail ?? null,
+    instructor_evaluador: filaTablet?.instructor_evaluador ?? null,
+    observaciones_rapidas: Array.isArray(filaTablet?.observaciones_rapidas)
+      ? filaTablet.observaciones_rapidas
+      : null,
+    observaciones_detalle: filaTablet?.observaciones_detalle ?? null,
+    puntaje_lateralidad: numeroOrNull(filaTablet?.puntaje_lateralidad),
+    puntaje_tacto_mandos: numeroOrNull(filaTablet?.puntaje_tacto_mandos),
+    puntaje_mastil: numeroOrNull(filaTablet?.puntaje_mastil),
+    puntaje_control_receptividad: numeroOrNull(
+      filaTablet?.puntaje_control_receptividad
+    ),
+    eje_lateralidad: filaTitan?.eje_lateralidad ?? filaBase.eje_lateralidad,
+    eje_tacto_mandos: filaTitan?.eje_tacto_mandos ?? filaBase.eje_tacto_mandos,
+    eje_mastil: filaTitan?.eje_mastil ?? filaBase.eje_mastil,
+    eje_control_receptividad:
+      filaTitan?.eje_control_receptividad ?? filaBase.eje_control_receptividad,
     telemetria,
   };
 }
@@ -241,10 +332,13 @@ export async function obtenerDatosCohorteActiva(): Promise<DatosCohorteActiva | 
       `id, ranking_orden, estado, motivo_baja, obs_empleo, franja_id, postulante_id,
        postulantes(nombre_completo, dni, origen_turno,
          evaluacion_diagnostico(id, created_at, dictamen, asistencia_cabina,
+           archivo_fuente, etapa, es_mejor_diagnostico,
+           hard_fail, motivo_hard_fail, instructor_evaluador,
+           observaciones_rapidas, observaciones_detalle,
            puntaje_lateralidad, puntaje_tacto_mandos, puntaje_mastil,
            puntaje_control_receptividad, eje_lateralidad, eje_tacto_mandos,
            eje_mastil, eje_control_receptividad, tiempo_vuelta_seg, colisiones,
-           score_puntos))`
+           colisiones_descartadas, score_puntos))`
     )
     .eq('cohorte_id', filaCohorte.id)
     .order('ranking_orden', { ascending: true });
@@ -535,9 +629,10 @@ export async function guardarNotasEmpleo(
 }
 
 /**
- * Configuración dinámica de la cohorte: validación estricta del input,
- * proyección del calendario Lun-Jue con el motor puro y persistencia de
- * fechas + cupo en `cohortes`.
+ * Configuración de la cohorte bajo el modelo de duplas de 16 alumnos:
+ * validación estricta del input, lectura de `feriados_municipales`,
+ * proyección con `calendario-duplas.ts` (absorción en Viernes Buffer) y
+ * persistencia de fechas + cupo en `cohortes`.
  */
 export async function actualizarConfiguracionCohorte(
   cohorte_id: string,
@@ -561,11 +656,19 @@ export async function actualizarConfiguracionCohorte(
   } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: 'Sesión no válida' };
 
-  const { data: cohorte, error: errCohorte } = await supabase
-    .from('cohortes')
-    .select('id')
-    .eq('id', cohorte_id.trim())
-    .maybeSingle();
+  const [{ data: cohorte, error: errCohorte }, { data: filasFeriados, error: errFeriados }] =
+    await Promise.all([
+      supabase
+        .from('cohortes')
+        .select('id')
+        .eq('id', cohorte_id.trim())
+        .maybeSingle(),
+      supabase
+        .from('feriados_municipales')
+        .select('fecha')
+        .order('fecha', { ascending: true })
+        .returns<Array<{ fecha: string | null }>>(),
+    ]);
 
   if (errCohorte || !cohorte) {
     console.error('[actualizarConfiguracionCohorte] Error al leer cohorte:', {
@@ -575,11 +678,27 @@ export async function actualizarConfiguracionCohorte(
     return { ok: false, error: 'Datos inválidos' };
   }
 
+  if (errFeriados) {
+    console.error('[actualizarConfiguracionCohorte] Error al leer feriados_municipales:', {
+      code: errFeriados.code,
+      message: errFeriados.message,
+    });
+  }
+
+  const diasBloqueados = (filasFeriados ?? [])
+    .map((f) => (typeof f.fecha === 'string' ? f.fecha.split('T')[0] : ''))
+    .filter((fecha) => /^\d{4}-\d{2}-\d{2}$/.test(fecha));
+
   let proyeccion;
   try {
-    proyeccion = proyectarCohorteDinamica({
-      fechaTeoria: configuracion.fecha_teoria,
-      cupoTitulares: cupo,
+    const fechaInicioSimulador = obtenerProximoLunesPosterior(
+      configuracion.fecha_teoria
+    );
+    proyeccion = proyectarCalendarioCohorteV2({
+      fechaInicioTeoria: configuracion.fecha_teoria,
+      fechaInicioSimulador,
+      diasBloqueados,
+      estrategiaFeriados: 'MOVER_A_VIERNES',
     });
   } catch {
     return { ok: false, error: 'No se pudo proyectar el calendario con esos datos' };
@@ -591,10 +710,10 @@ export async function actualizarConfiguracionCohorte(
     .update({
       fecha_teoria: configuracion.fecha_teoria,
       max_titulares: cupo,
-      fecha_inicio_sim: proyeccion.fechaInicioSim,
-      fecha_fin_sim: proyeccion.fechaFinSim,
-      fecha_pase_planta: proyeccion.fechaPasePlanta,
-      cant_dias_sim: proyeccion.cantJornadas,
+      fecha_inicio_sim: proyeccion.fechaInicioSimulador,
+      fecha_fin_sim: proyeccion.fechaFinSimulador,
+      fecha_pase_planta: proyeccion.fechaPaseTerreno,
+      cant_dias_sim: TOTAL_SESIONES_CICLO,
     })
     .eq('id', cohorte.id);
 
@@ -647,55 +766,91 @@ function mapearIntento(f: FilaEvaluacion): MetricasIntento {
   };
 }
 
+function puntajeTabletRadar(f: FilaEvaluacion | null, eje: EjeRadar): number | null {
+  if (!f) return null;
+  let crudo: number | null = null;
+  switch (eje) {
+    case 'Lateralidad':
+      crudo = numeroOrNull(f.puntaje_lateralidad);
+      break;
+    case 'Mandos':
+      crudo = numeroOrNull(f.puntaje_tacto_mandos);
+      break;
+    case 'Mástil':
+      crudo = numeroOrNull(f.puntaje_mastil);
+      break;
+    case 'Control':
+      crudo = numeroOrNull(f.puntaje_control_receptividad);
+      break;
+  }
+  return crudo !== null ? clamp01a100(crudo * 5) : null;
+}
+
 /**
  * Valor 0-100 de un eje del radar para una pasada: prefiere el puntaje entero
  * de consola táctil (0/10/20 ×5); sin él, heurística sobre la telemetría TITAN
  * legacy; sin datos, valor neutro 50.
  */
 function valorRadar(
-  f: FilaEvaluacion,
+  f: FilaEvaluacion | null,
   eje: EjeRadar,
   tel: { indice_serrucho: number | null; volantazos_extremos: number | null }
 ): number {
+  const tablet = puntajeTabletRadar(f, eje);
+  if (tablet !== null) return tablet;
+  if (!f) return NEUTRO_RADAR;
   switch (eje) {
     case 'Lateralidad': {
-      const p = numeroOrNull(f.puntaje_lateralidad);
-      if (p !== null) return clamp01a100(p * 5);
       if (tel.indice_serrucho !== null)
         return clamp01a100((1 - tel.indice_serrucho / SERRUCHO_TECHO) * 100);
       return NEUTRO_RADAR;
     }
     case 'Mandos': {
-      const p = numeroOrNull(f.puntaje_tacto_mandos);
-      if (p !== null) return clamp01a100(p * 5);
       const frenadas = parsearFrenadasLegacy(f.eje_tacto_mandos);
       if (frenadas !== null) return clamp01a100((1 - frenadas / FRENADAS_TECHO) * 100);
       return NEUTRO_RADAR;
     }
-    case 'Mástil': {
-      const p = numeroOrNull(f.puntaje_mastil);
-      if (p !== null) return clamp01a100(p * 5);
-      // Sin telemetría numérica de mástil aún: eje_mastil solo lista faltas.
+    case 'Mástil':
+    case 'Control':
       return NEUTRO_RADAR;
-    }
-    case 'Control': {
-      const p = numeroOrNull(f.puntaje_control_receptividad);
-      if (p !== null) return clamp01a100(p * 5);
-      return NEUTRO_RADAR;
-    }
   }
 }
 
-function puntosRadar(diag: FilaEvaluacion, final: FilaEvaluacion | null): PuntoRadar[] {
-  const telDiag = parsearTelemetriaLateralidad(diag.eje_lateralidad);
-  const telFinal = final ? parsearTelemetriaLateralidad(final.eje_lateralidad) : telDiag;
-  const base = final ?? diag;
+function puntosRadarCombinado(
+  tabletDiag: FilaEvaluacion | null,
+  tabletFinal: FilaEvaluacion | null,
+  titanDiag: FilaEvaluacion | null,
+  titanFinal: FilaEvaluacion | null
+): PuntoRadar[] {
+  const telDiag = parsearTelemetriaLateralidad(titanDiag?.eje_lateralidad ?? null);
+  const telFinal = titanFinal
+    ? parsearTelemetriaLateralidad(titanFinal.eje_lateralidad)
+    : telDiag;
   const ejes: EjeRadar[] = ['Lateralidad', 'Mandos', 'Mástil', 'Control'];
-  return ejes.map((eje) => ({
-    eje,
-    valorDiagnostico: valorRadar(diag, eje, telDiag),
-    valorFinal: valorRadar(base, eje, telFinal),
-  }));
+  return ejes.map((eje) => {
+    const valDiagTablet = puntajeTabletRadar(tabletDiag, eje);
+    const valDiag =
+      valDiagTablet !== null
+        ? valDiagTablet
+        : valorRadar(titanDiag, eje, telDiag);
+
+    const valFinalTablet = puntajeTabletRadar(tabletFinal, eje);
+    let valFinal = valDiag;
+    if (valFinalTablet !== null) {
+      valFinal = valFinalTablet;
+    } else if (titanFinal) {
+      const valFinalTitan = valorRadar(titanFinal, eje, telFinal);
+      if (valDiagTablet === null || eje === 'Lateralidad' || eje === 'Mandos') {
+        valFinal = valFinalTitan;
+      }
+    }
+
+    return {
+      eje,
+      valorDiagnostico: valDiag,
+      valorFinal: valFinal,
+    };
+  });
 }
 
 /**
@@ -712,10 +867,9 @@ function receptividad(deltaSeg: number | null, base: number | null): EvaluacionR
 }
 
 /**
- * Payload de comparativa V1/V2/FINAL de un postulante para Radar y progreso
- * temporal. Solo filas del pipeline TITAN (archivo_fuente <> 'CABINA_TABLET').
- * Devuelve null sin sesión, sin inscripción vigente en la cohorte activa o
- * sin pasada DIAG_INTENTO_1.
+ * Payload de comparativa V1/V2/FINAL + ejes pedagógicos de tablet para el
+ * Radar y la tarjeta de Telemetría Física TITAN en el Drawer del postulante.
+ * Conviven limpiamente las evaluaciones `CABINA_TABLET*` y los PDF TITAN.
  */
 export async function obtenerComparativaProgreso(
   postulante_id: string
@@ -773,47 +927,75 @@ export async function obtenerComparativaProgreso(
     return null;
   }
 
-  const titan = ((filas ?? []) as unknown as FilaEvaluacion[]).filter(
-    (f) => f.archivo_fuente && f.archivo_fuente !== 'CABINA_TABLET'
+  const todas = (filas ?? []) as unknown as FilaEvaluacion[];
+  const titan = todas.filter((f) => esArchivoTitan(f.archivo_fuente));
+  const tablet = todas.filter(
+    (f) =>
+      esArchivoTablet(f.archivo_fuente) ||
+      (f.archivo_fuente === null && tienePuntajeTablet(f))
   );
-  const porEtapa = new Map<EtapaEvaluacion, FilaEvaluacion>();
-  for (const f of titan) porEtapa.set(normalizarEtapa(f.etapa), f);
 
-  const fV1 = porEtapa.get('DIAG_INTENTO_1');
-  if (!fV1) return null;
-  const fV2 = porEtapa.get('DIAG_INTENTO_2') ?? null;
-  const fFinal = porEtapa.get('FINAL') ?? null;
+  if (titan.length === 0 && tablet.length === 0) return null;
 
-  const v1 = mapearIntento(fV1);
+  const porEtapaTitan = new Map<EtapaEvaluacion, FilaEvaluacion>();
+  for (const f of titan) porEtapaTitan.set(normalizarEtapa(f.etapa), f);
+
+  const porEtapaTablet = new Map<EtapaEvaluacion, FilaEvaluacion>();
+  for (const f of tablet) porEtapaTablet.set(normalizarEtapa(f.etapa), f);
+
+  const fV1 = porEtapaTitan.get('DIAG_INTENTO_1') ?? null;
+  const fV2 = porEtapaTitan.get('DIAG_INTENTO_2') ?? null;
+  const fFinal = porEtapaTitan.get('FINAL') ?? null;
+
+  const tabletDiag =
+    porEtapaTablet.get('DIAG_INTENTO_2') ??
+    porEtapaTablet.get('DIAG_INTENTO_1') ??
+    null;
+  const tabletFinal = porEtapaTablet.get('FINAL') ?? null;
+
+  const v1 = fV1 ? mapearIntento(fV1) : null;
   const v2 = fV2 ? mapearIntento(fV2) : null;
 
   const mejorFila =
-    [fV1, fV2].find((f) => f?.es_mejor_diagnostico === true) ?? fV2 ?? fV1;
-  const mejorDiagnostico = mapearIntento(mejorFila);
+    [fV1, fV2].find((f) => f?.es_mejor_diagnostico === true) ?? fV2 ?? fV1 ?? null;
+  const mejorDiagnostico = mejorFila ? mapearIntento(mejorFila) : null;
 
   const deltaTiempo = fV2 ? numeroOrNull(fV2.delta_tiempo_seg) : null;
   const deltaScore = fV2 ? numeroOrNull(fV2.delta_score) : null;
   const deltaColisiones = fV2 ? numeroOrNull(fV2.delta_colisiones) : null;
 
+  const deltaDiagnostico =
+    titan.length > 0
+      ? {
+          deltaTiempoSeg: deltaTiempo,
+          deltaColisiones,
+          deltaScore,
+          mejoraTiempoSeg: deltaTiempo ?? 0,
+          reduccionColisiones: deltaColisiones !== null ? -deltaColisiones : 0,
+          evolucionScore: deltaScore ?? 0,
+          evaluacionReceptividad: receptividad(
+            deltaTiempo,
+            v1?.tiempoVueltaSeg ?? null
+          ),
+        }
+      : null;
+
   const payload: ComparativaProgreso = {
     postulanteId: postulante_id.trim(),
+    tieneTelemetriaTitan: titan.length > 0,
+    tieneEvaluacionTablet: tablet.length > 0,
     v1,
     v2,
-    deltaDiagnostico: {
-      mejoraTiempoSeg: deltaTiempo ?? 0,
-      reduccionColisiones:
-        deltaColisiones !== null ? -deltaColisiones : 0,
-      evolucionScore: deltaScore ?? 0,
-      evaluacionReceptividad: receptividad(deltaTiempo, v1.tiempoVueltaSeg),
-    },
+    deltaDiagnostico,
     mejorDiagnostico,
-    radarEjes: puntosRadar(mejorFila, fFinal),
+    radarEjes: puntosRadarCombinado(tabletDiag, tabletFinal, mejorFila, fFinal),
+    tieneComparativaFinalRadar: Boolean(fFinal || tabletFinal),
   };
 
   if (fFinal) {
     const final = mapearIntento(fFinal);
     const scoreFinal = numeroOrNull(fFinal.score_puntos);
-    const scoreMejor = numeroOrNull(mejorFila.score_puntos);
+    const scoreMejor = mejorFila ? numeroOrNull(mejorFila.score_puntos) : null;
     payload.pruebaFinal = final;
     payload.deltaFinal = {
       deltaTiempoSeg: numeroOrNull(fFinal.delta_tiempo_seg),
@@ -821,7 +1003,7 @@ export async function obtenerComparativaProgreso(
       deltaScore: numeroOrNull(fFinal.delta_score),
       deltaSerrucho: numeroOrNull(fFinal.delta_serrucho),
       mejoraTotalPorcentaje:
-        scoreFinal !== null && scoreMejor
+        scoreFinal !== null && scoreMejor !== null && scoreMejor > 0
           ? Math.round(((scoreFinal - scoreMejor) / scoreMejor) * 10000) / 100
           : 0,
       aptoParaPlanta: fFinal.dictamen === 'APTO_DIRECTO',

@@ -237,14 +237,19 @@ def deltas(rep, ref):
     def resta(a, b):
         return None if a is None or b is None else a - b
 
+    delta_score = resta(flotar(rep.get("score")), flotar(ref.get("score")))
+    delta_serrucho = resta(
+        flotar(tel.get("steering_serrucho_index")),
+        flotar(tel_ref.get("steering_serrucho_index")),
+    )
+
     return {
         "delta_tiempo_seg": resta(entero(rep.get("exercise_duration_seg"), "t"),
                                   entero(ref.get("exercise_duration_seg"), "t")),
         "delta_colisiones": resta(entero(rep.get("n_colisiones"), "c"),
                                   entero(ref.get("n_colisiones"), "c")),
-        "delta_score": resta(flotar(rep.get("score")), flotar(ref.get("score"))),
-        "delta_serrucho": resta(flotar(tel.get("steering_serrucho_index")),
-                                flotar(tel_ref.get("steering_serrucho_index"))),
+        "delta_score": round(delta_score, 2) if delta_score is not None else None,
+        "delta_serrucho": round(delta_serrucho, 3) if delta_serrucho is not None else None,
     }
 
 
@@ -258,16 +263,21 @@ def entero(valor, campo):
 
 
 def evaluacion(postulante_id, rep, etapa, es_mejor, ref):
+    archivo_fuente = (rep.get("archivo") or "").strip()
+    if not archivo_fuente or archivo_fuente.upper().startswith("CABINA_TABLET"):
+        raise SyncError(
+            f"archivo_fuente inválido para telemetría TITAN: {archivo_fuente!r}"
+        )
     tel = rep.get("metricas_sanitizadas") or rep.get("telemetria") or {}
     clasi = rep.get("clasificacion") or {}
     riesgo = clasi.get("riesgo")
     dictamen = clasi.get("aptitud")
     if riesgo not in RIESGO or dictamen not in DICTAMEN:
-        raise SyncError(f"Clasificación inválida en {rep.get('archivo')}")
+        raise SyncError(f"Clasificación inválida en {archivo_fuente}")
     try:
         score = round(float(rep["score"]), 2) if rep.get("score") is not None else None
     except (TypeError, ValueError) as exc:
-        raise SyncError(f"Score inválido en {rep.get('archivo')}") from exc
+        raise SyncError(f"Score inválido en {archivo_fuente}") from exc
     serrucho = tel.get("steering_serrucho_index")
     volantazos = tel.get("steering_volantazos_extremos")
     frenadas = tel.get("frenadas_panico_count")
@@ -287,7 +297,7 @@ def evaluacion(postulante_id, rep, etapa, es_mejor, ref):
         "tiempo_vuelta_seg": entero(rep.get("exercise_duration_seg"), "exercise_duration_seg"),
         "colisiones": entero(rep.get("n_colisiones"), "n_colisiones") or 0,
         "score_puntos": score,
-        "archivo_fuente": rep.get("archivo"),
+        "archivo_fuente": archivo_fuente,
         # Columnas multi-intento (migración 0008)
         "etapa": etapa,
         "es_mejor_diagnostico": es_mejor,
@@ -347,33 +357,29 @@ def sincronizar(db, links):
 
     plan = plan_evaluaciones(links)
     ids = sorted({por_dni[e["dni"]] for e in plan})
-    previas = []
     if ids:
-        previas = db.table("evaluacion_diagnostico").select(
-            "id,postulante_id,archivo_fuente"
-        ).in_("postulante_id", ids).execute().data or []
-        # Idempotencia (tarea B): apagar TODAS las banderas de mejor diagnóstico
-        # de los postulantes del lote ANTES de reescribir. Garantiza que el índice
-        # parcial único uq_mejor_diagnostico_por_postulante nunca observe dos TRUE
-        # y que el script pueda re-ejecutarse indefinidamente sin error 23505.
+        # Idempotencia: apagar las banderas de mejor diagnóstico solo en filas
+        # TITAN de los postulantes del lote ANTES de reescribir (no toca
+        # evaluaciones de CABINA_TABLET*). Garantiza que uq_mejor_diagnostico_por_postulante
+        # nunca observe dos TRUE en re-ejecuciones.
         db.table("evaluacion_diagnostico").update(
-            {"es_mejor_diagnostico": False}).in_("postulante_id", ids).execute()
-    por_fuente = {(x["postulante_id"], x["archivo_fuente"]): x["id"] for x in previas}
-    plan_claves = {(por_dni[e["dni"]], e["rep"]["archivo"]) for e in plan}
+            {"es_mejor_diagnostico": False}
+        ).in_("postulante_id", ids).not_.like(
+            "archivo_fuente", "CABINA_TABLET%"
+        ).execute()
 
-    inserts, updates = [], []
-    for e in plan:
-        pid = por_dni[e["dni"]]
-        payload = evaluacion(pid, e["rep"], e["etapa"], e["es_mejor"], e["ref"])
-        clave = (pid, payload["archivo_fuente"])
-        if clave in por_fuente:
-            updates.append({"id": por_fuente[clave], **payload})
-        else:
-            inserts.append(payload)
-    if inserts:
-        db.table("evaluacion_diagnostico").insert(inserts).execute()
-    if updates:
-        db.table("evaluacion_diagnostico").upsert(updates, on_conflict="id").execute()
+    payloads = [
+        evaluacion(por_dni[e["dni"]], e["rep"], e["etapa"], e["es_mejor"], e["ref"])
+        for e in plan
+    ]
+    plan_claves = {(p["postulante_id"], p["archivo_fuente"]) for p in payloads}
+
+    # UPSERT directo sobre la clave natural (postulante_id, archivo_fuente) de
+    # `public.evaluacion_diagnostico` (migración 0008 uq_postulante_archivo).
+    if payloads:
+        db.table("evaluacion_diagnostico").upsert(
+            payloads, on_conflict="postulante_id,archivo_fuente"
+        ).execute()
 
     insc = db.table("cohorte_inscripciones").select(
         "postulante_id,ranking_orden"

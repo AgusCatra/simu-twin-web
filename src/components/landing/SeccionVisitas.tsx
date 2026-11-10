@@ -5,7 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import {
   Bus,
-  ShieldCheck,
+  Building2,
   CalendarCheck,
   Search,
   ArrowRight,
@@ -17,64 +17,178 @@ import {
   Compass,
   HeartHandshake,
   Coffee,
+  Loader2,
+  XCircle,
 } from 'lucide-react';
+import { consultarEstadoReservaPublica } from '@/app/visitas/actions';
+import type { ReservaPublicaDTO } from '@/types/visitas';
 
-interface VisitaResultado {
-  codigo: string;
-  colegio: string;
-  curso: string;
-  cantAlumnos: number;
-  fecha: string;
-  horario: string;
-  estadoSeguro: 'aprobado' | 'pendiente';
-  transporteTUP: 'asignado' | 'pendiente';
-  estadoVisita: 'confirmada' | 'en_revision';
+type MotivoErrorConsulta = 'validacion' | 'no_encontrada' | 'error_sistema';
+
+function formatearFechaPublica(fechaIso: string): string {
+  const soloFecha = fechaIso.split('T')[0];
+  const partes = soloFecha.split('-');
+  if (partes.length !== 3) return soloFecha;
+
+  const anio = Number(partes[0]);
+  const mes = Number(partes[1]);
+  const dia = Number(partes[2]);
+  if (!Number.isFinite(anio) || !Number.isFinite(mes) || !Number.isFinite(dia)) {
+    return soloFecha;
+  }
+
+  const fechaUTC = new Date(Date.UTC(anio, mes - 1, dia, 12, 0, 0));
+  const formateada = new Intl.DateTimeFormat('es-AR', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+    timeZone: 'UTC',
+  }).format(fechaUTC);
+
+  return formateada.charAt(0).toUpperCase() + formateada.slice(1);
 }
 
-const VISITAS_DEMO: Record<string, VisitaResultado> = {
-  'ESC-2026-042': {
-    codigo: 'ESC-2026-042',
-    colegio: 'E.E.T.P. N° 483 "El Industrial"',
-    curso: '5° Año · Especialidad Electromecánica',
-    cantAlumnos: 28,
-    fecha: 'Viernes 16 de Octubre de 2026',
-    horario: '08:15 a 12:00 hs (Jornada Viernes)',
-    estadoSeguro: 'aprobado',
-    transporteTUP: 'asignado',
-    estadoVisita: 'confirmada',
-  },
-  'ESC-2026-018': {
-    codigo: 'ESC-2026-018',
-    colegio: 'Colegio Superior N° 50',
-    curso: '4° Año · Bachiller Técnico',
-    cantAlumnos: 24,
-    fecha: 'Viernes 23 de Octubre de 2026',
-    horario: '08:15 a 12:00 hs (Jornada Viernes)',
-    estadoSeguro: 'aprobado',
-    transporteTUP: 'asignado',
-    estadoVisita: 'confirmada',
-  },
-};
+function obtenerBadgeEstadoVisita(estadoRaw: string): {
+  etiqueta: string;
+  badgeClass: string;
+  tipoIcono: 'confirmada' | 'reprogramada' | 'cancelada' | 'pendiente';
+} {
+  const norm = estadoRaw.trim().toLowerCase();
+
+  if (norm === 'confirmada') {
+    return {
+      etiqueta: 'VISITA CONFIRMADA',
+      badgeClass: 'bg-[#0091B3]/10 border-[#0091B3]/30 text-[#0091B3]',
+      tipoIcono: 'confirmada',
+    };
+  }
+  if (norm === 'completada' || norm === 'finalizada') {
+    return {
+      etiqueta: norm === 'finalizada' ? 'VISITA FINALIZADA' : 'VISITA COMPLETADA',
+      badgeClass: 'bg-emerald-50 border-emerald-200 text-emerald-700',
+      tipoIcono: 'confirmada',
+    };
+  }
+  if (norm === 'reprogramada') {
+    return {
+      etiqueta: 'REPROGRAMADA',
+      badgeClass: 'bg-sky-50 border-sky-200 text-sky-700',
+      tipoIcono: 'reprogramada',
+    };
+  }
+  if (norm === 'cancelada') {
+    return {
+      etiqueta: 'CANCELADA',
+      badgeClass: 'bg-rose-50 border-rose-200 text-rose-700',
+      tipoIcono: 'cancelada',
+    };
+  }
+
+  return {
+    etiqueta: estadoRaw.trim().toUpperCase() || 'PENDIENTE',
+    badgeClass: 'bg-amber-50 border-amber-200 text-amber-800',
+    tipoIcono: 'pendiente',
+  };
+}
+
+function obtenerInfoEstadoTup(estadoRaw: string | null): {
+  etiqueta: string;
+  badgeClass: string;
+} {
+  const norm = (estadoRaw ?? 'pendiente').trim().toLowerCase().replace(/\s+/g, '_');
+
+  switch (norm) {
+    case 'programado':
+      return {
+        etiqueta: 'Programado (Salida 08:15 hs)',
+        badgeClass: 'bg-[#0091B3]/10 text-[#0091B3] border-[#0091B3]/25',
+      };
+    case 'en_camino':
+      return {
+        etiqueta: 'En camino hacia la institución',
+        badgeClass: 'bg-amber-50 text-amber-800 border-amber-200',
+      };
+    case 'en_destino':
+      return {
+        etiqueta: 'En destino',
+        badgeClass: 'bg-sky-50 text-sky-800 border-sky-200',
+      };
+    case 'completado':
+    case 'finalizado':
+      return {
+        etiqueta: norm === 'finalizado' ? 'Traslado finalizado' : 'Traslado completado',
+        badgeClass: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+      };
+    case 'cancelado':
+      return {
+        etiqueta: 'Traslado cancelado',
+        badgeClass: 'bg-rose-50 text-rose-700 border-rose-200',
+      };
+    case 'pendiente':
+      return {
+        etiqueta: 'Pendiente de asignación',
+        badgeClass: 'bg-slate-100 text-slate-700 border-slate-200',
+      };
+    default: {
+      const legible = (estadoRaw ?? 'Pendiente').trim().replace(/_/g, ' ');
+      return {
+        etiqueta: legible.charAt(0).toUpperCase() + legible.slice(1),
+        badgeClass: 'bg-slate-100 text-slate-700 border-slate-200',
+      };
+    }
+  }
+}
 
 export default function SeccionVisitas() {
   const [codigoInput, setCodigoInput] = useState('');
-  const [resultado, setResultado] = useState<VisitaResultado | null>(null);
-  const [errorBusqueda, setErrorBusqueda] = useState(false);
-  const [haBuscado, setHaBuscado] = useState(false);
+  const [cargando, setCargando] = useState(false);
+  const [resultado, setResultado] = useState<ReservaPublicaDTO | null>(null);
+  const [errorMensaje, setErrorMensaje] = useState<string | null>(null);
+  const [motivoError, setMotivoError] = useState<MotivoErrorConsulta | null>(null);
 
-  const handleBuscar = (e: React.FormEvent) => {
+  const handleBuscar = async (e: React.FormEvent) => {
     e.preventDefault();
-    const codigoLimpio = codigoInput.trim().toUpperCase();
-    setHaBuscado(true);
+    if (cargando) return;
 
-    if (VISITAS_DEMO[codigoLimpio]) {
-      setResultado(VISITAS_DEMO[codigoLimpio]);
-      setErrorBusqueda(false);
-    } else {
+    const codigoLimpio = codigoInput.trim().toUpperCase();
+    if (!codigoLimpio) {
       setResultado(null);
-      setErrorBusqueda(true);
+      setMotivoError('validacion');
+      setErrorMensaje('Ingresá tu código de reserva para realizar la consulta.');
+      return;
+    }
+
+    setCargando(true);
+    setErrorMensaje(null);
+    setMotivoError(null);
+    setResultado(null);
+
+    try {
+      const respuesta = await consultarEstadoReservaPublica(codigoLimpio);
+      if (respuesta.ok) {
+        setResultado(respuesta.reserva);
+      } else {
+        setMotivoError(respuesta.motivo);
+        setErrorMensaje(respuesta.error);
+      }
+    } catch {
+      setMotivoError('error_sistema');
+      setErrorMensaje(
+        'No se pudo conectar con el servidor para verificar el código. Intentá nuevamente.'
+      );
+    } finally {
+      setCargando(false);
     }
   };
+
+  const badgeVisita = resultado
+    ? obtenerBadgeEstadoVisita(resultado.estado_visita)
+    : null;
+  const infoTup =
+    resultado && resultado.requiere_tup
+      ? obtenerInfoEstadoTup(resultado.tup_estado_traslado)
+      : null;
 
   return (
     <section
@@ -221,88 +335,153 @@ export default function SeccionVisitas() {
                 Consultar Estado de Turno Escolar
               </h3>
               <p className="mt-2 text-xs text-slate-600 leading-relaxed">
-                Ingresá el código alfanumérico provisto al postular tu escuela para chequear la fecha confirmada, seguro y transporte TUP:
+                Ingresá el código alfanumérico provisto al postular tu escuela para chequear la fecha, el turno, el estado de la reserva y el traslado TUP:
               </p>
 
               {/* Formulario de Consulta */}
-              <form onSubmit={handleBuscar} className="mt-5 space-y-3">
+              <form onSubmit={handleBuscar} className="mt-5 space-y-3" aria-busy={cargando}>
                 <div className="relative">
                   <input
                     type="text"
                     value={codigoInput}
+                    disabled={cargando}
+                    maxLength={32}
+                    aria-label="Código de reserva escolar"
                     onChange={(e) => {
                       setCodigoInput(e.target.value);
-                      setErrorBusqueda(false);
+                      if (errorMensaje) {
+                        setErrorMensaje(null);
+                        setMotivoError(null);
+                      }
                     }}
-                    placeholder="Ej: ESC-2026-042"
-                    className="w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-3 text-sm text-slate-900 placeholder-slate-400 focus:border-[#0091B3] focus:outline-none focus:ring-1 focus:ring-[#0091B3] shadow-sm uppercase tracking-wider"
+                    placeholder="Ej: CS-48291"
+                    className="w-full rounded-xl border border-slate-300 bg-slate-50 pl-4 pr-12 py-3 text-sm text-slate-900 placeholder-slate-400 focus:border-[#0091B3] focus:outline-none focus:ring-1 focus:ring-[#0091B3] shadow-sm uppercase tracking-wider disabled:opacity-60"
                   />
                   <button
                     type="submit"
-                    className="absolute right-2 top-2 rounded-lg bg-[#0091B3] hover:bg-[#007b99] p-2 text-white transition"
+                    disabled={cargando}
+                    className="absolute right-2 top-2 rounded-lg bg-[#0091B3] hover:bg-[#007b99] p-2 text-white transition disabled:opacity-60 disabled:cursor-not-allowed"
                     title="Buscar código de visita"
+                    aria-label={cargando ? 'Consultando reserva' : 'Buscar código de visita'}
                   >
-                    <Search className="h-4 w-4" />
+                    {cargando ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Search className="h-4 w-4" />
+                    )}
                   </button>
                 </div>
               </form>
 
-              {/* Error si no encuentra */}
-              {errorBusqueda && haBuscado && (
-                <div className="mt-4 rounded-xl border border-rose-200 bg-rose-50 p-3.5 text-xs text-rose-800 flex items-start gap-2.5">
-                  <AlertCircle className="h-4 w-4 text-rose-600 shrink-0 mt-0.5" />
+              {/* Estado: Cargando */}
+              {cargando && (
+                <div className="mt-4 rounded-xl border border-[#0091B3]/25 bg-[#0091B3]/5 p-3.5 text-xs text-[#007b99] flex items-center gap-2.5">
+                  <Loader2 className="h-4 w-4 animate-spin shrink-0" />
+                  <span>Consultando estado de la reserva en tiempo real...</span>
+                </div>
+              )}
+
+              {/* Estado: Error / Reserva no encontrada */}
+              {!cargando && errorMensaje && (
+                <div
+                  role="alert"
+                  className={`mt-4 rounded-xl border p-3.5 text-xs flex items-start gap-2.5 ${
+                    motivoError === 'validacion'
+                      ? 'border-amber-200 bg-amber-50 text-amber-900'
+                      : 'border-rose-200 bg-rose-50 text-rose-800'
+                  }`}
+                >
+                  <AlertCircle
+                    className={`h-4 w-4 shrink-0 mt-0.5 ${
+                      motivoError === 'validacion' ? 'text-amber-600' : 'text-rose-600'
+                    }`}
+                  />
                   <div>
-                    <strong>Código no encontrado.</strong> Verifique el identificador asignado a su institución.
+                    <strong className="block mb-0.5">
+                      {motivoError === 'no_encontrada'
+                        ? 'Código no encontrado'
+                        : motivoError === 'validacion'
+                          ? 'Verificá el código ingresado'
+                          : 'Error al consultar'}
+                    </strong>
+                    <span>{errorMensaje}</span>
                   </div>
                 </div>
               )}
 
-              {/* Resultado de la Búsqueda */}
-              {resultado && (
+              {/* Estado: Resultado Exitoso (solo campos públicos sanitizados) */}
+              {!cargando && resultado && badgeVisita && (
                 <div className="mt-5 rounded-xl border border-[#0091B3]/30 bg-[#0091B3]/5 p-4 space-y-3 text-xs animate-in fade-in duration-200">
-                  <div className="flex items-center justify-between border-b border-[#0091B3]/20 pb-2.5">
-                    <span className="font-bold text-[#0091B3] text-sm">
-                      {resultado.codigo}
+                  <div className="flex items-center justify-between gap-2 border-b border-[#0091B3]/20 pb-2.5 flex-wrap">
+                    <span className="font-mono font-bold text-[#0091B3] text-sm tracking-wide">
+                      {resultado.codigo_reserva}
                     </span>
-                    <span className="rounded-full bg-[#0091B3]/10 border border-[#0091B3]/30 px-2.5 py-0.5 text-[10px] font-bold text-[#0091B3] flex items-center gap-1">
-                      <CheckCircle2 className="h-3 w-3 text-[#0091B3]" />
-                      VISITA CONFIRMADA
+                    <span
+                      className={`rounded-full border px-2.5 py-0.5 text-[10px] font-bold flex items-center gap-1 ${badgeVisita.badgeClass}`}
+                    >
+                      {badgeVisita.tipoIcono === 'confirmada' && (
+                        <CheckCircle2 className="h-3 w-3 shrink-0" />
+                      )}
+                      {badgeVisita.tipoIcono === 'reprogramada' && (
+                        <CalendarCheck className="h-3 w-3 shrink-0" />
+                      )}
+                      {badgeVisita.tipoIcono === 'cancelada' && (
+                        <XCircle className="h-3 w-3 shrink-0" />
+                      )}
+                      {badgeVisita.tipoIcono === 'pendiente' && (
+                        <Clock className="h-3 w-3 shrink-0" />
+                      )}
+                      <span>{badgeVisita.etiqueta}</span>
                     </span>
                   </div>
 
-                  <div>
-                    <div className="font-bold text-slate-900 text-sm">{resultado.colegio}</div>
-                    <div className="text-slate-600 text-[11px]">{resultado.curso} · {resultado.cantAlumnos} estudiantes</div>
+                  <div className="flex items-start gap-2">
+                    <Building2 className="h-4 w-4 text-[#0091B3] shrink-0 mt-0.5" />
+                    <div className="font-bold text-slate-900 text-sm leading-snug">
+                      {resultado.institucion_nombre}
+                    </div>
                   </div>
 
-                  <div className="space-y-1.5 border-t border-[#0091B3]/20 pt-2 text-slate-700">
+                  <div className="space-y-1.5 border-t border-[#0091B3]/20 pt-2.5 text-slate-700">
                     <div className="flex items-center gap-2">
                       <CalendarCheck className="h-3.5 w-3.5 text-[#0091B3] shrink-0" />
-                      <span><strong>Fecha:</strong> {resultado.fecha}</span>
+                      <span>
+                        <strong>Fecha:</strong> {formatearFechaPublica(resultado.fecha_visita)}
+                      </span>
                     </div>
                     <div className="flex items-center gap-2">
                       <Clock className="h-3.5 w-3.5 text-[#0091B3] shrink-0" />
-                      <span><strong>Horario:</strong> {resultado.horario}</span>
+                      <span>
+                        <strong>Turno:</strong>{' '}
+                        {resultado.turno ?? 'Jornada Escolar (08:15 a 12:00 hs)'}
+                      </span>
                     </div>
                   </div>
 
-                  {/* Estado de Requisitos */}
-                  <div className="grid grid-cols-2 gap-2 border-t border-[#0091B3]/20 pt-2">
-                    <div className="rounded-lg bg-white border border-slate-200 p-2 flex items-center gap-2 shadow-xs">
-                      <Bus className="h-4 w-4 text-[#0091B3] shrink-0" />
-                      <div>
-                        <div className="text-[10px] text-slate-500">COLECTIVO TUP</div>
-                        <div className="text-[11px] font-bold text-slate-800">Asignado (Salida 08:15 hs)</div>
+                  {/* Estado de Traslado TUP */}
+                  <div className="border-t border-[#0091B3]/20 pt-2.5">
+                    {resultado.requiere_tup && infoTup ? (
+                      <div className="rounded-lg bg-white border border-slate-200 p-2.5 flex items-center justify-between gap-2 shadow-xs flex-wrap">
+                        <div className="flex items-center gap-2">
+                          <Bus className="h-4 w-4 text-[#0091B3] shrink-0" />
+                          <span className="text-[11px] font-semibold text-slate-600 uppercase tracking-wide">
+                            Traslado TUP
+                          </span>
+                        </div>
+                        <span
+                          className={`rounded-md border px-2 py-0.5 text-[11px] font-bold ${infoTup.badgeClass}`}
+                        >
+                          {infoTup.etiqueta}
+                        </span>
                       </div>
-                    </div>
-
-                    <div className="rounded-lg bg-white border border-slate-200 p-2 flex items-center gap-2 shadow-xs">
-                      <ShieldCheck className="h-4 w-4 text-[#0091B3] shrink-0" />
-                      <div>
-                        <div className="text-[10px] text-slate-500">SEGURO ESCOLAR</div>
-                        <div className="text-[11px] font-bold text-[#0091B3]">Verificado</div>
+                    ) : (
+                      <div className="rounded-lg bg-white border border-slate-200 p-2.5 flex items-center gap-2 shadow-xs text-slate-600">
+                        <Bus className="h-4 w-4 text-slate-400 shrink-0" />
+                        <span className="text-[11px]">
+                          <strong>Traslado TUP:</strong> No requerido (asiste por cuenta propia)
+                        </span>
                       </div>
-                    </div>
+                    )}
                   </div>
                 </div>
               )}

@@ -2,17 +2,19 @@
  * Modelo del módulo LOGÍSTICA TUP (H4 · traslados municipales).
  *
  * Un TrasladoTupItem es la proyección mínima que necesita el panel móvil del
- * chofer/operador TUP: datos de la reserva, de la institución y los horarios
- * de ida/vuelta. La fuente de verdad es la tabla `visitas_educativas` filtrada
- * por `requiere_tup = true` y `estado_visita != 'Cancelada'`.
+ * chofer/operador TUP: datos de la reserva, de la institución, contacto y
+ * horarios de ida/vuelta. La fuente de verdad es `visitas_educativas` filtrada
+ * por `requiere_tup = true` y `estado_visita IN ('Confirmada', 'Reprogramada')`.
  */
 
-export type EstadoTrasladoTup =
-  | 'pendiente'
-  | 'en_camino'
-  | 'en_destino'
-  | 'completado'
-  | 'cancelado';
+export const ESTADOS_TRASLADO_TUP = [
+  'pendiente',
+  'en_camino',
+  'en_destino',
+  'finalizado',
+] as const;
+
+export type EstadoTrasladoTup = (typeof ESTADOS_TRASLADO_TUP)[number];
 
 export interface TrasladoTupItem {
   id: string;
@@ -22,6 +24,7 @@ export interface TrasladoTupItem {
   cant_alumnos: number;
   institucion_nombre: string;
   institucion_direccion?: string | null;
+  institucion_telefono?: string | null;
   nombre_docente: string | null;
   cel_docente: string | null;
   tup_horario_ida_desde: string | null;
@@ -35,6 +38,14 @@ export interface TrasladoTupItem {
 
 export interface ActualizarEstadoTrasladoInput {
   visita_id: string;
-  tup_estado_traslado: EstadoTrasladoTup;
+  tup_estado_traslado?: EstadoTrasladoTup;
   tup_chofer_nombre?: string | null;
 }
+
+export type ResultadoActualizarTrasladoTup =
+  | {
+      ok: true;
+      tup_estado_traslado?: EstadoTrasladoTup;
+      tup_chofer_nombre?: string | null;
+    }
+  | { ok: false; error: string };
