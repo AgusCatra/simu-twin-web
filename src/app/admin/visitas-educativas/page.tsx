@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import TablaVisitasAdmin from '@/components/admin/visitas/TablaVisitasAdmin';
+import BotonVolver from '@/components/ui/BotonVolver';
 import type { Escuela, VisitaEducativa } from '@/types/visitas';
 
 export const dynamic = 'force-dynamic';
@@ -59,13 +60,16 @@ export default async function VisitasEducativasAdminPage() {
 
   return (
     <section className="space-y-4">
-      <div className="border-b border-zinc-800 pb-3">
-        <h2 className="text-lg font-semibold tracking-tight text-zinc-100">
-          Gestión de Visitas Educativas (H4)
-        </h2>
-        <p className="mt-1 font-mono text-[11px] tracking-[0.1em] text-zinc-500">
-          /ADMIN/VISITAS-EDUCATIVAS · SEGUIMIENTO OPERATIVO, ESTADOS Y NÓMINAS
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-zinc-800 pb-3">
+        <div>
+          <h2 className="text-lg font-semibold tracking-tight text-zinc-100">
+            Gestión de Visitas Educativas (H4)
+          </h2>
+          <p className="mt-1 font-mono text-[11px] tracking-[0.1em] text-zinc-500">
+            /ADMIN/VISITAS-EDUCATIVAS · SEGUIMIENTO OPERATIVO, ESTADOS Y NÓMINAS
+          </p>
+        </div>
+        <BotonVolver href="/admin" etiqueta="Volver al Panel" />
       </div>
 
       <TablaVisitasAdmin

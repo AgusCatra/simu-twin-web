@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import PanelLogisticaTup from '@/components/admin/tup/PanelLogisticaTup';
+import BotonVolver from '@/components/ui/BotonVolver';
 import type { EstadoTrasladoTup, TrasladoTupItem } from '@/types/tup';
 
 /**
@@ -194,17 +195,20 @@ export default async function TupPage() {
   return (
     <div className="mx-auto w-full max-w-lg">
       {/* ── Cabecera de la página ───────────────────────────────── */}
-      <header className="mb-5 border-b border-zinc-800 pb-3">
-        <p className="font-mono text-[10px] tracking-[0.2em] text-zinc-600">
-          /ADMIN/TUP · MÓDULO H4
-        </p>
-        <h2 className="mt-1 text-lg font-semibold tracking-tight text-zinc-100">
-          Logística TUP{' '}
-          <span className="font-mono text-zinc-500">{'// TRASLADOS MUNICIPALES'}</span>
-        </h2>
-        <p className="mt-1 font-mono text-[10.5px] leading-relaxed tracking-[0.08em] text-zinc-500">
-          PANEL TÁCTIL DE DESPACHO · CHOFERES TUP · HOY {hoyISO}
-        </p>
+      <header className="mb-5 flex flex-wrap items-start justify-between gap-3 border-b border-zinc-800 pb-3">
+        <div>
+          <p className="font-mono text-[10px] tracking-[0.2em] text-zinc-600">
+            /ADMIN/TUP · MÓDULO H4
+          </p>
+          <h2 className="mt-1 text-lg font-semibold tracking-tight text-zinc-100">
+            Logística TUP{' '}
+            <span className="font-mono text-zinc-500">{'// TRASLADOS MUNICIPALES'}</span>
+          </h2>
+          <p className="mt-1 font-mono text-[10.5px] leading-relaxed tracking-[0.08em] text-zinc-500">
+            PANEL TÁCTIL DE DESPACHO · CHOFERES TUP · HOY {hoyISO}
+          </p>
+        </div>
+        <BotonVolver href="/admin" etiqueta="Volver al Panel" />
       </header>
 
       <PanelLogisticaTup

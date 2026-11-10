@@ -1,6 +1,5 @@
-import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { AlertTriangle, ArrowLeft, CalendarCheck2 } from 'lucide-react';
+import { AlertTriangle, CalendarCheck2 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import { obtenerDatosCohorteActiva } from '@/services/empleo';
 import CabeceraConfiguracion from '@/components/empleo/CabeceraConfiguracion';
@@ -8,6 +7,7 @@ import ParrillaCabina from '@/components/empleo/ParrillaCabina';
 import TablaPostulantes from '@/components/empleo/TablaPostulantes';
 import BotonExportarCronograma from '@/components/empleo/BotonExportarCronograma';
 import AccionesCohorte from '@/components/empleo/AccionesCohorte';
+import BotonVolver from '@/components/ui/BotonVolver';
 import {
   aFechaIso,
   describirEstadoViernesBuffer,
@@ -202,13 +202,7 @@ export default async function GestionCohortesPage() {
             </h1>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <Link
-              href="/admin"
-              className="flex h-9 items-center gap-2 rounded-sm border border-zinc-700 px-3 font-mono text-[10px] tracking-[0.14em] text-zinc-400 transition-colors hover:border-zinc-500 hover:text-white focus-visible:outline-1 focus-visible:outline-white"
-            >
-              <ArrowLeft size={13} strokeWidth={1.75} aria-hidden />
-              VOLVER AL PANEL
-            </Link>
+            <BotonVolver href="/admin" etiqueta="Volver al Panel" />
             <AccionesCohorte
               cohorteActivaId={datos?.cohorte.id ?? null}
               cohorteActivaCodigo={datos?.cohorte.codigo ?? null}

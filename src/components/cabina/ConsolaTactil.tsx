@@ -555,7 +555,7 @@ export default function ConsolaTactil({
   // Pantalla de cierre cuando no queda ningún postulante pendiente en sesión.
   if (jornadaFinalizada) {
     return (
-      <div className="mx-auto flex min-h-dvh w-full max-w-3xl flex-col items-center justify-center gap-5 px-6 text-center">
+      <div className="mx-auto flex flex-1 w-full max-w-3xl flex-col items-center justify-center gap-5 px-6 text-center">
         <span
           aria-hidden
           className="h-2.5 w-2.5 rounded-full bg-emerald-400"
@@ -584,7 +584,7 @@ export default function ConsolaTactil({
   }
 
   return (
-    <div className="mx-auto flex min-h-dvh w-full max-w-3xl flex-col">
+    <div className="mx-auto flex flex-1 w-full max-w-3xl flex-col">
       {/* ── Cabecera ─────────────────────────────────────────────── */}
       <header className="border-b border-zinc-800 px-4 pb-3 pt-4">
         <div className="flex items-center justify-between gap-2">

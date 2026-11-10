@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { createClient } from '@/lib/supabase/server';
 import RackSimuladores from '@/components/admin/actividades/RackSimuladores';
 import TablaActividades from '@/components/admin/actividades/TablaActividades';
+import BotonVolver from '@/components/ui/BotonVolver';
 import type {
   ActividadItem,
   EstadoActividad,
@@ -194,13 +195,16 @@ export default async function RegistroActividadesPage() {
   return (
     <section className="space-y-6">
       {/* ── Cabecera de la página ─────────────────────────────── */}
-      <header className="border-b border-zinc-800 pb-3">
-        <h2 className="text-lg font-semibold tracking-tight text-zinc-100">
-          Registro de Actividades
-        </h2>
-        <p className="mt-1 font-mono text-[11px] tracking-[0.1em] text-zinc-500">
-          /ADMIN/REGISTRO-ACTIVIDADES · RACK EN VIVO + HISTORIAL
-        </p>
+      <header className="flex flex-wrap items-start justify-between gap-3 border-b border-zinc-800 pb-3">
+        <div>
+          <h2 className="text-lg font-semibold tracking-tight text-zinc-100">
+            Registro de Actividades
+          </h2>
+          <p className="mt-1 font-mono text-[11px] tracking-[0.1em] text-zinc-500">
+            /ADMIN/REGISTRO-ACTIVIDADES · RACK EN VIVO + HISTORIAL
+          </p>
+        </div>
+        <BotonVolver href="/admin" etiqueta="Volver al Panel" />
       </header>
 
       {/* ── Rack SCADA en vivo ────────────────────────────────── */}

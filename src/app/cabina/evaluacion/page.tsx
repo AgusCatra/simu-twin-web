@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { obtenerAlumnosTurno } from '@/services/cabina';
 import ConsolaTactil from '@/components/cabina/ConsolaTactil';
+import BotonVolver from '@/components/ui/BotonVolver';
 
 /**
  * /cabina/evaluacion — Consola Viva de Cabina (tablet táctil del instructor).
@@ -32,9 +33,19 @@ export default async function CabinaEvaluacionPage() {
   const instructorDefault = user.email ?? '';
 
   return (
-    <main className="min-h-dvh bg-zinc-950 font-mono text-zinc-100">
+    <main className="flex min-h-dvh flex-col bg-zinc-950 font-mono text-zinc-100">
+      <nav
+        aria-label="Barra de control táctil superior"
+        className="border-b border-zinc-800/80 bg-zinc-950/95 px-4 py-2.5"
+      >
+        <div className="mx-auto flex w-full max-w-3xl flex-wrap items-center justify-between gap-2">
+          <BotonVolver href="/admin" etiqueta="Volver al Panel" />
+          <BotonVolver href="/gestion/cohortes" etiqueta="Cohortes" />
+        </div>
+      </nav>
+
       {alumnos.length === 0 ? (
-        <div className="flex min-h-dvh flex-col items-center justify-center gap-4 px-6 text-center">
+        <div className="flex flex-1 flex-col items-center justify-center gap-4 px-6 text-center">
           <span
             aria-hidden
             className="h-2.5 w-2.5 rounded-full bg-amber-400 animate-pulse"
