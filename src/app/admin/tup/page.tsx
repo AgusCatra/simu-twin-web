@@ -1,9 +1,9 @@
 import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
-import { obtenerPerfilUsuarioActual, puedeAccederRuta } from '@/lib/auth/permisos';
+import { obtenerPerfilUsuarioActual } from '@/lib/auth/permisos';
+import NavegacionRapidaEscuelas from '@/components/admin/NavegacionRapidaEscuelas';
 import PanelLogisticaTup from '@/components/admin/tup/PanelLogisticaTup';
-import BotonVolver from '@/components/ui/BotonVolver';
 import type { EstadoTrasladoTup, TrasladoTupItem } from '@/types/tup';
 
 /**
@@ -194,25 +194,20 @@ export default async function TupPage() {
     .sort(ordenarCronologicamente);
 
   const perfil = await obtenerPerfilUsuarioActual();
-  const puedeVolverAdmin = perfil ? puedeAccederRuta(perfil.rol, '/admin') : true;
+  const soloTup = perfil?.rol === 'chofer_tup';
 
   return (
-    <div className="mx-auto w-full max-w-lg">
-      {/* ── Cabecera de la página ───────────────────────────────── */}
-      <header className="mb-5 flex flex-wrap items-start justify-between gap-3 border-b border-zinc-800 pb-3">
+    <div className={soloTup ? 'mx-auto w-full max-w-lg' : 'mx-auto w-full max-w-4xl space-y-5'}>
+      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 pb-4">
         <div>
-          <p className="font-mono text-[10px] tracking-[0.2em] text-zinc-600">
-            /ADMIN/TUP · MÓDULO H4
-          </p>
-          <h2 className="mt-1 text-lg font-semibold tracking-tight text-zinc-100">
-            Logística TUP{' '}
-            <span className="font-mono text-zinc-500">{'// TRASLADOS MUNICIPALES'}</span>
-          </h2>
-          <p className="mt-1 font-mono text-[10.5px] leading-relaxed tracking-[0.08em] text-zinc-500">
-            PANEL TÁCTIL DE DESPACHO · CHOFERES TUP · HOY {hoyISO}
+          <h1 className="text-xl font-bold tracking-tight text-slate-900">
+            Colectivo TUP · Traslados Escolares
+          </h1>
+          <p className="mt-0.5 text-sm text-slate-600">
+            Horarios de ida y vuelta, contacto docente y estado del viaje ({hoyISO})
           </p>
         </div>
-        {puedeVolverAdmin && <BotonVolver href="/admin" etiqueta="Volver al Panel" />}
+        <NavegacionRapidaEscuelas soloTup={soloTup} />
       </header>
 
       <PanelLogisticaTup

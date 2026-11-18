@@ -31,19 +31,19 @@ export default function BadgeRolYSesion({ rol, usuarioEmail }: Props) {
     <div className="flex flex-wrap items-center gap-2">
       <span
         title={usuarioEmail ?? undefined}
-        className="inline-flex h-10 items-center gap-1.5 rounded-sm border border-sky-500/40 bg-sky-950/35 px-2.5 font-mono text-[10px] font-semibold tracking-[0.12em] text-sky-200"
+        className="inline-flex h-10 items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-3 text-xs font-semibold text-blue-700"
       >
-        <ShieldCheck size={12} aria-hidden />
-        ROL: {ETIQUETA_ROL[rol]}
+        <ShieldCheck size={13} aria-hidden />
+        {ETIQUETA_ROL[rol]}
       </span>
       <button
         type="button"
         onClick={() => void cerrarSesion()}
         disabled={cerrando}
-        className="inline-flex h-10 items-center gap-1.5 rounded-sm border border-zinc-700 bg-zinc-900 px-3 font-mono text-[10px] tracking-[0.1em] text-zinc-300 transition-colors hover:border-zinc-500 hover:text-white disabled:opacity-60"
+        className="inline-flex h-10 items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-100 hover:text-slate-900 disabled:opacity-60"
       >
-        <LogOut size={12} aria-hidden />
-        {cerrando ? 'SALIENDO…' : 'SALIR'}
+        <LogOut size={13} aria-hidden />
+        {cerrando ? 'Saliendo…' : 'Salir'}
       </button>
     </div>
   );

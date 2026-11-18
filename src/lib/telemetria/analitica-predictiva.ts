@@ -70,6 +70,16 @@ export interface AnaliticaPlasticidad {
   mejoraPerfil: boolean;
 }
 
+export interface AnaliticaPracticaIntermedia {
+  archivoFuente: string | null;
+  exerciseName: string;
+  fecha: string | null;
+  scorePuntos: number | null;
+  tiempoVueltaSeg: number | null;
+  colisiones: number | null;
+  cuidadoMecanico: AnaliticaCuidadoMecanico;
+}
+
 export interface AnaliticaOperadorCohorte {
   postulanteId: string;
   cuidadoMecanico: AnaliticaCuidadoMecanico | null;
@@ -83,6 +93,7 @@ export interface AnaliticaOperadorCohorte {
   scoreVigente: number | null;
   tiempoVigenteSeg: number | null;
   colisionesVigente: number | null;
+  practicasIntermedias: AnaliticaPracticaIntermedia[];
 }
 
 export interface DistribucionPerfilItem {
@@ -318,7 +329,24 @@ function timestampOrden(reg: RegistroEvaluacionAnalitica): string {
   return reg.createdAt ?? '9999-99-99T99:99:99';
 }
 
+/** Normaliza Exercise Name y determina si corresponde al examen estándar Medium Load Operation. */
+export function esMediumLoadOperation(
+  exerciseName: string | null | undefined
+): boolean {
+  if (!exerciseName) return false;
+  const norm = exerciseName.trim().replace(/\s+/g, ' ').toLowerCase();
+  return norm === 'medium load operation';
+}
+
+function esRegistroMediumLoad(reg: RegistroEvaluacionAnalitica): boolean {
+  if (reg.etapa === 'PRACTICA_INTERMEDIA') return false;
+  const ex = reg.metricas?.exerciseName;
+  if (!ex || !ex.trim()) return true;
+  return esMediumLoadOperation(ex);
+}
+
 function prioridadEtapaNum(e: EtapaEvaluacion): number {
+  if (e === 'PRACTICA_INTERMEDIA') return 0;
   if (e === 'DIAG_INTENTO_1') return 1;
   if (e === 'DIAG_INTENTO_2') return 2;
   return 3;
@@ -422,6 +450,7 @@ export function analizarCohortePredictiva(input: {
     perfilInicial: PerfilOperador | null;
     perfilActual: PerfilOperador | null;
     colisionesVigente: number | null;
+    practicasIntermedias: AnaliticaPracticaIntermedia[];
   }
 
   const preps: PrepAlumno[] = [];
@@ -452,7 +481,25 @@ export function analizarCohortePredictiva(input: {
       aprobadosEmpresas += 1;
     }
 
-    const ordenadas = ordenarEvaluacionesCronologicamente(p.evaluacionesTitan);
+    const intermedias: AnaliticaPracticaIntermedia[] = p.evaluacionesTitan
+      .filter((e) => !esRegistroMediumLoad(e))
+      .sort((a, b) => timestampOrden(a).localeCompare(timestampOrden(b)))
+      .map((e) => ({
+        archivoFuente: e.archivoFuente,
+        exerciseName:
+          e.metricas?.exerciseName?.trim() || 'Práctica Intermedia',
+        fecha: timestampOrden(e).startsWith('9999')
+          ? null
+          : timestampOrden(e),
+        scorePuntos: num(e.scorePuntos),
+        tiempoVueltaSeg: num(e.tiempoVueltaSeg),
+        colisiones: num(e.colisiones),
+        cuidadoMecanico: cuidarDesdeRegistro(e),
+      }));
+
+    const ordenadas = ordenarEvaluacionesCronologicamente(
+      p.evaluacionesTitan.filter(esRegistroMediumLoad)
+    );
     totalReportesReales += ordenadas.length;
 
     if (ordenadas.length === 0) {
@@ -466,6 +513,7 @@ export function analizarCohortePredictiva(input: {
         perfilInicial: null,
         perfilActual: null,
         colisionesVigente: null,
+        practicasIntermedias: intermedias,
       });
       continue;
     }
@@ -618,6 +666,7 @@ export function analizarCohortePredictiva(input: {
       perfilInicial,
       perfilActual,
       colisionesVigente: colVig,
+      practicasIntermedias: intermedias,
     });
   }
 
@@ -643,6 +692,7 @@ export function analizarCohortePredictiva(input: {
       scoreVigente: item.scoreVigente,
       tiempoVigenteSeg: item.tiempoVigenteSeg,
       colisionesVigente: item.colisionesVigente,
+      practicasIntermedias: item.practicasIntermedias,
     };
   }
 

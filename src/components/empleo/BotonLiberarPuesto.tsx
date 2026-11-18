@@ -35,7 +35,7 @@ export default function BotonLiberarPuesto({
   return (
     <span className="flex items-center gap-1">
       {error && (
-        <span role="alert" className="font-mono text-[9px] text-red-400">
+        <span role="alert" className="text-xs font-medium text-rose-700">
           {error}
         </span>
       )}
@@ -45,7 +45,7 @@ export default function BotonLiberarPuesto({
         disabled={isPending}
         aria-label={`Liberar puesto de ${nombrePostulante}`}
         title="Liberar puesto (dar de baja)"
-        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-sm text-zinc-500 transition-colors hover:bg-red-500/10 hover:text-red-400 disabled:cursor-not-allowed focus-visible:outline-1 focus-visible:outline-white"
+        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-rose-50 hover:text-rose-700 disabled:cursor-not-allowed"
       >
         <XCircle size={15} strokeWidth={1.75} />
       </button>

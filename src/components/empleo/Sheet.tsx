@@ -3,14 +3,6 @@
 import { useEffect, useRef, type ReactNode } from 'react';
 import { X } from 'lucide-react';
 
-/**
- * Sheet lateral derecho accesible (reemplazo sin dependencias del <Sheet> de
- * shadcn/ui: el proyecto no instala radix). role="dialog" aria-modal, cierre
- * con Escape y clic en el backdrop, foco inicial y final dentro del panel, y
- * Tab atrapado en el drawer mientras está abierto.
- * Estética industrial del proyecto: zinc plano, font-mono, rounded-sm.
- */
-
 interface Props {
   abierto: boolean;
   onCerrar: () => void;
@@ -75,12 +67,11 @@ export default function Sheet({
 
   return (
     <div className="fixed inset-0 z-50">
-      {/* Backdrop: el clic cierra, pero el panel detiene la propagación. */}
       <button
         type="button"
         aria-label="Cerrar panel"
         onClick={onCerrar}
-        className="absolute inset-0 cursor-default bg-black/70"
+        className="absolute inset-0 cursor-default bg-slate-900/45 backdrop-blur-xs"
       />
       <div
         ref={panelRef}
@@ -88,15 +79,15 @@ export default function Sheet({
         aria-modal="true"
         aria-label={titulo}
         tabIndex={-1}
-        className="absolute inset-y-0 right-0 flex w-full max-w-md flex-col border-l border-zinc-800 bg-zinc-950 outline-none"
+        className="absolute inset-y-0 right-0 flex w-full max-w-xl flex-col border-l border-slate-200 bg-white text-slate-900 shadow-2xl outline-none"
       >
-        <header className="flex items-start justify-between gap-3 border-b border-zinc-800 px-4 py-3">
+        <header className="flex items-start justify-between gap-3 border-b border-slate-200 bg-slate-50 px-5 py-4">
           <div className="min-w-0">
-            <h2 className="truncate font-mono text-xs tracking-[0.18em] text-white uppercase">
+            <h2 className="truncate text-base font-bold text-slate-900">
               {titulo}
             </h2>
             {subtitulo && (
-              <p className="mt-0.5 truncate font-mono text-[10px] tracking-[0.12em] text-zinc-500">
+              <p className="mt-0.5 truncate text-xs text-slate-600">
                 {subtitulo}
               </p>
             )}
@@ -105,12 +96,12 @@ export default function Sheet({
             type="button"
             onClick={onCerrar}
             aria-label="Cerrar"
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-sm border border-zinc-800 text-zinc-400 transition-colors hover:bg-zinc-900 hover:text-white focus-visible:outline-1 focus-visible:outline-white"
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-slate-300 bg-white text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900"
           >
             <X size={18} strokeWidth={1.75} />
           </button>
         </header>
-        <div className="flex-1 overflow-y-auto px-4 py-4">{children}</div>
+        <div className="flex-1 overflow-y-auto px-5 py-4">{children}</div>
       </div>
     </div>
   );

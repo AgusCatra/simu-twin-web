@@ -74,8 +74,8 @@ function obtenerEstilosNivel(insumo: InsumoStock): {
 } {
   if (insumo.cantidad_disponible <= 0) {
     return {
-      cardClass: 'border-rose-500/70 bg-rose-950/15',
-      badgeClass: 'border-rose-500/50 bg-rose-950/60 text-rose-300',
+      cardClass: 'border-rose-200 bg-rose-50/40',
+      badgeClass: 'border-rose-200 bg-rose-50 text-rose-700',
       barClass: 'bg-rose-500',
       etiqueta: 'SIN STOCK',
       enAlerta: true,
@@ -85,9 +85,9 @@ function obtenerEstilosNivel(insumo: InsumoStock): {
 
   if (insumo.cantidad_disponible <= insumo.cantidad_minima_alerta) {
     return {
-      cardClass: 'border-amber-500/70 bg-amber-950/15',
-      badgeClass: 'border-amber-500/50 bg-amber-950/60 text-amber-300',
-      barClass: 'bg-amber-400',
+      cardClass: 'border-amber-200 bg-amber-50/40',
+      badgeClass: 'border-amber-200 bg-amber-50 text-amber-800',
+      barClass: 'bg-amber-500',
       etiqueta: 'BAJO MÍNIMO',
       enAlerta: true,
       agotado: false,
@@ -95,9 +95,9 @@ function obtenerEstilosNivel(insumo: InsumoStock): {
   }
 
   return {
-    cardClass: 'border-zinc-800 bg-zinc-950',
-    badgeClass: 'border-emerald-500/40 bg-emerald-950/35 text-emerald-300',
-    barClass: 'bg-emerald-400',
+    cardClass: 'border-slate-200 bg-white',
+    badgeClass: 'border-emerald-200 bg-emerald-50 text-emerald-700',
+    barClass: 'bg-emerald-500',
     etiqueta: 'EN STOCK',
     enAlerta: false,
     agotado: false,
@@ -112,24 +112,24 @@ function obtenerEstilosTipoMovimiento(tipo: TipoMovimientoStock): {
 } {
   if (tipo === 'ingreso_compra') {
     return {
-      etiqueta: 'INGRESO COMPRA',
-      badgeClass: 'border-emerald-500/40 bg-emerald-950/40 text-emerald-300',
-      cantidadClass: 'text-emerald-300',
+      etiqueta: 'Ingreso de compra',
+      badgeClass: 'border-emerald-200 bg-emerald-50 text-emerald-700',
+      cantidadClass: 'text-emerald-700',
       signo: '+',
     };
   }
   if (tipo === 'visita_escolar') {
     return {
-      etiqueta: 'VISITA ESCOLAR',
-      badgeClass: 'border-sky-500/40 bg-sky-950/40 text-sky-300',
-      cantidadClass: 'text-sky-300',
+      etiqueta: 'Visita escolar',
+      badgeClass: 'border-blue-200 bg-blue-50 text-blue-700',
+      cantidadClass: 'text-blue-700',
       signo: '-',
     };
   }
   return {
-    etiqueta: 'CONSUMO INTERNO',
-    badgeClass: 'border-amber-500/40 bg-amber-950/40 text-amber-300',
-    cantidadClass: 'text-amber-300',
+    etiqueta: 'Consumo interno',
+    badgeClass: 'border-amber-200 bg-amber-50 text-amber-800',
+    cantidadClass: 'text-amber-800',
     signo: '-',
   };
 }
@@ -301,148 +301,145 @@ export default function PanelStock({
       {errorLectura && (
         <div
           role="alert"
-          className="flex flex-wrap items-center justify-between gap-3 rounded-sm border border-rose-900 bg-rose-950/40 px-4 py-3 text-sm text-rose-200"
+          className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-800"
         >
           <span className="flex items-center gap-2">
-            <AlertTriangle size={16} className="shrink-0 text-rose-400" />
+            <AlertTriangle size={16} className="shrink-0 text-rose-600" />
             {errorLectura}
           </span>
           <button
             type="button"
             onClick={() => router.refresh()}
-            className="inline-flex h-9 items-center gap-1.5 rounded-sm border border-rose-800 bg-zinc-950 px-3 font-mono text-[11px] tracking-[0.1em] text-zinc-100 hover:border-rose-600"
+            className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-rose-300 bg-white px-3 text-xs font-semibold text-rose-800 hover:bg-rose-100"
           >
-            <RefreshCw size={12} />
-            REINTENTAR
+            <RefreshCw size={13} />
+            Reintentar
           </button>
         </div>
       )}
 
-      {/* ── Feedback de último movimiento exitoso ──────────────── */}
       {feedbackExito && (
         <div
           role="status"
-          className="flex items-center justify-between gap-3 rounded-sm border border-emerald-700/70 bg-emerald-950/35 px-4 py-2.5 text-sm text-emerald-200"
+          className="flex items-center justify-between gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800"
         >
           <span className="flex items-center gap-2">
-            <CheckCircle2 size={16} className="shrink-0 text-emerald-400" />
+            <CheckCircle2 size={16} className="shrink-0 text-emerald-600" />
             {feedbackExito}
           </span>
           <button
             type="button"
             onClick={() => setFeedbackExito(null)}
             aria-label="Ocultar aviso"
-            className="rounded-sm p-1 text-emerald-300/80 hover:bg-emerald-900/40 hover:text-emerald-100"
+            className="rounded-lg p-1 text-emerald-700 hover:bg-emerald-100"
           >
-            <X size={14} />
+            <X size={15} />
           </button>
         </div>
       )}
 
-      {/* ── KPIs de estado del pañol ───────────────────────────── */}
-      <section aria-label="Resumen de stock del pañol">
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-          <article className="rounded-sm border border-zinc-800 bg-zinc-950 p-4">
+      <section aria-label="Resumen de stock">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <article className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
             <div className="flex items-center justify-between gap-2">
-              <p className="font-mono text-[10px] font-medium tracking-[0.14em] text-zinc-500">
-                EXISTENCIAS EN PAÑOL
+              <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                Unidades totales
               </p>
-              <Package size={15} className="text-zinc-500" aria-hidden />
+              <Package size={16} className="text-blue-600" aria-hidden />
             </div>
             <div className="mt-2.5 flex items-baseline gap-2">
-              <p className="font-mono text-2xl font-semibold text-white tabular-nums">
+              <p className="text-3xl font-bold text-slate-900 tabular-nums">
                 {resumen.unidadesTotales}
               </p>
-              <span className="font-mono text-[11px] text-zinc-500">
-                unidades en {insumos.length} rubros
+              <span className="text-sm text-slate-500">
+                en {insumos.length} artículos
               </span>
             </div>
           </article>
 
-          <article className="rounded-sm border border-zinc-800 bg-zinc-950 p-4">
+          <article className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
             <div className="flex items-center justify-between gap-2">
-              <p className="font-mono text-[10px] font-medium tracking-[0.14em] text-zinc-500">
-                UMBRAL DE ALERTA
+              <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                Alertas de faltantes
               </p>
               <AlertTriangle
-                size={15}
+                size={16}
                 className={
                   resumen.agotados.length > 0
-                    ? 'text-rose-400'
+                    ? 'text-rose-600'
                     : resumen.enAlerta.length > 0
-                      ? 'text-amber-400'
-                      : 'text-emerald-400'
+                      ? 'text-amber-600'
+                      : 'text-emerald-600'
                 }
                 aria-hidden
               />
             </div>
             <div className="mt-2.5 flex items-baseline gap-2">
               <p
-                className={`font-mono text-2xl font-semibold tabular-nums ${
+                className={`text-3xl font-bold tabular-nums ${
                   resumen.agotados.length > 0
-                    ? 'text-rose-400'
+                    ? 'text-rose-700'
                     : resumen.enAlerta.length > 0
-                      ? 'text-amber-300'
-                      : 'text-emerald-400'
+                      ? 'text-amber-700'
+                      : 'text-emerald-700'
                 }`}
               >
                 {resumen.enAlerta.length}
               </p>
-              <span className="font-mono text-[11px] text-zinc-400">
+              <span className="text-sm text-slate-600">
                 {resumen.enAlerta.length === 0
-                  ? 'todos los insumos sobre mínimo'
+                  ? 'todos sobre mínimo'
                   : resumen.agotados.length > 0
-                    ? `${resumen.agotados.length} agotado(s)`
+                    ? `${resumen.agotados.length} sin stock`
                     : 'requieren reposición'}
               </span>
             </div>
           </article>
 
-          <article className="rounded-sm border border-zinc-800 bg-zinc-950 p-4">
+          <article className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
             <div className="flex items-center justify-between gap-2">
-              <p className="font-mono text-[10px] font-medium tracking-[0.14em] text-zinc-500">
-                AUDITORÍA RECIENTE
+              <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                Últimos movimientos
               </p>
-              <History size={15} className="text-zinc-500" aria-hidden />
+              <History size={16} className="text-slate-500" aria-hidden />
             </div>
             <div className="mt-2.5 flex items-baseline gap-2">
-              <p className="font-mono text-2xl font-semibold text-white tabular-nums">
+              <p className="text-3xl font-bold text-slate-900 tabular-nums">
                 {movimientos.length}
               </p>
-              <span className="font-mono text-[11px] text-zinc-400">
-                {resumen.ingresosRecientes} ing. · {resumen.consumosRecientes}{' '}
-                cons.
+              <span className="text-sm text-slate-600">
+                {resumen.ingresosRecientes} ingresos · {resumen.consumosRecientes}{' '}
+                egresos
               </span>
             </div>
           </article>
         </div>
       </section>
 
-      {/* ── Banner de alerta por umbral mínimo ─────────────────── */}
       {resumen.enAlerta.length > 0 && (
         <div
           role="alert"
-          className={`flex flex-wrap items-center justify-between gap-3 rounded-sm border px-4 py-3 ${
+          className={`flex flex-wrap items-center justify-between gap-3 rounded-xl border px-4 py-3 ${
             resumen.agotados.length > 0
-              ? 'border-rose-700/80 bg-rose-950/35 text-rose-100'
-              : 'border-amber-700/80 bg-amber-950/30 text-amber-100'
+              ? 'border-rose-200 bg-rose-50 text-rose-800'
+              : 'border-amber-200 bg-amber-50 text-amber-900'
           }`}
         >
           <div className="flex items-start gap-2.5">
             <AlertTriangle
-              size={16}
+              size={18}
               className={`mt-0.5 shrink-0 ${
-                resumen.agotados.length > 0 ? 'text-rose-400' : 'text-amber-400'
+                resumen.agotados.length > 0 ? 'text-rose-600' : 'text-amber-600'
               }`}
               aria-hidden
             />
             <div>
-              <p className="font-mono text-xs font-semibold uppercase tracking-[0.1em]">
+              <p className="text-sm font-bold">
                 {resumen.agotados.length > 0
-                  ? 'Alerta crítica: insumo sin stock en pañol'
-                  : 'Alerta de reposición: existencias por debajo o iguales al mínimo'}
+                  ? 'Hay insumos sin stock disponible'
+                  : 'Insumos por debajo del mínimo'}
               </p>
-              <p className="mt-0.5 text-xs text-zinc-300">
+              <p className="mt-0.5 text-xs">
                 {resumen.enAlerta
                   .map(
                     (i) =>
@@ -455,22 +452,21 @@ export default function PanelStock({
           <button
             type="button"
             onClick={() => abrirModal('ingreso', resumen.enAlerta[0].id)}
-            className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-sm border border-amber-500/60 bg-zinc-950 px-3 font-mono text-[11px] font-semibold tracking-[0.08em] text-amber-200 transition-colors hover:bg-amber-950/60"
+            className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-lg border border-amber-300 bg-white px-3.5 text-xs font-semibold text-amber-900 transition-colors hover:bg-amber-100"
           >
-            <PackagePlus size={14} />
-            REPONER AHORA
+            <PackagePlus size={15} />
+            Reponer ahora
           </button>
         </div>
       )}
 
-      {/* ── Barra de acciones rápidas ──────────────────────────── */}
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-800 pb-3">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 pb-3">
         <div>
-          <h3 className="font-mono text-xs font-semibold uppercase tracking-[0.14em] text-zinc-200">
-            CATÁLOGO DE INSUMOS ({insumos.length})
-          </h3>
-          <p className="mt-0.5 font-mono text-[10px] tracking-[0.1em] text-zinc-500">
-            REFRIGERIO DE VISITAS ESCOLARES Y MATERIAL DIDÁCTICO
+          <h2 className="text-base font-bold text-slate-900">
+            Artículos disponibles ({insumos.length})
+          </h2>
+          <p className="text-sm text-slate-600">
+            Refrigerios para escuelas y material de práctica
           </p>
         </div>
 
@@ -478,20 +474,20 @@ export default function PanelStock({
           <button
             type="button"
             onClick={() => router.refresh()}
-            className="inline-flex h-10 items-center gap-1.5 rounded-sm border border-zinc-800 bg-zinc-950 px-3 font-mono text-[11px] tracking-[0.08em] text-zinc-300 transition-colors hover:border-zinc-600 hover:text-white"
+            className="inline-flex h-10 items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3.5 text-xs font-semibold text-slate-700 hover:bg-slate-100"
           >
-            <RefreshCw size={13} />
-            ACTUALIZAR
+            <RefreshCw size={14} />
+            Actualizar
           </button>
 
           <button
             type="button"
             onClick={() => abrirModal('ingreso')}
             disabled={insumos.length === 0}
-            className="inline-flex h-10 items-center gap-1.5 rounded-sm border border-emerald-700 bg-emerald-950/60 px-3.5 font-mono text-[11px] font-semibold tracking-[0.08em] text-emerald-200 transition-colors hover:border-emerald-500 hover:bg-emerald-900/60 disabled:cursor-not-allowed disabled:opacity-40"
+            className="inline-flex h-10 items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-4 text-xs font-semibold text-emerald-700 hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-40"
           >
-            <PackagePlus size={14} />
-            INGRESO DE MERCADERÍA
+            <PackagePlus size={15} />
+            Registrar ingreso
           </button>
 
           <button
@@ -501,29 +497,24 @@ export default function PanelStock({
               insumos.length === 0 ||
               insumos.every((i) => i.cantidad_disponible <= 0)
             }
-            className="inline-flex h-10 items-center gap-1.5 rounded-sm border border-amber-700 bg-amber-950/60 px-3.5 font-mono text-[11px] font-semibold tracking-[0.08em] text-amber-200 transition-colors hover:border-amber-500 hover:bg-amber-900/60 disabled:cursor-not-allowed disabled:opacity-40"
+            className="inline-flex h-10 items-center gap-1.5 rounded-lg border border-amber-200 bg-amber-50 px-4 text-xs font-semibold text-amber-800 hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-40"
           >
-            <PackageMinus size={14} />
-            REGISTRAR CONSUMO
+            <PackageMinus size={15} />
+            Registrar entrega
           </button>
         </div>
       </div>
 
-      {/* ── Tarjetas de Insumos ────────────────────────────────── */}
       {insumos.length === 0 ? (
-        <div className="rounded-sm border border-dashed border-zinc-800 bg-zinc-950 px-5 py-10 text-center">
-          <Package size={24} className="mx-auto text-zinc-600" aria-hidden />
-          <p className="mt-2 font-mono text-xs font-semibold uppercase tracking-[0.14em] text-zinc-300">
-            Sin insumos registrados en pañol
-          </p>
-          <p className="mt-1 text-xs text-zinc-500">
-            No se encontraron artículos en la tabla{' '}
-            <code className="font-mono text-zinc-300">stock_insumos</code>.
+        <div className="rounded-xl border border-dashed border-slate-300 bg-white px-5 py-10 text-center">
+          <Package size={26} className="mx-auto text-slate-400" aria-hidden />
+          <p className="mt-2 text-sm font-bold text-slate-700">
+            Sin artículos registrados
           </p>
         </div>
       ) : (
         <section aria-label="Tarjetas de existencias por insumo">
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
             {insumos.map((insumo) => {
               const estilos = obtenerEstilosNivel(insumo);
               const porcentaje = calcularPorcentajeNivel(insumo);
@@ -531,51 +522,50 @@ export default function PanelStock({
               return (
                 <article
                   key={insumo.id}
-                  className={`flex flex-col justify-between rounded-sm border p-4 transition-colors ${estilos.cardClass}`}
+                  className={`flex flex-col justify-between rounded-xl border p-5 shadow-sm transition-colors ${estilos.cardClass}`}
                 >
                   <div>
                     <div className="flex items-start justify-between gap-2">
-                      <span className="rounded-sm border border-zinc-700 bg-zinc-900 px-2 py-0.5 font-mono text-[11px] font-semibold tracking-[0.1em] text-zinc-100">
+                      <span className="rounded-md border border-slate-200 bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-800">
                         {insumo.codigo}
                       </span>
                       <span
-                        className={`rounded-sm border px-2 py-0.5 font-mono text-[10px] font-semibold tracking-[0.1em] ${estilos.badgeClass}`}
+                        className={`rounded-md border px-2.5 py-0.5 text-xs font-semibold ${estilos.badgeClass}`}
                       >
                         {estilos.etiqueta}
                       </span>
                     </div>
 
-                    <h4 className="mt-3 text-base font-semibold leading-snug text-zinc-100">
+                    <h3 className="mt-3 text-base font-bold leading-snug text-slate-900">
                       {insumo.nombre_insumo}
-                    </h4>
+                    </h3>
 
                     <div className="mt-4 flex items-baseline justify-between gap-2">
                       <div>
-                        <p className="font-mono text-[10px] tracking-[0.14em] text-zinc-500">
-                          DISPONIBLE
+                        <p className="text-xs font-medium text-slate-500">
+                          Disponible
                         </p>
-                        <p className="font-mono text-3xl font-bold tracking-tight text-white tabular-nums">
+                        <p className="text-3xl font-bold tracking-tight text-slate-900 tabular-nums">
                           {insumo.cantidad_disponible}
-                          <span className="ml-1.5 text-xs font-normal text-zinc-400">
+                          <span className="ml-1.5 text-sm font-normal text-slate-500">
                             u.
                           </span>
                         </p>
                       </div>
 
                       <div className="text-right">
-                        <p className="font-mono text-[10px] tracking-[0.14em] text-zinc-500">
-                          MÍN. ALERTA
+                        <p className="text-xs font-medium text-slate-500">
+                          Mínimo alerta
                         </p>
-                        <p className="font-mono text-sm font-semibold text-zinc-300 tabular-nums">
+                        <p className="text-sm font-semibold text-slate-700 tabular-nums">
                           {insumo.cantidad_minima_alerta} u.
                         </p>
                       </div>
                     </div>
 
-                    {/* Barra visual de nivel */}
                     <div
                       aria-hidden
-                      className="mt-3 h-1.5 w-full overflow-hidden rounded-sm bg-zinc-800"
+                      className="mt-3 h-2 w-full overflow-hidden rounded-full bg-slate-200"
                     >
                       <div
                         className={`h-full transition-all ${estilos.barClass}`}
@@ -583,30 +573,29 @@ export default function PanelStock({
                       />
                     </div>
 
-                    <p className="mt-2 font-mono text-[10px] tracking-[0.06em] text-zinc-500">
-                      ACT.: {formatearFechaHoraArgentina(insumo.updated_at)}
+                    <p className="mt-2.5 text-xs text-slate-500">
+                      Actualizado: {formatearFechaHoraArgentina(insumo.updated_at)}
                     </p>
                   </div>
 
-                  {/* Controles directos */}
-                  <div className="mt-4 grid grid-cols-2 gap-2 border-t border-zinc-800/80 pt-3">
+                  <div className="mt-4 grid grid-cols-2 gap-2 border-t border-slate-200 pt-3">
                     <button
                       type="button"
                       onClick={() => abrirModal('ingreso', insumo.id)}
-                      className="flex h-11 items-center justify-center gap-1.5 rounded-sm border border-zinc-700 bg-zinc-900 font-mono text-[11px] font-semibold tracking-[0.08em] text-emerald-300 transition-colors hover:border-emerald-600 hover:bg-emerald-950/40"
+                      className="flex h-11 items-center justify-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 text-xs font-semibold text-emerald-700 transition-colors hover:bg-emerald-100"
                     >
                       <ArrowDownToLine size={14} />
-                      INGRESAR
+                      Ingresar
                     </button>
 
                     <button
                       type="button"
                       onClick={() => abrirModal('consumo', insumo.id)}
                       disabled={estilos.agotado}
-                      className="flex h-11 items-center justify-center gap-1.5 rounded-sm border border-zinc-700 bg-zinc-900 font-mono text-[11px] font-semibold tracking-[0.08em] text-amber-300 transition-colors hover:border-amber-600 hover:bg-amber-950/40 disabled:cursor-not-allowed disabled:opacity-40"
+                      className="flex h-11 items-center justify-center gap-1.5 rounded-lg border border-amber-200 bg-amber-50 text-xs font-semibold text-amber-800 transition-colors hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-40"
                     >
                       <ArrowUpFromLine size={14} />
-                      CONSUMO
+                      Entregar
                     </button>
                   </div>
                 </article>
@@ -616,90 +605,82 @@ export default function PanelStock({
         </section>
       )}
 
-      {/* ── Tabla de Auditoría de Últimos 20 Movimientos ───────── */}
       <section
         aria-label="Historial de últimos movimientos de stock"
-        className="rounded-sm border border-zinc-800 bg-zinc-950"
+        className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm"
       >
-        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-zinc-800 px-4 py-3">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 bg-slate-50 px-5 py-3.5">
           <div className="flex items-center gap-2">
-            <History size={15} className="text-zinc-400" aria-hidden />
-            <h3 className="font-mono text-xs font-semibold uppercase tracking-[0.14em] text-zinc-100">
-              AUDITORÍA DE MOVIMIENTOS · ÚLTIMOS 20
-            </h3>
+            <History size={16} className="text-slate-500" aria-hidden />
+            <h2 className="text-base font-bold text-slate-900">
+              Últimos 20 movimientos
+            </h2>
           </div>
-          <span className="font-mono text-[10px] tracking-[0.12em] text-zinc-500">
-            {movimientos.length} REGISTROS
+          <span className="text-xs font-medium text-slate-500">
+            {movimientos.length} registros
           </span>
         </div>
 
         {movimientos.length === 0 ? (
-          <div className="px-4 py-10 text-center">
-            <p className="font-mono text-xs uppercase tracking-[0.12em] text-zinc-400">
-              Sin movimientos registrados en auditoría
-            </p>
-            <p className="mt-1 text-xs text-zinc-500">
-              Cada ingreso de mercadería o consumo registrado aparecerá aquí con
-              fecha, tipo y saldo aplicado.
+          <div className="px-5 py-10 text-center">
+            <p className="text-sm font-semibold text-slate-700">
+              Sin movimientos registrados todavía
             </p>
           </div>
         ) : (
           <>
-            {/* Vista desktop / tablet */}
             <div className="hidden overflow-x-auto sm:block">
               <table className="w-full border-collapse text-left">
                 <thead>
-                  <tr className="border-b border-zinc-800 bg-zinc-900/80 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400">
-                    <th className="px-4 py-2.5 font-medium">Fecha y hora</th>
-                    <th className="px-4 py-2.5 font-medium">Insumo</th>
-                    <th className="px-4 py-2.5 font-medium">Tipo</th>
-                    <th className="px-4 py-2.5 font-medium">Referencia</th>
-                    <th className="px-4 py-2.5 text-right font-medium">
-                      Cantidad
-                    </th>
+                  <tr className="border-b border-slate-200 bg-slate-50 text-xs font-semibold uppercase tracking-wider text-slate-600">
+                    <th className="px-4 py-3">Fecha y hora</th>
+                    <th className="px-4 py-3">Insumo</th>
+                    <th className="px-4 py-3">Tipo</th>
+                    <th className="px-4 py-3">Referencia</th>
+                    <th className="px-4 py-3 text-right">Cantidad</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-zinc-800/80 text-sm">
+                <tbody className="divide-y divide-slate-100 text-sm">
                   {movimientos.map((mov) => {
                     const estilosTipo = obtenerEstilosTipoMovimiento(mov.tipo);
                     return (
                       <tr
                         key={mov.id}
-                        className="transition-colors hover:bg-zinc-900/50"
+                        className="transition-colors hover:bg-slate-50"
                       >
-                        <td className="whitespace-nowrap px-4 py-3 font-mono text-xs text-zinc-400 tabular-nums">
+                        <td className="whitespace-nowrap px-4 py-3 text-xs text-slate-600 tabular-nums">
                           {formatearFechaHoraArgentina(mov.fecha)}
                         </td>
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-2">
-                            <span className="rounded-sm border border-zinc-700 bg-zinc-900 px-1.5 py-0.5 font-mono text-[10px] font-semibold tracking-[0.08em] text-zinc-200">
+                            <span className="rounded-md border border-slate-200 bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-800">
                               {mov.codigo_insumo ?? 'ITEM'}
                             </span>
-                            <span className="text-zinc-100">
-                              {mov.insumo_nombre ?? 'Insumo sin catálogo'}
+                            <span className="font-medium text-slate-900">
+                              {mov.insumo_nombre ?? 'Insumo'}
                             </span>
                           </div>
                         </td>
                         <td className="whitespace-nowrap px-4 py-3">
                           <span
-                            className={`inline-flex items-center rounded-sm border px-2 py-0.5 font-mono text-[10px] font-semibold tracking-[0.08em] ${estilosTipo.badgeClass}`}
+                            className={`inline-flex items-center rounded-md border px-2.5 py-0.5 text-xs font-semibold ${estilosTipo.badgeClass}`}
                           >
                             {estilosTipo.etiqueta}
                           </span>
                         </td>
-                        <td className="whitespace-nowrap px-4 py-3 font-mono text-xs text-zinc-400">
+                        <td className="whitespace-nowrap px-4 py-3 text-xs text-slate-600">
                           {mov.visita_codigo_reserva ? (
-                            <span className="rounded-sm border border-zinc-800 bg-zinc-900 px-2 py-0.5 text-zinc-300">
+                            <span className="rounded-md border border-slate-200 bg-slate-50 px-2 py-0.5 font-medium text-slate-800">
                               {mov.visita_codigo_reserva}
                             </span>
                           ) : mov.visita_id ? (
                             <span>Visita {mov.visita_id.slice(0, 8)}</span>
                           ) : (
-                            <span className="text-zinc-600">—</span>
+                            <span className="text-slate-400">—</span>
                           )}
                         </td>
                         <td
-                          className={`whitespace-nowrap px-4 py-3 text-right font-mono text-sm font-bold tabular-nums ${estilosTipo.cantidadClass}`}
+                          className={`whitespace-nowrap px-4 py-3 text-right text-sm font-bold tabular-nums ${estilosTipo.cantidadClass}`}
                         >
                           {estilosTipo.signo}
                           {mov.cantidad} u.
@@ -711,32 +692,28 @@ export default function PanelStock({
               </table>
             </div>
 
-            {/* Vista móvil apilada */}
-            <ul className="divide-y divide-zinc-800/80 sm:hidden">
+            <ul className="divide-y divide-slate-100 sm:hidden">
               {movimientos.map((mov) => {
                 const estilosTipo = obtenerEstilosTipoMovimiento(mov.tipo);
                 return (
                   <li key={mov.id} className="space-y-1.5 px-4 py-3">
                     <div className="flex items-center justify-between gap-2">
                       <span
-                        className={`inline-flex items-center rounded-sm border px-2 py-0.5 font-mono text-[10px] font-semibold tracking-[0.08em] ${estilosTipo.badgeClass}`}
+                        className={`inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-semibold ${estilosTipo.badgeClass}`}
                       >
                         {estilosTipo.etiqueta}
                       </span>
                       <span
-                        className={`font-mono text-sm font-bold tabular-nums ${estilosTipo.cantidadClass}`}
+                        className={`text-sm font-bold tabular-nums ${estilosTipo.cantidadClass}`}
                       >
                         {estilosTipo.signo}
                         {mov.cantidad} u.
                       </span>
                     </div>
-                    <p className="text-sm font-medium text-zinc-100">
-                      <span className="mr-1.5 font-mono text-xs text-zinc-400">
-                        [{mov.codigo_insumo ?? 'ITEM'}]
-                      </span>
-                      {mov.insumo_nombre ?? 'Insumo sin catálogo'}
+                    <p className="text-sm font-semibold text-slate-900">
+                      [{mov.codigo_insumo ?? 'ITEM'}] {mov.insumo_nombre ?? 'Insumo'}
                     </p>
-                    <p className="font-mono text-[11px] text-zinc-500">
+                    <p className="text-xs text-slate-600">
                       {formatearFechaHoraArgentina(mov.fecha)}
                       {mov.visita_codigo_reserva
                         ? ` · ${mov.visita_codigo_reserva}`
@@ -750,10 +727,9 @@ export default function PanelStock({
         )}
       </section>
 
-      {/* ── Modal accesible de Movimiento (Ingreso / Consumo) ───── */}
       {modalAbierto && insumoActivo && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-[1px]"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-xs"
           role="dialog"
           aria-modal="true"
           aria-labelledby="modal-stock-titulo"
@@ -761,37 +737,30 @@ export default function PanelStock({
             if (e.target === e.currentTarget) cerrarModal();
           }}
         >
-          <div className="w-full max-w-md rounded-sm border border-zinc-700 bg-zinc-950 shadow-2xl">
-            <div className="flex items-center justify-between border-b border-zinc-800 px-4 py-3">
+          <div className="w-full max-w-md rounded-xl border border-slate-200 bg-white shadow-xl">
+            <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
               <div>
-                <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-zinc-500">
-                  PAÑOL ·{' '}
-                  {modoModal === 'ingreso'
-                    ? 'INGRESO DE MERCADERÍA'
-                    : 'REGISTRAR CONSUMO'}
-                </p>
                 <h2
                   id="modal-stock-titulo"
-                  className="mt-0.5 text-base font-semibold text-white"
+                  className="text-base font-bold text-slate-900"
                 >
                   {modoModal === 'ingreso'
-                    ? 'Ingreso de mercadería'
-                    : 'Registrar consumo de stock'}
+                    ? 'Registrar ingreso de stock'
+                    : 'Registrar entrega o consumo'}
                 </h2>
               </div>
               <button
                 type="button"
                 onClick={cerrarModal}
                 disabled={pendiente}
-                aria-label="Cerrar modal"
-                className="rounded-sm border border-zinc-800 bg-zinc-900 p-1.5 text-zinc-400 hover:border-zinc-600 hover:text-white disabled:opacity-50"
+                aria-label="Cerrar ventana"
+                className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-900 disabled:opacity-50"
               >
-                <X size={16} />
+                <X size={18} />
               </button>
             </div>
 
-            <form onSubmit={manejarSubmit} className="space-y-4 p-4">
-              {/* Conmutador Ingreso vs Consumo */}
+            <form onSubmit={manejarSubmit} className="space-y-4 p-5">
               <div
                 role="group"
                 aria-label="Operación de stock"
@@ -804,14 +773,14 @@ export default function PanelStock({
                     setErrorModal(null);
                   }}
                   disabled={pendiente}
-                  className={`flex h-10 items-center justify-center gap-1.5 rounded-sm border font-mono text-[11px] font-semibold tracking-[0.08em] transition-colors ${
+                  className={`flex h-10 items-center justify-center gap-1.5 rounded-lg border text-xs font-semibold transition-colors ${
                     modoModal === 'ingreso'
-                      ? 'border-emerald-500 bg-emerald-950/60 text-emerald-200'
-                      : 'border-zinc-800 bg-zinc-900 text-zinc-400 hover:text-zinc-200'
+                      ? 'border-emerald-300 bg-emerald-50 text-emerald-700'
+                      : 'border-slate-300 bg-white text-slate-600 hover:bg-slate-100'
                   }`}
                 >
-                  <PackagePlus size={14} />
-                  INGRESO
+                  <PackagePlus size={15} />
+                  Ingreso
                 </button>
                 <button
                   type="button"
@@ -820,24 +789,23 @@ export default function PanelStock({
                     setErrorModal(null);
                   }}
                   disabled={pendiente}
-                  className={`flex h-10 items-center justify-center gap-1.5 rounded-sm border font-mono text-[11px] font-semibold tracking-[0.08em] transition-colors ${
+                  className={`flex h-10 items-center justify-center gap-1.5 rounded-lg border text-xs font-semibold transition-colors ${
                     modoModal === 'consumo'
-                      ? 'border-amber-500 bg-amber-950/60 text-amber-200'
-                      : 'border-zinc-800 bg-zinc-900 text-zinc-400 hover:text-zinc-200'
+                      ? 'border-amber-300 bg-amber-50 text-amber-800'
+                      : 'border-slate-300 bg-white text-slate-600 hover:bg-slate-100'
                   }`}
                 >
-                  <PackageMinus size={14} />
-                  CONSUMO
+                  <PackageMinus size={15} />
+                  Entrega
                 </button>
               </div>
 
-              {/* Selector de insumo */}
               <div>
                 <label
                   htmlFor="stock-insumo-select"
-                  className="mb-1.5 block font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400"
+                  className="mb-1.5 block text-xs font-semibold text-slate-700"
                 >
-                  Insumo del pañol
+                  Artículo
                 </label>
                 <select
                   id="stock-insumo-select"
@@ -847,35 +815,33 @@ export default function PanelStock({
                     setErrorModal(null);
                   }}
                   disabled={pendiente}
-                  className="h-11 w-full rounded-sm border border-zinc-800 bg-zinc-900 px-3 text-sm text-zinc-100 focus:border-zinc-500 focus:outline-none"
+                  className="h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                 >
                   {insumos.map((item) => (
                     <option key={item.id} value={item.id}>
-                      {item.codigo} · {item.nombre_insumo} (
-                      {item.cantidad_disponible} disp.)
+                      {item.codigo} · {item.nombre_insumo} ({item.cantidad_disponible} disp.)
                     </option>
                   ))}
                 </select>
               </div>
 
-              {/* Tipo de consumo (solo cuando es consumo) */}
               {modoModal === 'consumo' && (
                 <div>
-                  <label className="mb-1.5 block font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400">
-                    Motivo del egreso
+                  <label className="mb-1.5 block text-xs font-semibold text-slate-700">
+                    Motivo
                   </label>
                   <div className="grid grid-cols-2 gap-2">
                     <button
                       type="button"
                       onClick={() => setTipoConsumo('visita_escolar')}
                       disabled={pendiente}
-                      className={`h-10 rounded-sm border font-mono text-[10.5px] font-semibold tracking-[0.08em] transition-colors ${
+                      className={`h-10 rounded-lg border text-xs font-semibold transition-colors ${
                         tipoConsumo === 'visita_escolar'
-                          ? 'border-sky-500 bg-sky-950/50 text-sky-200'
-                          : 'border-zinc-800 bg-zinc-900 text-zinc-400 hover:text-zinc-200'
+                          ? 'border-blue-300 bg-blue-50 text-blue-700'
+                          : 'border-slate-300 bg-white text-slate-600 hover:bg-slate-100'
                       }`}
                     >
-                      VISITA ESCOLAR
+                      Visita escolar
                     </button>
                     <button
                       type="button"
@@ -884,35 +850,34 @@ export default function PanelStock({
                         setVisitaId('');
                       }}
                       disabled={pendiente}
-                      className={`h-10 rounded-sm border font-mono text-[10.5px] font-semibold tracking-[0.08em] transition-colors ${
+                      className={`h-10 rounded-lg border text-xs font-semibold transition-colors ${
                         tipoConsumo === 'consumo_interno'
-                          ? 'border-amber-500 bg-amber-950/50 text-amber-200'
-                          : 'border-zinc-800 bg-zinc-900 text-zinc-400 hover:text-zinc-200'
+                          ? 'border-amber-300 bg-amber-50 text-amber-800'
+                          : 'border-slate-300 bg-white text-slate-600 hover:bg-slate-100'
                       }`}
                     >
-                      CONSUMO INTERNO
+                      Consumo interno
                     </button>
                   </div>
                 </div>
               )}
 
-              {/* Vinculación opcional a visita escolar */}
               {modoModal === 'consumo' && tipoConsumo === 'visita_escolar' && (
                 <div>
                   <label
                     htmlFor="stock-visita-select"
-                    className="mb-1.5 block font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400"
+                    className="mb-1.5 block text-xs font-semibold text-slate-700"
                   >
-                    Visita educativa asociada (opcional)
+                    Escuela asociada (opcional)
                   </label>
                   <select
                     id="stock-visita-select"
                     value={visitaId}
                     onChange={(e) => setVisitaId(e.target.value)}
                     disabled={pendiente}
-                    className="h-11 w-full rounded-sm border border-zinc-800 bg-zinc-900 px-3 text-sm text-zinc-100 focus:border-zinc-500 focus:outline-none"
+                    className="h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                   >
-                    <option value="">Sin vincular a una visita específica</option>
+                    <option value="">Sin vincular a una visita</option>
                     {visitasRecientes.map((v) => (
                       <option key={v.id} value={v.id}>
                         {v.codigo_reserva} · {v.fecha_visita} · {v.institucion}
@@ -922,16 +887,15 @@ export default function PanelStock({
                 </div>
               )}
 
-              {/* Cantidad */}
               <div>
                 <div className="mb-1.5 flex items-center justify-between gap-2">
                   <label
                     htmlFor="stock-cantidad-input"
-                    className="font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400"
+                    className="text-xs font-semibold text-slate-700"
                   >
                     Cantidad (unidades)
                   </label>
-                  <span className="font-mono text-[10px] text-zinc-500 tabular-nums">
+                  <span className="text-xs text-slate-600 tabular-nums">
                     Disponible: {insumoActivo.cantidad_disponible} u.
                   </span>
                 </div>
@@ -952,10 +916,10 @@ export default function PanelStock({
                     setErrorModal(null);
                   }}
                   disabled={pendiente}
-                  className="h-11 w-full rounded-sm border border-zinc-800 bg-zinc-900 px-3 font-mono text-base font-semibold text-white tabular-nums focus:border-zinc-500 focus:outline-none"
+                  className="h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-base font-bold text-slate-900 tabular-nums focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                 />
 
-                <div className="mt-2 grid grid-cols-4 gap-1.5">
+                <div className="mt-2 grid grid-cols-4 gap-2">
                   {CANTIDADES_RAPIDAS.map((n) => (
                     <button
                       key={n}
@@ -965,7 +929,7 @@ export default function PanelStock({
                         setCantidadTexto(String(n));
                         setErrorModal(null);
                       }}
-                      className="h-8 rounded-sm border border-zinc-800 bg-zinc-900 font-mono text-[11px] text-zinc-300 transition-colors hover:border-zinc-600 hover:text-white"
+                      className="h-9 rounded-lg border border-slate-300 bg-slate-50 text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-100"
                     >
                       {n} u.
                     </button>
@@ -973,22 +937,21 @@ export default function PanelStock({
                 </div>
               </div>
 
-              {/* Previsualización de saldo */}
-              <div className="rounded-sm border border-zinc-800 bg-zinc-900/70 px-3 py-2.5 font-mono text-xs">
+              <div className="rounded-lg border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm">
                 <div className="flex items-center justify-between">
-                  <span className="text-zinc-400">SALDO RESULTANTE</span>
+                  <span className="font-medium text-slate-600">Saldo resultante</span>
                   {saldoProyectado === null ? (
-                    <span className="text-zinc-500">—</span>
+                    <span className="text-slate-400">—</span>
                   ) : saldoInsuficiente ? (
-                    <span className="font-semibold text-rose-400 tabular-nums">
-                      INSUFICIENTE ({saldoProyectado} u.)
+                    <span className="font-bold text-rose-700 tabular-nums">
+                      Insuficiente ({saldoProyectado} u.)
                     </span>
                   ) : (
                     <span
-                      className={`font-semibold tabular-nums ${
+                      className={`font-bold tabular-nums ${
                         saldoProyectado <= insumoActivo.cantidad_minima_alerta
-                          ? 'text-amber-300'
-                          : 'text-emerald-300'
+                          ? 'text-amber-700'
+                          : 'text-emerald-700'
                       }`}
                     >
                       {insumoActivo.cantidad_disponible} → {saldoProyectado} u.
@@ -1000,24 +963,24 @@ export default function PanelStock({
               {errorModal && (
                 <div
                   role="alert"
-                  className="flex items-start gap-2 rounded-sm border border-rose-900 bg-rose-950/50 px-3 py-2 text-xs text-rose-200"
+                  className="flex items-start gap-2 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-medium text-rose-800"
                 >
                   <AlertTriangle
-                    size={14}
-                    className="mt-0.5 shrink-0 text-rose-400"
+                    size={15}
+                    className="mt-0.5 shrink-0 text-rose-600"
                   />
                   <span>{errorModal}</span>
                 </div>
               )}
 
-              <div className="flex items-center justify-end gap-2 border-t border-zinc-800 pt-3">
+              <div className="flex items-center justify-end gap-2 border-t border-slate-200 pt-3">
                 <button
                   type="button"
                   onClick={cerrarModal}
                   disabled={pendiente}
-                  className="h-10 rounded-sm border border-zinc-800 bg-zinc-900 px-3.5 font-mono text-[11px] tracking-[0.08em] text-zinc-300 hover:border-zinc-600 hover:text-white disabled:opacity-50"
+                  className="h-10 rounded-lg border border-slate-300 bg-white px-4 text-xs font-semibold text-slate-700 hover:bg-slate-100 disabled:opacity-50"
                 >
-                  CANCELAR
+                  Cancelar
                 </button>
                 <button
                   type="submit"
@@ -1028,17 +991,17 @@ export default function PanelStock({
                     (modoModal === 'consumo' &&
                       insumoActivo.cantidad_disponible <= 0)
                   }
-                  className={`h-10 rounded-sm border px-4 font-mono text-[11px] font-semibold tracking-[0.1em] transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
+                  className={`h-10 rounded-lg px-4 text-xs font-semibold text-white transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
                     modoModal === 'ingreso'
-                      ? 'border-emerald-600 bg-emerald-500 text-zinc-950 hover:bg-emerald-400'
-                      : 'border-amber-500 bg-amber-400 text-zinc-950 hover:bg-amber-300'
+                      ? 'bg-emerald-600 hover:bg-emerald-700'
+                      : 'bg-amber-600 hover:bg-amber-700'
                   }`}
                 >
                   {pendiente
-                    ? 'GUARDANDO…'
+                    ? 'Guardando…'
                     : modoModal === 'ingreso'
-                      ? 'CONFIRMAR INGRESO'
-                      : 'CONFIRMAR CONSUMO'}
+                      ? 'Confirmar ingreso'
+                      : 'Confirmar entrega'}
                 </button>
               </div>
             </form>

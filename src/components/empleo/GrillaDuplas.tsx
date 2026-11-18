@@ -49,17 +49,17 @@ interface Props {
 }
 
 const CLASE_ESTADO_BADGE: Record<PostulanteFila['estado'], string> = {
-  CONFIRMADO: 'bg-emerald-500 text-emerald-950',
-  DISPONIBLE: 'bg-zinc-700 text-zinc-200',
-  DESCARTADO: 'border border-red-500/40 bg-red-500/15 text-red-400',
+  CONFIRMADO: 'border border-emerald-200 bg-emerald-50 text-emerald-700',
+  DISPONIBLE: 'border border-slate-200 bg-slate-100 text-slate-700',
+  DESCARTADO: 'border border-rose-200 bg-rose-50 text-rose-700',
 };
 
 const CLASE_SESION_CHIP: Record<EstadoAsistenciaUI, string> = {
-  PRESENTE: 'border-emerald-500/60 bg-emerald-500/25 text-emerald-200',
-  AUSENTE_JUSTIFICADO: 'border-amber-500/60 bg-amber-500/25 text-amber-200',
-  AUSENTE_INJUSTIFICADO: 'border-red-500/60 bg-red-500/25 text-red-200',
-  REPROGRAMADA: 'border-cyan-500/60 bg-cyan-500/25 text-cyan-200',
-  PENDIENTE: 'border-zinc-700 bg-zinc-900 text-zinc-400',
+  PRESENTE: 'border-emerald-200 bg-emerald-50 text-emerald-700',
+  AUSENTE_JUSTIFICADO: 'border-amber-200 bg-amber-50 text-amber-800',
+  AUSENTE_INJUSTIFICADO: 'border-rose-200 bg-rose-50 text-rose-700',
+  REPROGRAMADA: 'border-blue-200 bg-blue-50 text-blue-700',
+  PENDIENTE: 'border-slate-200 bg-slate-50 text-slate-500',
 };
 
 const SIGLA_SESION: Record<EstadoAsistenciaUI, string> = {
@@ -125,10 +125,10 @@ function TarjetaAlumnoDupla({
 
   if (!postulante) {
     return (
-      <div className="flex min-h-[76px] items-center justify-between rounded-sm border border-dashed border-zinc-800 bg-zinc-950/60 px-3 py-2">
-        <div className="flex items-center gap-2 font-mono text-[10px] tracking-[0.12em] text-zinc-600">
-          <User size={13} strokeWidth={1.75} aria-hidden />
-          <span>PUESTO #{puesto} · VACANTE</span>
+      <div className="flex min-h-[76px] items-center justify-between rounded-lg border border-dashed border-slate-300 bg-slate-50 px-3 py-2">
+        <div className="flex items-center gap-2 text-xs font-medium text-slate-500">
+          <User size={14} strokeWidth={1.75} aria-hidden />
+          <span>Puesto #{puesto} · Libre</span>
         </div>
       </div>
     );
@@ -166,53 +166,53 @@ function TarjetaAlumnoDupla({
   }
 
   return (
-    <div className="space-y-2 rounded-sm border border-zinc-800 bg-zinc-900/75 p-2.5 transition-colors hover:border-zinc-700">
+    <div className="space-y-2 rounded-lg border border-slate-200 bg-slate-50/70 p-3 transition-colors hover:border-slate-300">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <button
           type="button"
           onClick={() => onAbrirPostulante(postulante.inscripcion_id, false)}
-          aria-label={`Ver ficha técnica completa de ${postulante.nombre_completo}`}
-          className="min-w-0 flex-1 rounded-sm text-left focus-visible:outline-1 focus-visible:outline-white"
+          aria-label={`Ver legajo de ${postulante.nombre_completo}`}
+          className="min-w-0 flex-1 rounded-md text-left focus-visible:outline-2 focus-visible:outline-blue-500"
         >
           <div className="flex flex-wrap items-center gap-1.5">
-            <span className="rounded-sm bg-zinc-800 px-1.5 py-0.5 font-mono text-[9.5px] font-semibold text-zinc-300">
+            <span className="rounded-md border border-slate-200 bg-white px-2 py-0.5 text-xs font-bold text-slate-700">
               #{postulante.ranking_orden}
             </span>
-            <span className="truncate text-sm font-medium text-zinc-100">
+            <span className="truncate text-sm font-bold text-slate-900">
               {postulante.nombre_completo}
             </span>
             <span
-              className={`rounded-sm px-1.5 py-0.5 font-mono text-[9px] font-semibold tracking-[0.1em] ${CLASE_ESTADO_BADGE[postulante.estado]}`}
+              className={`rounded-md px-2 py-0.5 text-xs font-semibold ${CLASE_ESTADO_BADGE[postulante.estado]}`}
             >
               {postulante.estado}
             </span>
           </div>
 
-          <div className="mt-1 flex flex-wrap items-center gap-x-2.5 gap-y-1 font-mono text-[10px] tracking-[0.08em] text-zinc-400">
+          <div className="mt-1.5 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-xs text-slate-600">
             <span>DNI {postulante.dni}</span>
             <span>· {postulante.origen_turno}</span>
             {scoreMostrable !== null && (
-              <span className="text-zinc-200">· {scoreMostrable} pts</span>
+              <span className="font-semibold text-slate-900">· {scoreMostrable} pts</span>
             )}
             {sesiones.length > 0 && (
-              <span className="rounded-sm border border-zinc-700 bg-zinc-950 px-1.5 py-0.5 text-[9px] text-zinc-200">
-                ASIS {presentes}/{sesiones.length}
+              <span className="rounded-md border border-slate-200 bg-white px-2 py-0.5 text-xs font-semibold text-slate-700">
+                Asist. {presentes}/{sesiones.length}
               </span>
             )}
             {evalData?.hard_fail && (
-              <span className="rounded-sm border border-red-500/50 bg-red-950/40 px-1.5 py-0.5 text-[9px] font-semibold text-red-300">
-                HARD-FAIL
+              <span className="rounded-md border border-rose-200 bg-rose-50 px-2 py-0.5 text-xs font-semibold text-rose-700">
+                Falta grave
               </span>
             )}
             {tieneIA ? (
-              <span className="inline-flex items-center gap-1 rounded-sm border border-emerald-500/40 bg-emerald-950/35 px-1.5 py-0.5 text-[9px] text-emerald-300">
-                <Sparkles size={10} strokeWidth={2} aria-hidden />
-                IA LISTO
+              <span className="inline-flex items-center gap-1 rounded-md border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-700">
+                <Sparkles size={11} strokeWidth={2} aria-hidden />
+                Informe listo
               </span>
             ) : tieneJson || tieneTitanLegacy ? (
-              <span className="inline-flex items-center gap-1 rounded-sm border border-cyan-500/40 bg-cyan-950/35 px-1.5 py-0.5 text-[9px] text-cyan-300">
-                <FileJson size={10} strokeWidth={2} aria-hidden />
-                TITÁN CARGADO
+              <span className="inline-flex items-center gap-1 rounded-md border border-blue-200 bg-blue-50 px-2 py-0.5 text-xs font-semibold text-blue-700">
+                <FileJson size={11} strokeWidth={2} aria-hidden />
+                Reporte cargado
               </span>
             ) : null}
           </div>
@@ -221,20 +221,18 @@ function TarjetaAlumnoDupla({
         <button
           type="button"
           onClick={() => onAbrirPostulante(postulante.inscripcion_id, true)}
-          aria-label={`Abrir telemetría Proyecto Titán .json de ${postulante.nombre_completo}`}
-          className="inline-flex min-h-[40px] shrink-0 items-center justify-center gap-1.5 rounded-sm border border-emerald-500/60 bg-emerald-950/50 px-3 py-1.5 font-mono text-[10.5px] font-semibold tracking-[0.08em] text-emerald-300 transition-colors hover:border-emerald-400 hover:bg-emerald-500/20 hover:text-emerald-200 focus-visible:outline-1 focus-visible:outline-white"
+          aria-label={`Ver reportes del simulador de ${postulante.nombre_completo}`}
+          className="inline-flex min-h-[38px] shrink-0 items-center justify-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700 transition-colors hover:bg-blue-100"
         >
-          <span aria-hidden>🛰️</span>
-          <span>Titán .JSON</span>
+          <span>Reportes</span>
         </button>
       </div>
 
-      {/* Pills rápidas de sesiones sincronizadas */}
       {sesiones.length > 0 && (
-        <div className="space-y-1.5 border-t border-zinc-800/80 pt-1.5">
-          <div className="flex flex-wrap items-center gap-1">
-            <span className="mr-1 font-mono text-[9px] tracking-[0.1em] text-zinc-500">
-              SESIONES:
+        <div className="space-y-2 border-t border-slate-200 pt-2">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="mr-1 text-xs font-semibold text-slate-500">
+              Clases:
             </span>
             {sesiones.map((s) => {
               const abierta = sesionAbiertaId === s.id;
@@ -243,8 +241,8 @@ function TarjetaAlumnoDupla({
                   key={s.id}
                   type="button"
                   onClick={() => setSesionAbiertaId(abierta ? null : s.id)}
-                  title={`Sesión ${s.numero_sesion} (${s.fecha_programada}) · ${s.estado_asistencia}`}
-                  className={`h-6 min-w-7 rounded-sm border px-1.5 font-mono text-[9.5px] font-semibold transition-colors ${CLASE_SESION_CHIP[s.estado_asistencia]} ${abierta ? 'ring-1 ring-white' : ''}`}
+                  title={`Clase ${s.numero_sesion} (${s.fecha_programada}) · ${s.estado_asistencia}`}
+                  className={`h-7 min-w-8 rounded-md border px-2 text-xs font-semibold transition-colors ${CLASE_SESION_CHIP[s.estado_asistencia]} ${abierta ? 'ring-2 ring-blue-500' : ''}`}
                 >
                   C{s.numero_sesion}:{SIGLA_SESION[s.estado_asistencia]}
                 </button>
@@ -253,15 +251,15 @@ function TarjetaAlumnoDupla({
           </div>
 
           {sesionActiva && (
-            <div className="flex flex-wrap items-center gap-1.5 rounded-sm border border-zinc-700 bg-zinc-950 px-2 py-1.5 font-mono text-[9.5px]">
-              <span className="text-zinc-400">
+            <div className="flex flex-wrap items-center gap-1.5 rounded-lg border border-slate-200 bg-white p-2 text-xs">
+              <span className="font-medium text-slate-700">
                 Clase {sesionActiva.numero_sesion} ({sesionActiva.fecha_programada}):
               </span>
               <button
                 type="button"
                 disabled={pendienteAsis}
                 onClick={() => cambiarAsistencia(sesionActiva, 'PRESENTE')}
-                className="rounded-sm border border-emerald-500/50 bg-emerald-950/40 px-2 py-0.5 text-emerald-300 hover:bg-emerald-500/20 disabled:opacity-50"
+                className="rounded-md border border-emerald-200 bg-emerald-50 px-2.5 py-1 font-semibold text-emerald-700 hover:bg-emerald-100 disabled:opacity-50"
               >
                 Presente
               </button>
@@ -269,17 +267,17 @@ function TarjetaAlumnoDupla({
                 type="button"
                 disabled={pendienteAsis}
                 onClick={() => cambiarAsistencia(sesionActiva, 'AUSENTE_JUSTIFICADO')}
-                className="rounded-sm border border-amber-500/50 bg-amber-950/40 px-2 py-0.5 text-amber-300 hover:bg-amber-500/20 disabled:opacity-50"
+                className="rounded-md border border-amber-200 bg-amber-50 px-2.5 py-1 font-semibold text-amber-800 hover:bg-amber-100 disabled:opacity-50"
               >
-                Justif.
+                Justificada
               </button>
               <button
                 type="button"
                 disabled={pendienteAsis}
                 onClick={() => cambiarAsistencia(sesionActiva, 'AUSENTE_INJUSTIFICADO')}
-                className="rounded-sm border border-red-500/50 bg-red-950/40 px-2 py-0.5 text-red-300 hover:bg-red-500/20 disabled:opacity-50"
+                className="rounded-md border border-rose-200 bg-rose-50 px-2.5 py-1 font-semibold text-rose-700 hover:bg-rose-100 disabled:opacity-50"
               >
-                Injustif.
+                Injustificada
               </button>
               <button
                 type="button"
@@ -291,10 +289,10 @@ function TarjetaAlumnoDupla({
                     viernesSugeridos[0]
                   )
                 }
-                className="inline-flex items-center gap-1 rounded-sm border border-cyan-500/50 bg-cyan-950/40 px-2 py-0.5 text-cyan-300 hover:bg-cyan-500/20 disabled:opacity-50"
+                className="inline-flex items-center gap-1 rounded-md border border-blue-200 bg-blue-50 px-2.5 py-1 font-semibold text-blue-700 hover:bg-blue-100 disabled:opacity-50"
               >
-                <CalendarClock size={10} aria-hidden />
-                Viernes Buffer
+                <CalendarClock size={12} aria-hidden />
+                Recuperar Viernes
               </button>
             </div>
           )}
@@ -499,11 +497,11 @@ export default function GrillaDuplas({
     duplasLista: DuplaPlanificadaItem[]
   ) {
     return (
-      <section aria-label={titulo} className="space-y-2.5">
-        <p className={`font-mono text-[10.5px] font-semibold tracking-[0.14em] ${colorClase}`}>
+      <section aria-label={titulo} className="space-y-3">
+        <p className={`text-xs font-bold uppercase tracking-wider ${colorClase}`}>
           {titulo}
         </p>
-        <div className="space-y-2.5">
+        <div className="space-y-3">
           {duplasLista.map((dupla) => {
             const key = claveSlot(dupla);
             const par = slotsMap[key] ?? { a1: '', a2: '' };
@@ -514,33 +512,33 @@ export default function GrillaDuplas({
             return (
               <article
                 key={dupla.duplaNumero}
-                className={`rounded-sm border ${bordeClase} bg-zinc-950 p-3`}
+                className={`rounded-xl border ${bordeClase} bg-white p-4 shadow-sm`}
               >
-                <header className="mb-2 flex items-center justify-between gap-2 border-b border-zinc-800 pb-1.5 font-mono text-[10.5px]">
-                  <span className="font-semibold tracking-[0.12em] text-white">
-                    DUPLA #{dupla.duplaNumero} · {dupla.horarioLabel}
+                <header className="mb-3 flex items-center justify-between gap-2 border-b border-slate-100 pb-2 text-xs">
+                  <span className="font-bold text-slate-900">
+                    Dupla #{dupla.duplaNumero} · {dupla.horarioLabel}
                   </span>
-                  <span className={colorClase}>
-                    {dupla.grupo === 'GRUPO_A' ? 'A' : 'B'} ({dupla.diasLabel}) · {ocupados}/2
+                  <span className={`font-semibold ${colorClase}`}>
+                    {dupla.grupo === 'GRUPO_A' ? 'Grupo A' : 'Grupo B'} ({dupla.diasLabel}) · {ocupados}/2
                   </span>
                 </header>
 
                 {modoEdicion ? (
-                  <div className="space-y-2">
+                  <div className="space-y-2.5">
                     {(['a1', 'a2'] as const).map((campo, idxPuesto) => {
                       const valActual = par[campo];
                       const puestoN = idxPuesto === 0 ? dupla.puestoDesde : dupla.puestoHasta;
                       return (
                         <label key={campo} className="block space-y-1">
-                          <span className="font-mono text-[9.5px] tracking-[0.1em] text-zinc-500">
-                            PUESTO #{puestoN}
+                          <span className="text-xs font-semibold text-slate-600">
+                            Puesto #{puestoN}
                           </span>
                           <select
                             value={valActual}
                             onChange={(e) => actualizarPuesto(key, campo, e.target.value)}
-                            className="h-9 w-full rounded-sm border border-zinc-700 bg-zinc-900 px-2 font-mono text-xs text-zinc-100 focus:border-zinc-500 focus:outline-none"
+                            className="h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-xs font-medium text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                           >
-                            <option value="">— VACANTE —</option>
+                            <option value="">— Vacante —</option>
                             {activos.map((p) => (
                               <option key={p.postulante_id} value={p.postulante_id}>
                                 #{p.ranking_orden} {p.nombre_completo} (DNI {p.dni})
@@ -552,7 +550,7 @@ export default function GrillaDuplas({
                     })}
                   </div>
                 ) : (
-                  <div className="space-y-2">
+                  <div className="space-y-2.5">
                     <TarjetaAlumnoDupla
                       puesto={dupla.puestoDesde}
                       postulante={alumno1}
@@ -583,36 +581,36 @@ export default function GrillaDuplas({
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-2 rounded-sm border border-zinc-800 bg-zinc-950 px-3.5 py-2.5 font-mono text-[10.5px] tracking-[0.08em]">
+      <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-xs shadow-sm">
         <div className="flex flex-wrap items-center gap-3">
-          <span className="flex items-center gap-1.5 text-zinc-200">
-            <Layers size={13} strokeWidth={1.75} className="text-emerald-400" aria-hidden />
-            TITULARES EN DUPLAS:{' '}
-            <strong className="text-white">
+          <span className="flex items-center gap-1.5 font-medium text-slate-700">
+            <Layers size={14} strokeWidth={1.75} className="text-blue-600" aria-hidden />
+            Titulares en duplas:{' '}
+            <strong className="text-slate-900">
               {asignadosSet.size}/{cupoGrilla}
             </strong>
           </span>
           {duplasPersistidas.length > 0 ? (
-            <span className="inline-flex items-center gap-1 rounded-sm border border-emerald-500/40 bg-emerald-950/30 px-2 py-0.5 text-[9.5px] text-emerald-300">
-              <CheckCircle2 size={11} aria-hidden />
-              SYNC DB ({duplasPersistidas.length} DUPLAS · {sesionesPractica.length} SESIONES)
+            <span className="inline-flex items-center gap-1 rounded-md border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-emerald-700">
+              <CheckCircle2 size={12} aria-hidden />
+              Guardado ({duplasPersistidas.length} duplas · {sesionesPractica.length} clases)
             </span>
           ) : (
-            <span className="rounded-sm border border-amber-500/40 bg-amber-950/30 px-2 py-0.5 text-[9.5px] text-amber-300">
-              BORRADOR POR RANKING · PENDIENTE DE SYNC
+            <span className="rounded-md border border-amber-200 bg-amber-50 px-2.5 py-0.5 text-xs font-semibold text-amber-800">
+              Borrador sugerido · Falta guardar
             </span>
           )}
-          <span className="text-cyan-300">
-            CON TITÁN: <strong>{totalConTitan}</strong>
+          <span className="font-semibold text-blue-700">
+            Con reporte: <strong>{totalConTitan}</strong>
           </span>
           {suplentes.length > 0 && (
-            <span className="text-amber-300">
-              RESERVA: <strong>{suplentes.length}</strong>
+            <span className="font-semibold text-amber-800">
+              En espera: <strong>{suplentes.length}</strong>
             </span>
           )}
           {descartados.length > 0 && (
-            <span className="text-zinc-500">
-              BAJAS: <strong>{descartados.length}</strong>
+            <span className="text-slate-500">
+              Bajas: <strong>{descartados.length}</strong>
             </span>
           )}
         </div>
@@ -621,29 +619,29 @@ export default function GrillaDuplas({
           <button
             type="button"
             onClick={() => setModoEdicion((v) => !v)}
-            className="inline-flex h-9 items-center gap-1.5 rounded-sm border border-zinc-700 bg-zinc-900 px-3 font-mono text-[10px] tracking-[0.1em] text-zinc-200 hover:border-zinc-500 hover:text-white"
+            className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 text-xs font-semibold text-slate-700 hover:bg-slate-100"
           >
-            <Edit3 size={12} aria-hidden />
-            {modoEdicion ? 'VER TARJETAS' : 'REASIGNAR DUPLAS'}
+            <Edit3 size={13} aria-hidden />
+            {modoEdicion ? 'Ver tarjetas' : 'Reasignar duplas'}
           </button>
           {modoEdicion && (
             <button
               type="button"
               onClick={restaurarPorRanking}
-              className="inline-flex h-9 items-center gap-1.5 rounded-sm border border-zinc-700 bg-zinc-900 px-3 font-mono text-[10px] tracking-[0.1em] text-zinc-300 hover:border-zinc-500 hover:text-white"
+              className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 text-xs font-semibold text-slate-700 hover:bg-slate-100"
             >
-              <RotateCcw size={12} aria-hidden />
-              AUTO POR RANKING
+              <RotateCcw size={13} aria-hidden />
+              Auto por orden
             </button>
           )}
           <button
             type="button"
             disabled={pendienteSync}
             onClick={sincronizarConDB}
-            className="inline-flex h-9 items-center gap-1.5 rounded-sm border border-emerald-500 bg-emerald-500 px-3.5 font-mono text-[10px] font-semibold tracking-[0.1em] text-emerald-950 transition-colors hover:bg-emerald-400 disabled:opacity-50"
+            className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-blue-600 px-4 text-xs font-semibold text-white transition-colors hover:bg-blue-700 disabled:opacity-50"
           >
-            <RefreshCw size={12} className={pendienteSync ? 'animate-spin' : ''} aria-hidden />
-            {pendienteSync ? 'SINCRONIZANDO…' : 'SINCRONIZAR DUPLAS Y SESIONES'}
+            <RefreshCw size={13} className={pendienteSync ? 'animate-spin' : ''} aria-hidden />
+            {pendienteSync ? 'Guardando…' : 'Guardar duplas y clases'}
           </button>
         </div>
       </div>
@@ -651,42 +649,41 @@ export default function GrillaDuplas({
       {feedback && (
         <p
           role={feedback.tipo === 'error' ? 'alert' : 'status'}
-          className={`rounded-sm border px-3 py-2 font-mono text-[11px] ${
+          className={`rounded-xl border px-4 py-3 text-xs font-semibold ${
             feedback.tipo === 'ok'
-              ? 'border-emerald-500/40 bg-emerald-950/30 text-emerald-200'
-              : 'border-red-500/40 bg-red-950/30 text-red-200'
+              ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
+              : 'border-rose-200 bg-rose-50 text-rose-800'
           }`}
         >
           {feedback.texto}
         </p>
       )}
 
-      <div className={`grid gap-4 ${duplasGrupoB.length > 0 ? 'lg:grid-cols-2' : 'grid-cols-1'}`}>
+      <div className={`grid gap-5 ${duplasGrupoB.length > 0 ? 'lg:grid-cols-2' : 'grid-cols-1'}`}>
         {renderGrupo(
-          `GRUPO A · DUPLAS 1 A ${duplasGrupoA.length} (${formatearDiasGrupoCorto(configuracionCursado.dias_grupo_a)})`,
-          'text-emerald-400',
-          'border-emerald-500/25',
+          `Grupo A · Duplas 1 a ${duplasGrupoA.length} (${formatearDiasGrupoCorto(configuracionCursado.dias_grupo_a)})`,
+          'text-emerald-700',
+          'border-slate-200',
           duplasGrupoA
         )}
         {duplasGrupoB.length > 0 &&
           renderGrupo(
-            `GRUPO B · DUPLAS ${duplasGrupoA.length + 1} A ${duplasGrupoA.length + duplasGrupoB.length} (${formatearDiasGrupoCorto(configuracionCursado.dias_grupo_b)})`,
-            'text-cyan-400',
-            'border-cyan-500/25',
+            `Grupo B · Duplas ${duplasGrupoA.length + 1} a ${duplasGrupoA.length + duplasGrupoB.length} (${formatearDiasGrupoCorto(configuracionCursado.dias_grupo_b)})`,
+            'text-blue-700',
+            'border-slate-200',
             duplasGrupoB
           )}
       </div>
 
-      {/* ── Nómina en reserva ──────────────────────────────────────── */}
       {suplentes.length > 0 && (
         <section
-          aria-label="Nómina de reserva o suplentes"
-          className="space-y-2 rounded-sm border border-amber-500/30 bg-zinc-950 p-3"
+          aria-label="Alumnos en lista de espera"
+          className="space-y-3 rounded-xl border border-amber-200 bg-amber-50/40 p-4"
         >
-          <p className="font-mono text-[10.5px] font-semibold tracking-[0.14em] text-amber-300">
-            RESERVA / SUPLENTES ({suplentes.length}) · FUERA DE LAS DUPLAS ACTIVAS
+          <p className="text-xs font-bold uppercase tracking-wider text-amber-800">
+            Lista de espera / Suplentes ({suplentes.length})
           </p>
-          <div className="grid gap-2 md:grid-cols-2">
+          <div className="grid gap-3 md:grid-cols-2">
             {suplentes.map((p, idx) => (
               <TarjetaAlumnoDupla
                 key={p.inscripcion_id}

@@ -75,15 +75,14 @@ function formatearDuracion(ms: number): string {
   return `${hh}:${mm}:${ss}`;
 }
 
-const LABEL_CLASS =
-  'block font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-500';
+const LABEL_CLASS = 'mb-1 block text-xs font-semibold text-slate-700';
 const INPUT_CLASS =
-  'w-full rounded-sm border border-zinc-800 bg-zinc-950 px-3 py-3 text-sm text-zinc-100 placeholder:text-zinc-600 focus:border-zinc-500 focus:outline-none';
-const PANEL_CLASS = 'rounded-sm border border-zinc-800 bg-zinc-950';
+  'w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20';
+const PANEL_CLASS = 'rounded-xl border border-slate-200 bg-white shadow-sm';
 const ERROR_CLASS =
-  'rounded-sm border border-red-900 bg-red-950 px-3 py-2 text-sm text-red-200';
+  'rounded-lg border border-rose-200 bg-rose-50 px-3.5 py-2.5 text-sm font-medium text-rose-800';
 const BTN_SECUNDARIO =
-  'inline-flex items-center justify-center gap-1.5 rounded-sm border border-zinc-700 bg-zinc-900 px-3 py-3 font-mono text-[11px] tracking-[0.08em] text-zinc-300 transition-colors hover:border-zinc-500 hover:text-white disabled:cursor-not-allowed disabled:opacity-50 min-h-[44px]';
+  'inline-flex items-center justify-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-100 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-50 min-h-[44px]';
 
 const GENEROS: GeneroParticipante[] = ['hombre', 'mujer', 'otro', 'no_especifica'];
 
@@ -115,14 +114,14 @@ const Cronometro = memo(function Cronometro({
   // SSR-safe: muestra guiones hasta el primer tick.
   if (elapsed === null) {
     return (
-      <span className="font-mono text-4xl tabular-nums tracking-[0.16em] text-zinc-600">
+      <span className="font-mono text-4xl font-bold tabular-nums tracking-wider text-slate-400">
         --:--:--
       </span>
     );
   }
 
   return (
-    <span className="font-mono text-4xl tabular-nums tracking-[0.16em] text-emerald-400">
+    <span className="font-mono text-4xl font-bold tabular-nums tracking-wider text-emerald-700">
       {formatearDuracion(elapsed)}
     </span>
   );
@@ -352,7 +351,7 @@ export default function PanelSesionEnVivo({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/70 p-4 pt-[5vh]">
+    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-900/50 p-4 pt-[5vh] backdrop-blur-xs">
       <div
         ref={panelRef}
         role="dialog"
@@ -360,26 +359,24 @@ export default function PanelSesionEnVivo({
         aria-label="Sesión en vivo"
         className={`${PANEL_CLASS} relative w-full max-w-4xl`}
       >
-        {/* Botón cerrar */}
         <button
           type="button"
           onClick={onCerrar}
           aria-label="Cerrar panel de sesión en vivo"
-          className="absolute right-3 top-3 z-10 rounded-sm border border-zinc-800 bg-zinc-950 p-2 text-zinc-400 transition-colors hover:border-zinc-600 hover:text-white"
+          className="absolute right-3 top-3 z-10 rounded-lg border border-slate-200 bg-white p-2 text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900"
         >
-          <X size={16} strokeWidth={2} />
+          <X size={18} strokeWidth={2} />
         </button>
 
         {actividadEnCurso === null ? (
-          /* ═══════════ FASE A — INICIAR SESIÓN ═══════════ */
           <div className="space-y-5 p-5">
             <header className="pr-12">
-              <h2 className="flex items-center gap-2 font-mono text-sm font-semibold uppercase tracking-[0.14em] text-zinc-100">
-                <span className="inline-block h-2.5 w-2.5 animate-pulse rounded-full bg-red-500" />
-                [ INICIAR SESIÓN EN VIVO ]
+              <h2 className="flex items-center gap-2 text-lg font-bold text-slate-900">
+                <span className="inline-block h-2.5 w-2.5 animate-pulse rounded-full bg-rose-500" />
+                Iniciar sesión en vivo
               </h2>
-              <p className="mt-1 font-mono text-[10px] tracking-[0.14em] text-zinc-500">
-                OPERACIÓN EN TIEMPO REAL · ENTIDAD, EQUIPOS Y NÓMINA
+              <p className="mt-0.5 text-sm text-slate-600">
+                Seleccioná el tipo de grupo, simuladores y asistentes
               </p>
             </header>
 
@@ -389,12 +386,11 @@ export default function PanelSesionEnVivo({
               </p>
             )}
 
-            {/* 01 · Tipo de actividad */}
             <section className={PANEL_CLASS}>
-              <h3 className="border-b border-zinc-800 px-3 py-2 font-mono text-[10px] tracking-[0.16em] text-zinc-500">
-                01 · TIPO DE ACTIVIDAD
+              <h3 className="border-b border-slate-200 px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-slate-600">
+                1. Tipo de actividad
               </h3>
-              <div className="flex flex-wrap gap-2 p-3">
+              <div className="flex flex-wrap gap-2 p-4">
                 {(Object.keys(ETIQUETAS_TIPO_ACTIVIDAD) as TipoActividad[]).map(
                   (clave) => {
                     const activo = tipo === clave;
@@ -404,10 +400,10 @@ export default function PanelSesionEnVivo({
                         type="button"
                         onClick={() => setTipo(clave)}
                         aria-pressed={activo}
-                        className={`min-h-[44px] rounded-sm border px-4 font-mono text-[11px] uppercase tracking-[0.08em] transition-colors ${
+                        className={`min-h-[44px] rounded-lg border px-4 text-xs font-semibold transition-colors ${
                           activo
-                            ? 'border-emerald-600 bg-emerald-900 text-emerald-100'
-                            : 'border-zinc-700 bg-zinc-900 text-zinc-400 hover:border-zinc-500'
+                            ? 'border-blue-200 bg-blue-50 text-blue-700'
+                            : 'border-slate-300 bg-white text-slate-600 hover:bg-slate-100 hover:text-slate-900'
                         }`}
                       >
                         {ETIQUETAS_TIPO_ACTIVIDAD[clave]}
@@ -418,15 +414,14 @@ export default function PanelSesionEnVivo({
               </div>
             </section>
 
-            {/* 02 · Datos de la entidad */}
             <section className={PANEL_CLASS}>
-              <h3 className="border-b border-zinc-800 px-3 py-2 font-mono text-[10px] tracking-[0.16em] text-zinc-500">
-                02 · DATOS DE LA ENTIDAD
+              <h3 className="border-b border-slate-200 px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-slate-600">
+                2. Datos de la institución
               </h3>
-              <div className="grid grid-cols-1 gap-3 p-3 sm:grid-cols-2">
+              <div className="grid grid-cols-1 gap-3 p-4 sm:grid-cols-2">
                 <div className="sm:col-span-2">
                   <label htmlFor="vivo-entidad" className={LABEL_CLASS}>
-                    Entidad / Empresa *
+                    Institución / Empresa *
                   </label>
                   <input
                     id="vivo-entidad"
@@ -434,7 +429,7 @@ export default function PanelSesionEnVivo({
                     value={entidadNombre}
                     onChange={(e) => setEntidadNombre(e.target.value)}
                     required
-                    placeholder="Ej: MUNICIPALIDAD DE ROSARIO"
+                    placeholder="Ej: Municipalidad de Rosario"
                     className={INPUT_CLASS}
                   />
                 </div>
@@ -474,22 +469,21 @@ export default function PanelSesionEnVivo({
                     value={observaciones}
                     onChange={(e) => setObservaciones(e.target.value)}
                     rows={2}
-                    placeholder="Notas operativas, requisitos, etc."
+                    placeholder="Notas adicionales…"
                     className={`${INPUT_CLASS} resize-y`}
                   />
                 </div>
               </div>
             </section>
 
-            {/* 03 · Simuladores */}
             <section className={PANEL_CLASS}>
-              <h3 className="border-b border-zinc-800 px-3 py-2 font-mono text-[10px] tracking-[0.16em] text-zinc-500">
-                03 · SIMULADORES ({simuladoresIds.length})
+              <h3 className="border-b border-slate-200 px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-slate-600">
+                3. Simuladores libres ({simuladoresIds.length} seleccionados)
               </h3>
-              <div className="flex flex-wrap gap-2 p-3">
+              <div className="flex flex-wrap gap-2 p-4">
                 {simuladoresLibres.length === 0 && (
-                  <p className="font-mono text-[11px] text-zinc-500">
-                    NO HAY SIMULADORES LIBRES EN LA FLOTA.
+                  <p className="text-xs text-slate-500">
+                    No hay simuladores disponibles en este momento.
                   </p>
                 )}
                 {simuladoresLibres.map((sim) => {
@@ -500,59 +494,52 @@ export default function PanelSesionEnVivo({
                       type="button"
                       onClick={() => alternarSimulador(sim.id)}
                       aria-pressed={activo}
-                      className={`flex min-h-[44px] items-center gap-2 rounded-sm border px-3 font-mono text-[11px] uppercase tracking-[0.08em] transition-colors ${
+                      className={`flex min-h-[44px] items-center gap-2 rounded-lg border px-3.5 text-xs font-semibold transition-colors ${
                         activo
-                          ? 'border-emerald-600 bg-emerald-950 text-emerald-200'
-                          : 'border-zinc-700 bg-zinc-900 text-zinc-400 hover:border-zinc-500'
+                          ? 'border-emerald-300 bg-emerald-50 text-emerald-700'
+                          : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-100'
                       }`}
                     >
-                      {sim.nombre.toUpperCase()}
-                      <span className="text-zinc-600">·</span>
-                      <span className={activo ? 'text-emerald-400' : 'text-zinc-500'}>
-                        LB
-                      </span>
+                      {sim.nombre}
                     </button>
                   );
                 })}
               </div>
             </section>
 
-            {/* 04 · Nómina inicial (opcional) */}
             <GrillaParticipantes
-              titulo="04 · NÓMINA INICIAL (OPCIONAL)"
+              titulo="4. Asistentes (opcional)"
               participantes={participantes}
               onAgregar={agregarParticipante}
               onEliminar={eliminarParticipante}
               onActualizar={actualizarParticipante}
             />
 
-            {/* Footer */}
             <footer className="pt-1">
               <button
                 type="button"
                 onClick={iniciarSesion}
                 disabled={pendiente}
-                className="flex h-14 w-full items-center justify-center gap-2 rounded-sm border border-red-700 bg-red-950 font-mono text-sm tracking-[0.12em] text-red-100 transition-colors hover:bg-red-900 disabled:cursor-not-allowed disabled:opacity-50"
+                className="flex h-14 w-full items-center justify-center gap-2 rounded-xl bg-rose-600 text-sm font-bold text-white shadow-sm transition-colors hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                <span className="inline-block h-2.5 w-2.5 animate-pulse rounded-full bg-red-500" />
-                {pendiente ? 'INICIANDO…' : '[ INICIAR SESIÓN EN VIVO ]'}
+                <span className="inline-block h-2.5 w-2.5 animate-pulse rounded-full bg-white" />
+                {pendiente ? 'Iniciando…' : 'Iniciar sesión en vivo'}
               </button>
             </footer>
           </div>
         ) : (
-          /* ═══════════ FASE B — SESIÓN ACTIVA ═══════════ */
           <div className="space-y-5 p-5">
             <header className="pr-12">
               <div className="flex flex-wrap items-center gap-2">
-                <h2 className="font-mono text-sm font-semibold uppercase tracking-[0.14em] text-zinc-100">
-                  {actividadEnCurso.entidad_nombre.toUpperCase()}
+                <h2 className="text-lg font-bold text-slate-900">
+                  {actividadEnCurso.entidad_nombre}
                 </h2>
-                <span className="rounded-sm border border-zinc-700 bg-zinc-900 px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.1em] text-zinc-400">
+                <span className="rounded-md border border-slate-200 bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-700">
                   {ETIQUETAS_TIPO_ACTIVIDAD[actividadEnCurso.tipo]}
                 </span>
-                <span className="flex items-center gap-1.5 rounded-sm border border-emerald-700 bg-emerald-950 px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.1em] text-emerald-300">
-                  <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-emerald-400" />
-                  EN CURSO
+                <span className="flex items-center gap-1.5 rounded-md border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-emerald-700">
+                  <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-emerald-500" />
+                  En curso
                 </span>
               </div>
             </header>
@@ -563,11 +550,10 @@ export default function PanelSesionEnVivo({
               </p>
             )}
 
-            {/* Cronómetro */}
-            <section className={`${PANEL_CLASS} flex flex-col items-center gap-2 py-6`}>
-              <span className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.16em] text-zinc-500">
-                <Timer size={12} strokeWidth={2} />
-                TIEMPO TRANSCURRIDO
+            <section className={`${PANEL_CLASS} flex flex-col items-center gap-2 bg-slate-50 py-6`}>
+              <span className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-slate-500">
+                <Timer size={14} strokeWidth={2} />
+                Tiempo transcurrido
               </span>
               {actividadEnCurso.hora_inicio ? (
                 <Cronometro
@@ -575,41 +561,39 @@ export default function PanelSesionEnVivo({
                   fechaActividad={actividadEnCurso.fecha_actividad}
                 />
               ) : (
-                <span className="font-mono text-4xl tabular-nums tracking-[0.16em] text-zinc-600">
+                <span className="text-4xl font-bold tabular-nums text-slate-400">
                   --:--:--
                 </span>
               )}
-              <span className="font-mono text-[11px] tracking-[0.12em] text-zinc-500">
-                INICIO: {actividadEnCurso.hora_inicio ?? '—'}
+              <span className="text-xs font-medium text-slate-500">
+                Inicio: {actividadEnCurso.hora_inicio ?? '—'}
               </span>
             </section>
 
-            {/* Simuladores vinculados */}
             <section className={PANEL_CLASS}>
-              <h3 className="border-b border-zinc-800 px-3 py-2 font-mono text-[10px] tracking-[0.16em] text-zinc-500">
-                SIMULADORES VINCULADOS ({actividadEnCurso.simuladores.length})
+              <h3 className="border-b border-slate-200 px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-slate-600">
+                Simuladores asignados ({actividadEnCurso.simuladores.length})
               </h3>
-              <div className="flex flex-wrap gap-2 p-3">
+              <div className="flex flex-wrap gap-2 p-4">
                 {actividadEnCurso.simuladores.length === 0 && (
-                  <p className="font-mono text-[11px] text-zinc-500">
-                    SIN EQUIPOS VINCULADOS.
+                  <p className="text-xs text-slate-500">
+                    Sin simuladores vinculados.
                   </p>
                 )}
                 {actividadEnCurso.simuladores.map((s) => (
                   <span
                     key={s.id}
-                    className="flex min-h-[44px] items-center gap-2 rounded-sm border border-emerald-800 bg-emerald-950 px-3 font-mono text-[11px] uppercase tracking-[0.08em] text-emerald-200"
+                    className="flex min-h-[40px] items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 text-xs font-semibold text-emerald-700"
                   >
-                    <span className="inline-block h-2 w-2 rounded-full bg-emerald-400" />
-                    {(s.simulador_nombre ?? 'SIMULADOR').toUpperCase()}
+                    <span className="inline-block h-2 w-2 rounded-full bg-emerald-500" />
+                    {s.simulador_nombre ?? 'Simulador'}
                   </span>
                 ))}
               </div>
             </section>
 
-            {/* Nómina editable */}
             <GrillaParticipantes
-              titulo="NÓMINA DE PARTICIPANTES (EN VIVO)"
+              titulo="Lista de participantes"
               participantes={participantes}
               onAgregar={agregarParticipante}
               onEliminar={eliminarParticipante}
@@ -621,95 +605,93 @@ export default function PanelSesionEnVivo({
                 type="button"
                 onClick={sincronizarNomina}
                 disabled={pendiente}
-                className={`${BTN_SECUNDARIO} w-full border-emerald-700 text-emerald-200 hover:border-emerald-500 hover:text-emerald-50`}
+                className="flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl border border-emerald-300 bg-emerald-50 px-4 text-sm font-semibold text-emerald-800 transition-colors hover:bg-emerald-100 disabled:opacity-50"
               >
-                <Save size={14} strokeWidth={2} />
-                {pendiente ? 'SINCRONIZANDO…' : '[ SINCRONIZAR NÓMINA ]'}
+                <Save size={15} strokeWidth={2} />
+                {pendiente ? 'Guardando…' : 'Guardar lista de asistentes'}
               </button>
-              <p className="text-center font-mono text-[10px] tracking-[0.12em] text-zinc-500">
-                ÚLTIMA SYNC: {ultimaSync ?? '—'}
+              <p className="text-center text-xs text-slate-500">
+                Último guardado: {ultimaSync ?? '—'}
               </p>
             </div>
 
-            {/* Finalizar */}
             <footer className="pt-1">
               <button
                 type="button"
                 onClick={() => setMostrarConfirmacion(true)}
                 disabled={pendiente}
-                className="flex h-14 w-full items-center justify-center gap-2 rounded-sm border border-red-700 bg-red-950 font-mono text-sm tracking-[0.12em] text-red-100 transition-colors hover:bg-red-900 disabled:cursor-not-allowed disabled:opacity-50"
+                className="flex h-14 w-full items-center justify-center gap-2 rounded-xl bg-rose-600 text-sm font-bold text-white shadow-sm transition-colors hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                [ FINALIZAR ACTIVIDAD Y LIBERAR EQUIPOS ]
+                Finalizar sesión y liberar simuladores
               </button>
             </footer>
           </div>
         )}
 
-        {/* ═══════════ Micro-modal de confirmación ═══════════ */}
         {mostrarConfirmacion && actividadEnCurso && (
-          <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/80 p-4">
+          <div className="absolute inset-0 z-20 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-xs">
             <div
               role="alertdialog"
               aria-modal="true"
               aria-labelledby="titulo-confirmacion"
               aria-describedby="descripcion-confirmacion"
-              className="w-full max-w-md rounded-sm border border-red-800 bg-zinc-950"
+              className="w-full max-w-md rounded-xl border border-rose-200 bg-white shadow-xl"
             >
-              <div className="flex items-start gap-3 border-b border-zinc-800 px-4 py-3">
-                <AlertTriangle size={18} strokeWidth={2} className="mt-0.5 text-red-400" />
+              <div className="flex items-start gap-3 border-b border-slate-200 px-5 py-4">
+                <AlertTriangle size={20} strokeWidth={2} className="mt-0.5 text-rose-600" />
                 <div>
                   <h3
                     id="titulo-confirmacion"
-                    className="font-mono text-sm font-semibold uppercase tracking-[0.12em] text-red-100"
+                    className="text-base font-bold text-slate-900"
                   >
-                    ¿CONFIRMAR FINALIZACIÓN?
+                    ¿Finalizar actividad?
                   </h3>
                   <p
                     id="descripcion-confirmacion"
-                    className="mt-1 font-mono text-[10px] tracking-[0.1em] text-zinc-500"
+                    className="mt-0.5 text-sm text-slate-600"
                   >
-                    SE CERRARÁ LA SESIÓN Y SE LIBERARÁN LOS EQUIPOS.
+                    Se cerrará la sesión y quedarán libres los simuladores.
                   </p>
                 </div>
               </div>
 
-              <dl className="space-y-2 px-4 py-3 font-mono text-[11px] tracking-[0.08em]">
+              <dl className="space-y-2 px-5 py-4 text-sm">
                 <div className="flex justify-between gap-3">
-                  <dt className="text-zinc-500">DURACIÓN</dt>
-                  <dd className="tabular-nums text-emerald-300">
+                  <dt className="text-slate-500">Duración</dt>
+                  <dd className="font-bold tabular-nums text-emerald-700">
                     {duracionTranscurrida ?? '—'}
                   </dd>
                 </div>
                 <div className="flex justify-between gap-3">
-                  <dt className="text-zinc-500">PARTICIPANTES</dt>
-                  <dd className="text-zinc-200">
+                  <dt className="text-slate-500">Participantes</dt>
+                  <dd className="font-semibold text-slate-900">
                     {mapearAParticipanteInput().length}
                   </dd>
                 </div>
                 <div className="flex justify-between gap-3">
-                  <dt className="shrink-0 text-zinc-500">LIBERAR</dt>
-                  <dd className="text-right text-zinc-200">
+                  <dt className="shrink-0 text-slate-500">Simuladores</dt>
+                  <dd className="text-right font-semibold text-slate-900">
                     {nombresSimuladoresActivos || '—'}
                   </dd>
                 </div>
               </dl>
 
-              <div className="flex gap-2 border-t border-zinc-800 px-4 py-3">
+              <div className="flex gap-2 border-t border-slate-200 bg-slate-50 px-5 py-3.5">
                 <button
                   type="button"
                   onClick={() => setMostrarConfirmacion(false)}
                   disabled={pendiente}
                   className={`${BTN_SECUNDARIO} flex-1`}
                 >
-                  CANCELAR
+                  Cancelar
                 </button>
                 <button
                   type="button"
                   onClick={finalizarSesion}
                   disabled={pendiente}
-                  className="flex-1 rounded-sm border border-red-700 bg-red-950 px-3 py-3 font-mono text-[11px] tracking-[0.08em] text-red-100 transition-colors hover:bg-red-900 disabled:cursor-not-allowed disabled:opacity-50 min-h-[44px]"
+                  className="min-h-[44px] flex-1 rounded-lg bg-rose-600 px-4 py-2 text-xs font-bold text-white transition-colors hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  {pendiente ? 'FINALIZANDO…' : 'CONFIRMAR'}
+                  {pendiente ? 'Finalizando…' : 'Confirmar cierre'}
                 </button>
               </div>
             </div>
@@ -719,10 +701,6 @@ export default function PanelSesionEnVivo({
     </div>
   );
 }
-
-/* ═══════════════════════════════════════════════════════════════════════
- *  GRILLA DE PARTICIPANTES (compartida por ambas fases)
- * ═══════════════════════════════════════════════════════════════════════ */
 
 interface GrillaParticipantesProps {
   titulo: string;
@@ -744,36 +722,25 @@ function GrillaParticipantes({
 }: GrillaParticipantesProps) {
   return (
     <section className={PANEL_CLASS}>
-      <div className="flex items-center justify-between gap-2 border-b border-zinc-800 px-3 py-2">
-        <h3 className="font-mono text-[10px] tracking-[0.16em] text-zinc-500">
+      <div className="flex items-center justify-between gap-2 border-b border-slate-200 px-4 py-3">
+        <h3 className="text-xs font-bold uppercase tracking-wider text-slate-600">
           {titulo} ({participantes.length})
         </h3>
         <button type="button" onClick={onAgregar} className={BTN_SECUNDARIO}>
-          <Plus size={13} strokeWidth={2.25} />
-          [ + AGREGAR PERSONA ]
+          <Plus size={14} strokeWidth={2.25} />
+          Agregar persona
         </button>
       </div>
 
       <div className="overflow-x-auto">
         <table className="w-full border-collapse text-sm">
           <thead>
-            <tr>
-              <th className="border-b border-zinc-800 bg-zinc-900 px-2 py-2 text-left font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-500">
-                Apellido y Nombre *
-              </th>
-              <th className="border-b border-zinc-800 bg-zinc-900 px-2 py-2 text-left font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-500">
-                DNI
-              </th>
-              <th className="border-b border-zinc-800 bg-zinc-900 px-2 py-2 text-left font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-500">
-                Género
-              </th>
-              <th className="border-b border-zinc-800 bg-zinc-900 px-2 py-2 text-left font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-500">
-                Puesto
-              </th>
-              <th
-                aria-label="Acciones"
-                className="w-12 border-b border-zinc-800 bg-zinc-900 px-2 py-2"
-              />
+            <tr className="border-b border-slate-200 bg-slate-50 text-left text-xs font-semibold uppercase tracking-wider text-slate-600">
+              <th className="px-3 py-2.5">Apellido y Nombre *</th>
+              <th className="px-3 py-2.5">DNI</th>
+              <th className="px-3 py-2.5">Género</th>
+              <th className="px-3 py-2.5">Puesto</th>
+              <th aria-label="Acciones" className="w-12 px-3 py-2.5" />
             </tr>
           </thead>
           <tbody>
@@ -781,26 +748,26 @@ function GrillaParticipantes({
               <tr>
                 <td
                   colSpan={5}
-                  className="px-3 py-4 text-center font-mono text-[11px] text-zinc-600"
+                  className="px-4 py-6 text-center text-sm text-slate-500"
                 >
-                  SIN PARTICIPANTES CARGADOS.
+                  Sin participantes cargados.
                 </td>
               </tr>
             )}
             {participantes.map((fila) => (
-              <tr key={fila.clave} className="hover:bg-zinc-900/50">
-                <td className="border-b border-zinc-800 px-2 py-2">
+              <tr key={fila.clave} className="hover:bg-slate-50">
+                <td className="border-b border-slate-100 px-3 py-2">
                   <input
                     type="text"
                     value={fila.apellido_nombre}
                     onChange={(e) =>
                       onActualizar(fila.clave, { apellido_nombre: e.target.value })
                     }
-                    placeholder="Ej: PEREZ, JUAN"
+                    placeholder="Ej: Pérez, Juan"
                     className={INPUT_CLASS}
                   />
                 </td>
-                <td className="border-b border-zinc-800 px-2 py-2">
+                <td className="border-b border-slate-100 px-3 py-2">
                   <input
                     type="text"
                     inputMode="numeric"
@@ -810,7 +777,7 @@ function GrillaParticipantes({
                     className={INPUT_CLASS}
                   />
                 </td>
-                <td className="border-b border-zinc-800 px-2 py-2">
+                <td className="border-b border-slate-100 px-3 py-2">
                   <div className="flex gap-1">
                     {GENEROS.map((g) => {
                       const activo = fila.genero === g;
@@ -821,10 +788,10 @@ function GrillaParticipantes({
                           onClick={() => onActualizar(fila.clave, { genero: g })}
                           aria-pressed={activo}
                           aria-label={`Género ${ETIQUETAS_GENERO_CORTAS[g]}`}
-                          className={`min-h-[44px] min-w-[44px] rounded-sm border font-mono text-[11px] tracking-[0.06em] transition-colors ${
+                          className={`min-h-[42px] min-w-[42px] rounded-lg border text-xs font-semibold transition-colors ${
                             activo
-                              ? 'border-emerald-600 bg-emerald-900 text-emerald-100'
-                              : 'border-zinc-700 bg-zinc-900 text-zinc-400 hover:border-zinc-500'
+                              ? 'border-blue-200 bg-blue-50 text-blue-700'
+                              : 'border-slate-300 bg-white text-slate-600 hover:bg-slate-100'
                           }`}
                         >
                           {ETIQUETAS_GENERO_CORTAS[g]}
@@ -833,7 +800,7 @@ function GrillaParticipantes({
                     })}
                   </div>
                 </td>
-                <td className="border-b border-zinc-800 px-2 py-2">
+                <td className="border-b border-slate-100 px-3 py-2">
                   <input
                     type="text"
                     value={fila.puesto}
@@ -844,15 +811,15 @@ function GrillaParticipantes({
                     className={INPUT_CLASS}
                   />
                 </td>
-                <td className="border-b border-zinc-800 px-2 py-2 text-center">
+                <td className="border-b border-slate-100 px-3 py-2 text-center">
                   <button
                     type="button"
                     onClick={() => onEliminar(fila.clave)}
                     aria-label="Eliminar participante"
                     title="Eliminar participante"
-                    className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-sm border border-zinc-800 bg-zinc-950 p-2 text-zinc-500 transition-colors hover:border-red-900 hover:bg-red-950 hover:text-red-200"
+                    className="inline-flex min-h-[42px] min-w-[42px] items-center justify-center rounded-lg border border-slate-200 bg-white p-2 text-slate-500 transition-colors hover:border-rose-300 hover:bg-rose-50 hover:text-rose-700"
                   >
-                    <Trash2 size={14} strokeWidth={2} />
+                    <Trash2 size={15} strokeWidth={2} />
                   </button>
                 </td>
               </tr>

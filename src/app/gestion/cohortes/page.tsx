@@ -6,15 +6,12 @@ import {
   listarCohortesDisponibles,
   obtenerDatosCohorteActiva,
 } from '@/services/empleo';
-import BadgeRolYSesion from '@/components/auth/BadgeRolYSesion';
 import CabeceraConfiguracion from '@/components/empleo/CabeceraConfiguracion';
 import ParrillaCabina from '@/components/empleo/ParrillaCabina';
 import BotonExportarCronograma from '@/components/empleo/BotonExportarCronograma';
 import AccionesCohorte from '@/components/empleo/AccionesCohorte';
-import PanelImpactoIndustrialCohorte from '@/components/empleo/PanelImpactoIndustrialCohorte';
 import SelectorCohorte from '@/components/empleo/SelectorCohorte';
-import PanelDuplasYPostulantes from '@/components/empleo/PanelDuplasYPostulantes';
-import BotonVolver from '@/components/ui/BotonVolver';
+import PanelCohortesTabs from '@/components/empleo/PanelCohortesTabs';
 import {
   aFechaIso,
   describirEstadoViernesBuffer,
@@ -147,8 +144,9 @@ export default async function GestionCohortesPage({
   ]);
 
   const rol = perfil?.rol ?? 'empleo';
-  const puedeAdmin = puedeAccederRuta(rol, '/admin');
-  const puedeCabina = puedeAccederRuta(rol, '/cabina/evaluacion');
+  if (!puedeAccederRuta(rol, '/gestion/cohortes')) {
+    redirect('/admin');
+  }
 
   const cohorteActivaRealCodigo =
     cohortesDisponibles.find((c) => c.estado === 'activa')?.codigo ?? null;
@@ -231,273 +229,266 @@ export default async function GestionCohortesPage({
       ? datos.postulantes.reduce((max, p) => Math.max(max, p.ranking_orden), 0)
       : 0) + 1;
 
-  return (
-    <div className="space-y-6">
-      <div className="print-ocultar space-y-6">
-      {/* ── Cabecera de la página ─────────────────────────────── */}
-      <header className="border-b border-zinc-800 pb-3">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <p className="font-mono text-[10px] tracking-[0.2em] text-zinc-600">
-              /GESTION/COHORTES · GESTIÓN DE EMPLEO
-            </p>
-            <h1 className="mt-1 text-lg font-semibold tracking-tight text-zinc-100">
-              {datos
-                ? `${datos.cohorte.nombre} · ${datos.cohorte.codigo}`
-                : 'Gestión de Cohortes y Asignación de Cabina'}{' '}
-              <span className="font-mono text-zinc-500">
-                {'// MODELO DUPLAS · 16 ALUMNOS'}
-              </span>
-            </h1>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            {puedeAdmin && <BotonVolver href="/admin" etiqueta="Volver al Panel" />}
-            {!puedeAdmin && puedeCabina && (
-              <BotonVolver href="/cabina/evaluacion" etiqueta="Consola Cabina" />
-            )}
-            <BadgeRolYSesion rol={rol} usuarioEmail={perfil?.email ?? user.email} />
-            <SelectorCohorte
-              cohortes={cohortesDisponibles}
-              cohorteSeleccionadaId={datos?.cohorte.id ?? null}
-            />
-            <AccionesCohorte
-              cohorteActivaId={datos?.cohorte.id ?? null}
-              cohorteActivaCodigo={datos?.cohorte.codigo ?? null}
-              cohorteActivaRealCodigo={cohorteActivaRealCodigo}
-              siguienteRankingSugerido={siguienteRankingSugerido}
-              feriadosMunicipales={feriadosMunicipales}
-              postulantes={(datos?.postulantes ?? []).map((p) => ({
-                postulante_id: p.postulante_id,
-                nombre_completo: p.nombre_completo,
-                dni: p.dni,
-              }))}
-            />
-            {datos && proyeccion && (
-              <BotonExportarCronograma
-                cohorte={datos.cohorte}
-                franjas={datos.franjas}
-                proyeccion={proyeccion}
-              />
-            )}
-          </div>
-        </div>
-      </header>
+  const cronogramaNode = datos ? (
+    <section
+      aria-label="Cronograma semanal de duplas"
+      className="space-y-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
+    >
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h2 className="flex items-center gap-2 text-sm font-bold text-slate-900">
+          <CalendarCheck2 size={16} strokeWidth={1.85} className="text-blue-600" aria-hidden />
+          Cronograma semanal ({semanasCronograma.length || 3} semanas)
+          <span className="text-xs font-medium text-slate-500">
+            · Grupo A {diasGrupoALabel}
+            {diasGrupoBLabel ? ` · Grupo B ${diasGrupoBLabel}` : ' · Sin Grupo B'}
+          </span>
+        </h2>
+        <span
+          className={`rounded-full border px-3 py-0.5 text-xs font-semibold ${
+            feriadosMunicipales.length > 0
+              ? 'border-amber-200 bg-amber-50 text-amber-800'
+              : 'border-slate-200 bg-slate-100 text-slate-600'
+          }`}
+        >
+          {feriadosMunicipales.length === 0
+            ? 'Sin feriados cargados'
+            : `${feriadosMunicipales.length} feriados cargados (${feriadosMunicipales
+                .slice(0, 4)
+                .map(formatoFechaCortaUtc)
+                .join(', ')}${feriadosMunicipales.length > 4 ? '…' : ''})`}
+        </span>
+      </div>
 
-      {!datos ? (
-        <div className="rounded-sm border border-dashed border-zinc-700 bg-zinc-950 px-4 py-16 text-center">
-          <p className="font-mono text-xs tracking-[0.18em] text-zinc-400">
-            SIN COHORTE REGISTRADA
+      {!calendarioV2 ? (
+        <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 px-4 py-6 text-center">
+          <p className="text-sm font-semibold text-slate-800">
+            Calendario aún sin proyectar
           </p>
-          <p className="mx-auto mt-2 max-w-md font-mono text-[10.5px] leading-relaxed tracking-[0.08em] text-zinc-600">
-            NO HAY NINGUNA COHORTE EN BASE DE DATOS. UTILIZÁ EL BOTÓN &quot;NUEVA
-            COHORTE&quot; EN LA CABECERA PARA INICIALIZAR UNA COHORTE CON GRUPOS
-            A/B, 8 DUPLAS Y SU PARRILLA DE 7 FRANJAS.
+          <p className="mt-1 text-xs text-slate-600">
+            Abrí &quot;Configurar Días y Horarios&quot;, elegí una fecha de teoría y guardá para ver las 3 semanas de duplas y los viernes de recupero.
           </p>
         </div>
       ) : (
-        <>
-          <CabeceraConfiguracion
-            key={datos.cohorte.id}
-            cohorteId={datos.cohorte.id}
-            fechaTeoriaInicial={datos.cohorte.fecha_teoria ?? ''}
-            cupoInicial={datos.cohorte.max_titulares}
-            totalConfirmados={datos.totalConfirmados}
-            fechaInicioSim={
-              calendarioV2?.fechaInicioSimulador ?? datos.cohorte.fecha_inicio_sim
-            }
-            fechaFinSim={
-              calendarioV2?.fechaFinSimulador ?? datos.cohorte.fecha_fin_sim
-            }
-            fechaPasePlanta={
-              calendarioV2?.fechaPaseTerreno ?? datos.cohorte.fecha_pase_planta
-            }
-            feriadosMunicipales={feriadosMunicipales}
-            configuracionInicial={datos.cohorte.configuracion_cursado}
-          />
+        <div className="space-y-3">
+          <div className="grid gap-3 lg:grid-cols-3">
+            {semanasCronograma.map((sem) => {
+              const esRecuperatorio =
+                sem.viernes.estado === 'RECUPERATORIO_FERIADO';
+              return (
+                <article
+                  key={sem.viernes.fecha}
+                  className={`rounded-xl border bg-slate-50/70 p-3.5 ${
+                    esRecuperatorio ? 'border-amber-300' : 'border-slate-200'
+                  }`}
+                >
+                  <header className="flex items-center justify-between gap-2 border-b border-slate-200 pb-2">
+                    <p className="text-sm font-bold text-slate-900">
+                      Semana {sem.numero}
+                    </p>
+                    <span className="text-xs font-medium text-slate-500">
+                      Cierre vie {formatoFechaCortaUtc(sem.viernes.fecha)}
+                    </span>
+                  </header>
 
-          {datos.impactoIndustrial && (
-            <PanelImpactoIndustrialCohorte
-              cohorteCodigo={datos.cohorte.codigo}
-              impacto={datos.impactoIndustrial}
-            />
-          )}
-
-          <section
-            aria-label="Cronograma de duplas y Viernes Buffer"
-            className="space-y-3"
-          >
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <h2 className="flex items-center gap-2 font-mono text-[11px] tracking-[0.18em] text-zinc-400">
-                <CalendarCheck2 size={14} strokeWidth={1.75} aria-hidden />
-                CRONOGRAMA DE DUPLAS ({semanasCronograma.length || 3} SEMANAS){' '}
-                <span className="text-zinc-600">
-                  {`// GRUPO A ${diasGrupoALabel.toUpperCase()}${diasGrupoBLabel ? ` · GRUPO B ${diasGrupoBLabel.toUpperCase()}` : ' · SIN GRUPO B'}`}
-                </span>
-              </h2>
-              <span
-                className={`rounded-sm border px-2.5 py-0.5 font-mono text-[10px] tracking-[0.1em] ${
-                  feriadosMunicipales.length > 0
-                    ? 'border-amber-500/40 bg-amber-950/30 text-amber-300'
-                    : 'border-zinc-800 bg-zinc-900 text-zinc-400'
-                }`}
-              >
-                {feriadosMunicipales.length === 0
-                  ? '0 FERIADOS MUNICIPALES REGISTRADOS'
-                  : `${feriadosMunicipales.length} FERIADOS MUNICIPALES (${feriadosMunicipales
-                      .slice(0, 4)
-                      .map(formatoFechaCortaUtc)
-                      .join(', ')}${feriadosMunicipales.length > 4 ? '…' : ''})`}
-              </span>
-            </div>
-
-            {!calendarioV2 ? (
-              <div className="rounded-sm border border-dashed border-zinc-800 bg-zinc-950 px-4 py-6 text-center">
-                <p className="font-mono text-xs tracking-[0.14em] text-zinc-400">
-                  CALENDARIO DE DUPLAS SIN PROYECTAR
-                </p>
-                <p className="mt-1.5 font-mono text-[10.5px] tracking-[0.06em] text-zinc-500">
-                  Seleccioná una fecha de teoría y aplicá la configuración para
-                  proyectar las 3 semanas de duplas y los Viernes Buffer.
-                </p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                <div className="grid gap-3 lg:grid-cols-3">
-                  {semanasCronograma.map((sem) => {
-                    const esRecuperatorio =
-                      sem.viernes.estado === 'RECUPERATORIO_FERIADO';
-                    return (
-                      <article
-                        key={sem.viernes.fecha}
-                        className={`rounded-sm border bg-zinc-950 p-3.5 ${
-                          esRecuperatorio
-                            ? 'border-amber-500/45'
-                            : 'border-zinc-800'
-                        }`}
-                      >
-                        <header className="flex items-center justify-between gap-2 border-b border-zinc-800 pb-2">
-                          <p className="font-mono text-xs font-semibold tracking-[0.14em] text-white">
-                            SEMANA {sem.numero}
-                          </p>
-                          <span className="font-mono text-[10px] tracking-[0.08em] text-zinc-500">
-                            CIERRE VIE {formatoFechaCortaUtc(sem.viernes.fecha)}
-                          </span>
-                        </header>
-
-                        <div className="mt-3 space-y-2.5 font-mono text-[11px]">
-                          <div>
-                            <p className="text-[10px] tracking-[0.12em] text-zinc-500">
-                              GRUPO A · {datos.cohorte.configuracion_cursado.franjas_activas.length} DUPLAS ({diasGrupoALabel.toUpperCase()})
-                            </p>
-                            <div className="mt-1 flex flex-wrap gap-1.5">
-                              {sem.jornadasGrupoA.map((j) => (
-                                <span
-                                  key={j.fecha}
-                                  className={`rounded-sm border px-2 py-0.5 text-[10.5px] ${
-                                    j.esRecuperatorioViernes
-                                      ? 'border-amber-500/40 bg-amber-950/35 text-amber-200'
-                                      : 'border-zinc-800 bg-zinc-900 text-zinc-200'
-                                  }`}
-                                >
-                                  {j.diaSemana.slice(0, 3).toUpperCase()}{' '}
-                                  {formatoFechaCortaUtc(j.fecha)}
-                                  {j.esRecuperatorioViernes ? ' · RECUP.' : ''}
-                                </span>
-                              ))}
-                            </div>
-                          </div>
-
-                          {diasGrupoBLabel && sem.jornadasGrupoB.length > 0 && (
-                            <div>
-                              <p className="text-[10px] tracking-[0.12em] text-zinc-500">
-                                GRUPO B · {datos.cohorte.configuracion_cursado.franjas_activas.length} DUPLAS ({diasGrupoBLabel.toUpperCase()})
-                              </p>
-                              <div className="mt-1 flex flex-wrap gap-1.5">
-                                {sem.jornadasGrupoB.map((j) => (
-                                  <span
-                                    key={j.fecha}
-                                    className={`rounded-sm border px-2 py-0.5 text-[10.5px] ${
-                                      j.esRecuperatorioViernes
-                                        ? 'border-amber-500/40 bg-amber-950/35 text-amber-200'
-                                        : 'border-zinc-800 bg-zinc-900 text-zinc-200'
-                                    }`}
-                                  >
-                                    {j.diaSemana.slice(0, 3).toUpperCase()}{' '}
-                                    {formatoFechaCortaUtc(j.fecha)}
-                                    {j.esRecuperatorioViernes ? ' · RECUP.' : ''}
-                                  </span>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-
-                          <div
-                            className={`rounded-sm border px-2.5 py-2 ${
-                              esRecuperatorio
-                                ? 'border-amber-500/40 bg-amber-950/30 text-amber-200'
-                                : 'border-emerald-500/25 bg-emerald-950/20 text-emerald-300'
+                  <div className="mt-3 space-y-2.5 text-xs">
+                    <div>
+                      <p className="font-semibold text-slate-600">
+                        Grupo A · {datos.cohorte.configuracion_cursado.franjas_activas.length} duplas ({diasGrupoALabel})
+                      </p>
+                      <div className="mt-1.5 flex flex-wrap gap-1.5">
+                        {sem.jornadasGrupoA.map((j) => (
+                          <span
+                            key={j.fecha}
+                            className={`rounded-md border px-2 py-0.5 text-xs font-medium ${
+                              j.esRecuperatorioViernes
+                                ? 'border-amber-200 bg-amber-50 text-amber-800'
+                                : 'border-slate-200 bg-white text-slate-800'
                             }`}
                           >
-                            <p className="text-[10px] font-semibold tracking-[0.08em]">
-                              VIE {formatoFechaCortaUtc(sem.viernes.fecha)} ·{' '}
-                              {sem.etiquetaViernes}
-                            </p>
-                            {esRecuperatorio && (
-                              <p className="mt-0.5 text-[10px] text-amber-300/90">
-                                {sem.viernes.sesionesReubicadas} sesiones reubicadas
-                              </p>
-                            )}
-                          </div>
+                            {j.diaSemana.slice(0, 3)} {formatoFechaCortaUtc(j.fecha)}
+                            {j.esRecuperatorioViernes ? ' · Recup.' : ''}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+
+                    {diasGrupoBLabel && sem.jornadasGrupoB.length > 0 && (
+                      <div>
+                        <p className="font-semibold text-slate-600">
+                          Grupo B · {datos.cohorte.configuracion_cursado.franjas_activas.length} duplas ({diasGrupoBLabel})
+                        </p>
+                        <div className="mt-1.5 flex flex-wrap gap-1.5">
+                          {sem.jornadasGrupoB.map((j) => (
+                            <span
+                              key={j.fecha}
+                              className={`rounded-md border px-2 py-0.5 text-xs font-medium ${
+                                j.esRecuperatorioViernes
+                                  ? 'border-amber-200 bg-amber-50 text-amber-800'
+                                  : 'border-slate-200 bg-white text-slate-800'
+                              }`}
+                            >
+                              {j.diaSemana.slice(0, 3)} {formatoFechaCortaUtc(j.fecha)}
+                              {j.esRecuperatorioViernes ? ' · Recup.' : ''}
+                            </span>
+                          ))}
                         </div>
-                      </article>
-                    );
-                  })}
-                </div>
+                      </div>
+                    )}
 
-                {calendarioV2.alertas.length > 0 && (
-                  <div
-                    role="status"
-                    className="flex items-start gap-2.5 rounded-sm border border-amber-500/35 bg-amber-950/25 px-3.5 py-2.5 font-mono text-[11px] text-amber-200"
-                  >
-                    <AlertTriangle
-                      size={15}
-                      strokeWidth={1.75}
-                      className="mt-0.5 shrink-0 text-amber-400"
-                      aria-hidden
-                    />
-                    <ul className="space-y-1">
-                      {calendarioV2.alertas.map((alerta, idxAlerta) => (
-                        <li key={idxAlerta}>{alerta}</li>
-                      ))}
-                    </ul>
+                    <div
+                      className={`rounded-lg border px-2.5 py-2 ${
+                        esRecuperatorio
+                          ? 'border-amber-200 bg-amber-50 text-amber-800'
+                          : 'border-emerald-200 bg-emerald-50 text-emerald-800'
+                      }`}
+                    >
+                      <p className="text-xs font-semibold">
+                        Vie {formatoFechaCortaUtc(sem.viernes.fecha)} ·{' '}
+                        {sem.etiquetaViernes}
+                      </p>
+                      {esRecuperatorio && (
+                        <p className="mt-0.5 text-xs text-amber-700">
+                          {sem.viernes.sesionesReubicadas} clases reubicadas por feriado
+                        </p>
+                      )}
+                    </div>
                   </div>
-                )}
-              </div>
-            )}
-          </section>
+                </article>
+              );
+            })}
+          </div>
 
-          <PanelDuplasYPostulantes
-            key={datos.cohorte.id}
-            cohorte={datos.cohorte}
-            postulantes={datos.postulantes}
-            franjas={datos.franjas}
-            duplasPersistidas={datos.duplasPersistidas}
-            sesionesPractica={datos.sesionesPractica}
-            viernesSugeridos={viernesSugeridos}
-          />
-
-          {tieneTernasLegacy && (
-            <details className="rounded-sm border border-zinc-800 bg-zinc-950/60 p-3">
-              <summary className="cursor-pointer font-mono text-[10.5px] tracking-[0.16em] text-zinc-500 hover:text-zinc-300">
-                ARCHIVO LEGACY · PARRILLA DE TERNAS (MODELO ANTERIOR 3 POR HORA)
-              </summary>
-              <div className="mt-3">
-                <ParrillaCabina franjas={datos.franjas} />
-              </div>
-            </details>
+          {calendarioV2.alertas.length > 0 && (
+            <div
+              role="status"
+              className="flex items-start gap-2.5 rounded-lg border border-amber-200 bg-amber-50 px-3.5 py-2.5 text-xs text-amber-900"
+            >
+              <AlertTriangle
+                size={15}
+                strokeWidth={1.85}
+                className="mt-0.5 shrink-0 text-amber-600"
+                aria-hidden
+              />
+              <ul className="space-y-1">
+                {calendarioV2.alertas.map((alerta, idxAlerta) => (
+                  <li key={idxAlerta}>{alerta}</li>
+                ))}
+              </ul>
+            </div>
           )}
-        </>
+        </div>
       )}
+    </section>
+  ) : null;
+
+  const parrillaLegacyNode =
+    datos && tieneTernasLegacy ? (
+      <details className="rounded-xl border border-slate-200 bg-white p-3.5 shadow-2xs">
+        <summary className="cursor-pointer text-xs font-semibold text-slate-600 hover:text-slate-900">
+          Ver historial de horarios anteriores (modelo anterior de 3 por hora)
+        </summary>
+        <div className="mt-3">
+          <ParrillaCabina franjas={datos.franjas} />
+        </div>
+      </details>
+    ) : null;
+
+  return (
+    <div className="space-y-6">
+      <div className="print-ocultar space-y-5">
+        <header className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <p className="text-xs font-semibold text-blue-700">
+                Cursos y Alumnos · Simu-Twin Venado Tuerto
+              </p>
+              <h1 className="mt-1 text-xl font-bold tracking-tight text-slate-900">
+                {datos
+                  ? `${datos.cohorte.nombre} (${datos.cohorte.codigo})`
+                  : 'Gestión de Cursos y Alumnos'}
+              </h1>
+              {datos && (
+                <p className="mt-0.5 text-sm text-slate-600">
+                  Cursado en duplas de a 2 alumnos · Cupo {datos.cohorte.max_titulares} lugares ·{' '}
+                  {datos.totalConfirmados} confirmados
+                </p>
+              )}
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <SelectorCohorte
+                cohortes={cohortesDisponibles}
+                cohorteSeleccionadaId={datos?.cohorte.id ?? null}
+              />
+              <AccionesCohorte
+                cohorteActivaId={datos?.cohorte.id ?? null}
+                cohorteActivaCodigo={datos?.cohorte.codigo ?? null}
+                cohorteActivaRealCodigo={cohorteActivaRealCodigo}
+                siguienteRankingSugerido={siguienteRankingSugerido}
+                feriadosMunicipales={feriadosMunicipales}
+                postulantes={(datos?.postulantes ?? []).map((p) => ({
+                  postulante_id: p.postulante_id,
+                  nombre_completo: p.nombre_completo,
+                  dni: p.dni,
+                }))}
+              />
+              {datos && proyeccion && (
+                <BotonExportarCronograma
+                  cohorte={datos.cohorte}
+                  franjas={datos.franjas}
+                  proyeccion={proyeccion}
+                />
+              )}
+            </div>
+          </div>
+        </header>
+
+        {!datos ? (
+          <div className="rounded-xl border border-dashed border-slate-300 bg-white px-6 py-16 text-center shadow-sm">
+            <p className="text-base font-bold text-slate-900">
+              Todavía no hay cursos creados
+            </p>
+            <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-slate-600">
+              Usá el botón &quot;Nuevo Curso&quot; arriba a la derecha para crear la primera cohorte, definir los días de cursado y cargar los alumnos.
+            </p>
+          </div>
+        ) : (
+          <>
+            <CabeceraConfiguracion
+              key={datos.cohorte.id}
+              cohorteId={datos.cohorte.id}
+              fechaTeoriaInicial={datos.cohorte.fecha_teoria ?? ''}
+              cupoInicial={datos.cohorte.max_titulares}
+              totalConfirmados={datos.totalConfirmados}
+              fechaInicioSim={
+                calendarioV2?.fechaInicioSimulador ?? datos.cohorte.fecha_inicio_sim
+              }
+              fechaFinSim={
+                calendarioV2?.fechaFinSimulador ?? datos.cohorte.fecha_fin_sim
+              }
+              fechaPasePlanta={
+                calendarioV2?.fechaPaseTerreno ?? datos.cohorte.fecha_pase_planta
+              }
+              feriadosMunicipales={feriadosMunicipales}
+              configuracionInicial={datos.cohorte.configuracion_cursado}
+            />
+
+            <PanelCohortesTabs
+              key={`tabs-${datos.cohorte.id}`}
+              cohorteId={datos.cohorte.id}
+              cohorteCodigo={datos.cohorte.codigo}
+              cohorte={datos.cohorte}
+              configuracionCursado={datos.cohorte.configuracion_cursado}
+              postulantes={datos.postulantes}
+              franjas={datos.franjas}
+              duplasPersistidas={datos.duplasPersistidas}
+              sesionesPractica={datos.sesionesPractica}
+              viernesSugeridos={viernesSugeridos}
+              impactoIndustrial={datos.impactoIndustrial}
+              cronogramaNode={cronogramaNode}
+              parrillaLegacyNode={parrillaLegacyNode}
+            />
+          </>
+        )}
       </div>
 
       {/* ── Hoja membretada del Cronograma Oficial (solo impresión) ── */}

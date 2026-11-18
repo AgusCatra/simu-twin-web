@@ -24,19 +24,19 @@ function SlotPuesto({
 
   if (!ocupante) {
     return (
-      <li className="flex h-11 items-center gap-2 rounded-sm border border-dashed border-zinc-800 px-2.5">
-        <span aria-hidden className="h-2 w-2 shrink-0 rounded-sm border border-zinc-700" />
-        <span className="min-w-0 truncate font-mono text-[10px] tracking-[0.12em] text-zinc-600">
-          PUESTO {numero} · LIBRE
+      <li className="flex h-11 items-center gap-2 rounded-lg border border-dashed border-slate-300 bg-slate-50 px-3">
+        <span aria-hidden className="h-2 w-2 shrink-0 rounded-full border border-slate-400" />
+        <span className="min-w-0 truncate text-xs font-medium text-slate-500">
+          Puesto {numero} · Libre
         </span>
       </li>
     );
   }
 
   return (
-    <li className="flex h-11 items-center gap-2 rounded-sm border border-zinc-700 bg-zinc-900 px-2.5">
-      <span aria-hidden className="h-2 w-2 shrink-0 rounded-sm bg-emerald-500" />
-      <span className="min-w-0 flex-1 truncate font-mono text-[11px] text-zinc-100">
+    <li className="flex h-11 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3">
+      <span aria-hidden className="h-2 w-2 shrink-0 rounded-full bg-emerald-500" />
+      <span className="min-w-0 flex-1 truncate text-xs font-semibold text-slate-900">
         P{numero} · {ocupante.nombre_completo}
       </span>
       <BotonLiberarPuesto
@@ -53,23 +53,23 @@ function TarjetaFranja({ franja }: { franja: FranjaCabina }) {
   return (
     <article
       aria-label={`Franja ${franja.horario_label}, ${franja.ocupantes.length} de ${franja.cupo_maximo} puestos`}
-      className={`rounded-sm border bg-zinc-950 p-3 ${
-        llena ? 'border-emerald-500/50' : 'border-zinc-800'
+      className={`rounded-xl border bg-white p-3.5 shadow-sm ${
+        llena ? 'border-emerald-300' : 'border-slate-200'
       }`}
     >
-      <header className="mb-2 flex items-center justify-between gap-2">
-        <p className="font-mono text-xs tracking-[0.12em] text-white">
+      <header className="mb-2.5 flex items-center justify-between gap-2">
+        <p className="text-sm font-bold text-slate-900">
           {franja.horario_label}
         </p>
         <span
-          className={`rounded-sm px-2 py-0.5 font-mono text-[10px] font-semibold tracking-[0.12em] ${
+          className={`rounded-md border px-2 py-0.5 text-xs font-semibold ${
             llena
-              ? 'bg-emerald-500 text-emerald-950'
-              : 'bg-zinc-800 text-zinc-400'
+              ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+              : 'border-slate-200 bg-slate-100 text-slate-700'
           }`}
         >
           {franja.ocupantes.length}/{franja.cupo_maximo}
-          {llena && ' · LLENO'}
+          {llena && ' · Completo'}
         </span>
       </header>
       <ul className="space-y-1.5">
@@ -94,16 +94,16 @@ function GrupoTurno({
 }) {
   return (
     <section aria-label={`${etiqueta} (${rango})`}>
-      <p className="flex items-center gap-2 font-mono text-[10px] tracking-[0.18em] text-zinc-500">
-        <Icono size={13} strokeWidth={1.75} aria-hidden />
+      <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-600">
+        <Icono size={14} strokeWidth={1.75} aria-hidden />
         {etiqueta} · {rango}
       </p>
       {franjas.length === 0 ? (
-        <p className="mt-2 rounded-sm border border-dashed border-zinc-800 px-3 py-4 font-mono text-[10px] tracking-[0.12em] text-zinc-600">
-          SIN FRANJAS CARGADAS PARA ESTE TURNO
+        <p className="mt-2 rounded-lg border border-dashed border-slate-300 px-3 py-4 text-xs text-slate-500">
+          Sin franjas cargadas para este turno
         </p>
       ) : (
-        <div className="mt-2 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="mt-2 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           {franjas.map((franja) => (
             <TarjetaFranja key={franja.id} franja={franja} />
           ))}

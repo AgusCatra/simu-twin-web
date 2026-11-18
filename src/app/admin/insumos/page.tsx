@@ -1,8 +1,8 @@
 import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
+import NavegacionRapidaEscuelas from '@/components/admin/NavegacionRapidaEscuelas';
 import PanelStock from '@/components/admin/stock/PanelStock';
-import BotonVolver from '@/components/ui/BotonVolver';
 import {
   TIPOS_MOVIMIENTO_STOCK,
   type InsumoStock,
@@ -215,22 +215,16 @@ export default async function InsumosPage() {
 
   return (
     <section className="space-y-5">
-      <header className="flex flex-wrap items-start justify-between gap-3 border-b border-zinc-800 pb-3">
+      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 pb-4">
         <div>
-          <p className="font-mono text-[10px] tracking-[0.2em] text-zinc-600">
-            /ADMIN/INSUMOS · PAÑOL Y REFRIGERIOS
-          </p>
-          <h2 className="mt-1 text-lg font-semibold tracking-tight text-zinc-100">
-            Stock e Insumos{' '}
-            <span className="font-mono text-zinc-500">
-              {'// AUDITORÍA DE PAÑOL'}
-            </span>
-          </h2>
-          <p className="mt-1 font-mono text-[11px] tracking-[0.08em] text-zinc-500">
-            CONTROL DE EXISTENCIAS, ALERTAS DE REPOSICIÓN Y TRAZABILIDAD DE CONSUMOS
+          <h1 className="text-xl font-bold tracking-tight text-slate-900">
+            Stock y Refrigerios
+          </h1>
+          <p className="mt-0.5 text-sm text-slate-600">
+            Existencias actuales, alertas por faltantes e historial de entregas
           </p>
         </div>
-        <BotonVolver href="/admin" etiqueta="Volver al Panel" />
+        <NavegacionRapidaEscuelas />
       </header>
 
       <PanelStock

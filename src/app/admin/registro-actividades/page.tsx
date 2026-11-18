@@ -1,11 +1,9 @@
 import type { Metadata } from 'next';
 import { createClient } from '@/lib/supabase/server';
-import { obtenerPerfilUsuarioActual, puedeAccederRuta } from '@/lib/auth/permisos';
 import { obtenerEstadisticasGlobalesCentro } from '@/services/estadisticas-centro';
 import RackSimuladores from '@/components/admin/actividades/RackSimuladores';
 import TablaActividades from '@/components/admin/actividades/TablaActividades';
 import PanelEstadisticasCentro from '@/components/admin/actividades/PanelEstadisticasCentro';
-import BotonVolver from '@/components/ui/BotonVolver';
 import type {
   ActividadItem,
   EstadoActividad,
@@ -159,7 +157,6 @@ export default async function RegistroActividadesPage() {
     respuestaSimuladores,
     respuestaActividades,
     estadisticas,
-    perfil,
   ] = await Promise.all([
     supabase
       .from('simuladores')
@@ -173,9 +170,7 @@ export default async function RegistroActividadesPage() {
       .limit(50)
       .returns<FilaActividad[]>(),
     obtenerEstadisticasGlobalesCentro(),
-    obtenerPerfilUsuarioActual(),
   ]);
-  const puedeVolverAdmin = perfil ? puedeAccederRuta(perfil.rol, '/admin') : true;
 
   // Fallos de lectura no bloquean la página: se renderiza vacío y el operador
   // puede reintentar con el botón REFRESCAR del toolbar.
@@ -205,49 +200,42 @@ export default async function RegistroActividadesPage() {
 
   return (
     <section className="space-y-6">
-      {/* ── Cabecera de la página ─────────────────────────────── */}
-      <header className="flex flex-wrap items-start justify-between gap-3 border-b border-zinc-800 pb-3">
+      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 pb-4">
         <div>
-          <h2 className="text-lg font-semibold tracking-tight text-zinc-100">
-            Registro de Actividades
-          </h2>
-          <p className="mt-1 font-mono text-[11px] tracking-[0.1em] text-zinc-500">
-            /ADMIN/REGISTRO-ACTIVIDADES · RACK EN VIVO + HISTORIAL
+          <h1 className="text-xl font-bold tracking-tight text-slate-900">
+            Bitácora y Simuladores
+          </h1>
+          <p className="mt-0.5 text-sm text-slate-600">
+            Estado de los simuladores, carga de prácticas y estadísticas del centro
           </p>
         </div>
-        {puedeVolverAdmin ? (
-          <BotonVolver href="/admin" etiqueta="Volver al Panel" />
-        ) : (
-          <BotonVolver href="/cabina/evaluacion" etiqueta="Consola de Cabina" />
-        )}
       </header>
 
-      {/* ── Rack SCADA en vivo ────────────────────────────────── */}
       <div className="space-y-3">
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-sm border border-zinc-800 bg-zinc-950 px-4 py-3">
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-5 py-3.5 shadow-sm">
           <div>
-            <h3 className="font-mono text-sm font-semibold uppercase tracking-[0.16em] text-zinc-100">
-              RACK DE CONTROL EN VIVO
-            </h3>
-            <p className="mt-0.5 font-mono text-[10px] tracking-[0.14em] text-zinc-500">
-              CONMUTACIÓN DIRECTA · LIBRE / EN OPERACIÓN
+            <h2 className="text-base font-bold text-slate-900">
+              Puestos de Simulación en Vivo
+            </h2>
+            <p className="text-sm text-slate-600">
+              Cambiá el estado de cada máquina entre libre, en uso o mantenimiento
             </p>
           </div>
-          <dl className="flex flex-wrap items-center gap-4 font-mono text-[11px] tracking-[0.1em]">
+          <dl className="flex flex-wrap items-center gap-4 text-sm font-medium">
             <div className="flex items-center gap-1.5">
-              <span aria-hidden className="h-2 w-2 rounded-full bg-emerald-500" />
-              <dt className="text-zinc-500">OP</dt>
-              <dd className="text-zinc-100">{enOperacion}</dd>
+              <span aria-hidden className="h-2.5 w-2.5 rounded-full bg-amber-500" />
+              <dt className="text-slate-600">En uso:</dt>
+              <dd className="font-bold text-slate-900 tabular-nums">{enOperacion}</dd>
             </div>
             <div className="flex items-center gap-1.5">
-              <span aria-hidden className="h-2 w-2 rounded-full bg-zinc-700" />
-              <dt className="text-zinc-500">LB</dt>
-              <dd className="text-zinc-100">{libres}</dd>
+              <span aria-hidden className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
+              <dt className="text-slate-600">Libres:</dt>
+              <dd className="font-bold text-slate-900 tabular-nums">{libres}</dd>
             </div>
             <div className="flex items-center gap-1.5">
-              <span aria-hidden className="h-2 w-2 rounded-full bg-amber-500" />
-              <dt className="text-zinc-500">MT</dt>
-              <dd className="text-zinc-100">{enMantenimiento}</dd>
+              <span aria-hidden className="h-2.5 w-2.5 rounded-full bg-rose-500" />
+              <dt className="text-slate-600">Mantenimiento:</dt>
+              <dd className="font-bold text-slate-900 tabular-nums">{enMantenimiento}</dd>
             </div>
           </dl>
         </div>
@@ -255,17 +243,13 @@ export default async function RegistroActividadesPage() {
         <RackSimuladores simuladores={simuladores} />
       </div>
 
-      {/* ── Separador sutil ───────────────────────────────────── */}
-      <div aria-hidden className="border-t border-zinc-800" />
-
-      {/* ── Historial + alta ──────────────────────────────────── */}
       <div className="space-y-3">
-        <div className="rounded-sm border border-zinc-800 bg-zinc-950 px-4 py-3">
-          <h3 className="font-mono text-sm font-semibold uppercase tracking-[0.16em] text-zinc-100">
-            HISTORIAL DE ACTIVIDADES
-          </h3>
-          <p className="mt-0.5 font-mono text-[10px] tracking-[0.14em] text-zinc-500">
-            ÚLTIMAS 50 · ORDENADAS POR FECHA DESCENDENTE
+        <div className="rounded-xl border border-slate-200 bg-white px-5 py-3.5 shadow-sm">
+          <h2 className="text-base font-bold text-slate-900">
+            Historial de Actividades
+          </h2>
+          <p className="text-sm text-slate-600">
+            Últimas 50 jornadas registradas
           </p>
         </div>
 
@@ -275,8 +259,6 @@ export default async function RegistroActividadesPage() {
         />
       </div>
 
-      {/* ── Estadísticas Globales y Demografía ────────────────── */}
-      <div aria-hidden className="border-t border-zinc-800" />
       <PanelEstadisticasCentro estadisticas={estadisticas} />
     </section>
   );

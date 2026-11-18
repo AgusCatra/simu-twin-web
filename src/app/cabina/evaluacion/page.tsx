@@ -4,22 +4,18 @@ import { createClient } from '@/lib/supabase/server';
 import { obtenerPerfilUsuarioActual, puedeAccederRuta } from '@/lib/auth/permisos';
 import { obtenerAlumnosTurno } from '@/services/cabina';
 import ConsolaTactil from '@/components/cabina/ConsolaTactil';
-import BotonVolver from '@/components/ui/BotonVolver';
-import BadgeRolYSesion from '@/components/auth/BadgeRolYSesion';
 
 /**
- * /cabina/evaluacion — Consola Viva de Cabina (tablet táctil del instructor).
- *
- * Ruta raíz independiente de /admin: hereda solo el root layout, sin Sidebar
- * ni Topbar. Pantalla completa bg-zinc-950 para uso a una mano con pulgar.
+ * /cabina/evaluacion — Evaluación en Cabina y Patio (tablet táctil del instructor).
+ * Envuelta por src/app/cabina/layout.tsx con Sidebar + Topbar institucionales.
  */
 
 export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
-  title: 'Consola de Cabina · Hub Simuladores',
+  title: 'Evaluar en Cabina / Patio · Simu-Twin Venado Tuerto',
   description:
-    'Consola táctil de evaluación en vivo de postulantes en cabina de simulador.',
+    'Consola táctil de evaluación en vivo en cabina de simulador y práctica en patio.',
 };
 
 export default async function CabinaEvaluacionPage() {
@@ -36,43 +32,27 @@ export default async function CabinaEvaluacionPage() {
     obtenerPerfilUsuarioActual(),
   ]);
   const rol = perfil?.rol ?? 'instructor';
-  const puedeAdmin = puedeAccederRuta(rol, '/admin');
+  if (!puedeAccederRuta(rol, '/cabina/evaluacion')) {
+    redirect('/admin');
+  }
   const instructorDefault = user.email ?? '';
 
   return (
-    <main className="flex min-h-dvh flex-col bg-zinc-950 font-mono text-zinc-100">
-      <nav
-        aria-label="Barra de control táctil superior"
-        className="border-b border-zinc-800/80 bg-zinc-950/95 px-4 py-2.5"
-      >
-        <div className="mx-auto flex w-full max-w-3xl flex-wrap items-center justify-between gap-2">
-          <div className="flex flex-wrap items-center gap-2">
-            {puedeAdmin ? (
-              <BotonVolver href="/admin" etiqueta="Volver al Panel" />
-            ) : (
-              <BotonVolver href="/admin/registro-actividades" etiqueta="Actividades / Rack" />
-            )}
-            <BotonVolver href="/gestion/cohortes" etiqueta="Cohortes" />
-          </div>
-          <BadgeRolYSesion rol={rol} usuarioEmail={perfil?.email ?? user.email} />
-        </div>
-      </nav>
-
+    <div className="flex flex-col">
       {alumnos.length === 0 ? (
-        <div className="flex flex-1 flex-col items-center justify-center gap-4 px-6 text-center">
+        <div className="mx-auto my-8 flex w-full max-w-xl flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-slate-300 bg-white px-6 py-14 text-center shadow-sm">
           <span
             aria-hidden
-            className="h-2.5 w-2.5 rounded-full bg-amber-400 animate-pulse"
+            className="h-3 w-3 rounded-full bg-amber-500 animate-pulse"
           />
-          <h1 className="text-lg font-semibold uppercase tracking-[0.18em] text-zinc-100">
-            {'// CONSOLA DE CABINA'}
+          <h1 className="text-lg font-bold text-slate-900">
+            Evaluar en Cabina / Patio
           </h1>
-          <p className="max-w-sm text-xs uppercase leading-relaxed tracking-[0.12em] text-zinc-500">
-            Sin cohorte activa o sin postulantes en la franja
+          <p className="max-w-sm text-sm font-medium text-slate-700">
+            Sin curso activo o sin alumnos habilitados en este turno.
           </p>
-          <p className="max-w-sm text-[10px] uppercase tracking-[0.1em] text-zinc-600">
-            Verifique en Empleo que exista una cohorte en estado ACTIVA con
-            inscripciones disponibles, y recargue esta pantalla.
+          <p className="max-w-sm text-xs leading-relaxed text-slate-500">
+            Verificá en Cursos y Alumnos que exista un curso en estado Activo con alumnos inscriptos y recargá esta pantalla.
           </p>
         </div>
       ) : (
@@ -81,6 +61,6 @@ export default async function CabinaEvaluacionPage() {
           instructorDefault={instructorDefault}
         />
       )}
-    </main>
+    </div>
   );
 }

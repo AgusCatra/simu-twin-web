@@ -110,6 +110,17 @@ export interface TelemetriaTitan {
   volantazos_extremos: number | null;
 }
 
+export interface PracticaIntermediaItem {
+  id: string;
+  archivo_nombre: string | null;
+  exercise_name: string;
+  fecha: string | null;
+  score_puntos: number | null;
+  tiempo_vuelta_seg: number | null;
+  colisiones: number | null;
+  indice_cuidado_mecanico: number | null;
+}
+
 /** Última evaluación de diagnóstico del postulante (tabla singular, 0005+0006+0008). */
 export interface FichaEvaluacion {
   dictamen: string | null;
@@ -141,6 +152,7 @@ export interface FichaEvaluacion {
   perfil_operador?: PerfilOperador | null;
   horas_recomendadas?: number | null;
   modulos_recomendados?: string[] | null;
+  practicas_intermedias?: PracticaIntermediaItem[];
 }
 
 export interface PostulanteFila {
@@ -270,7 +282,11 @@ export interface ConfiguracionCohorteInput {
 // Evaluación multi-intento V1 / V2 / FINAL (migración 0008)
 // ─────────────────────────────────────────────────────────────────────────
 
-export type EtapaEvaluacion = 'DIAG_INTENTO_1' | 'DIAG_INTENTO_2' | 'FINAL';
+export type EtapaEvaluacion =
+  | 'DIAG_INTENTO_1'
+  | 'DIAG_INTENTO_2'
+  | 'FINAL'
+  | 'PRACTICA_INTERMEDIA';
 
 /** Métricas de una pasada (V1, V2 o Prueba Final) de evaluacion_diagnostico. */
 export interface MetricasIntento {
@@ -451,6 +467,8 @@ export interface ResultadoLoteTelemetriaItem {
   perfil_operador: PerfilOperador;
   es_mejor_diagnostico: boolean;
   delta_score: number | null;
+  exercise_name?: string | null;
+  indice_cuidado_mecanico?: number | null;
   ok: boolean;
   error?: string;
 }

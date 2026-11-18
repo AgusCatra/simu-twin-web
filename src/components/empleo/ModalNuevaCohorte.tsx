@@ -48,10 +48,9 @@ const OPCIONES_MAQUINARIA: readonly {
   { valor: 'RETROEXCAVADORA', etiqueta: 'Retroexcavadora' },
 ];
 
-const LABEL_CLASS =
-  'block font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-500';
+const LABEL_CLASS = 'block text-xs font-semibold text-slate-700';
 const INPUT_CLASS =
-  'w-full rounded-sm border border-zinc-800 bg-zinc-950 px-3 py-2 font-mono text-xs text-zinc-100 placeholder:text-zinc-600 focus:border-zinc-500 focus:outline-none';
+  'w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20';
 
 function obtenerFechaSugerida(): string {
   const hoy = new Date();
@@ -192,7 +191,7 @@ export default function ModalNuevaCohorte({
       role="dialog"
       aria-modal="true"
       aria-labelledby="titulo-modal-nueva-cohorte"
-      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/75 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-900/50 p-4 backdrop-blur-xs"
       onClick={(e) => {
         if (e.target === e.currentTarget && !pendiente) {
           onCerrar();
@@ -201,28 +200,28 @@ export default function ModalNuevaCohorte({
     >
       <form
         onSubmit={manejarSubmit}
-        className="my-6 w-full max-w-3xl rounded-sm border border-zinc-700 bg-zinc-900"
+        className="my-6 w-full max-w-3xl rounded-xl border border-slate-200 bg-white shadow-xl"
       >
-        <header className="flex items-start justify-between gap-3 border-b border-zinc-800 px-5 py-3">
+        <header className="flex items-start justify-between gap-3 border-b border-slate-200 px-5 py-4">
           <div>
             <h2
               id="titulo-modal-nueva-cohorte"
-              className="font-mono text-sm font-semibold uppercase tracking-[0.14em] text-zinc-100"
+              className="text-lg font-bold text-slate-900"
             >
-              [ NUEVA COHORTE · MODELO DUPLAS ]
+              Crear Nuevo Curso
             </h2>
-            <p className="mt-1 font-mono text-[10px] tracking-[0.12em] text-zinc-500">
-              CÁLCULO AUTOMÁTICO DE GRUPOS A/B, DUPLAS 1..8 Y CRONOGRAMA V2
+            <p className="mt-0.5 text-sm text-slate-600">
+              Armado automático de grupos, duplas y fechas de cursado
             </p>
           </div>
           <button
             type="button"
             onClick={onCerrar}
             disabled={pendiente}
-            aria-label="Cerrar modal de nueva cohorte"
-            className="flex h-9 w-9 items-center justify-center rounded-sm border border-zinc-800 bg-zinc-950 text-zinc-400 transition-colors hover:border-zinc-600 hover:text-white disabled:opacity-50"
+            aria-label="Cerrar modal de nuevo curso"
+            className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900 disabled:opacity-50"
           >
-            <X size={15} strokeWidth={2} />
+            <X size={16} strokeWidth={2} />
           </button>
         </header>
 
@@ -230,7 +229,7 @@ export default function ModalNuevaCohorte({
           {error && (
             <p
               role="alert"
-              className="rounded-sm border border-red-900 bg-red-950 px-3 py-2 font-mono text-xs text-red-200"
+              className="rounded-lg border border-rose-200 bg-rose-50 px-3.5 py-2.5 text-xs font-medium text-rose-800"
             >
               {error}
             </p>
@@ -239,7 +238,7 @@ export default function ModalNuevaCohorte({
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div>
               <label htmlFor="nc-codigo" className={LABEL_CLASS}>
-                Código de cohorte *
+                Código del curso *
               </label>
               <input
                 id="nc-codigo"
@@ -275,7 +274,7 @@ export default function ModalNuevaCohorte({
 
             <div className="sm:col-span-2">
               <label htmlFor="nc-nombre" className={LABEL_CLASS}>
-                Nombre de la cohorte *
+                Nombre del curso *
               </label>
               <input
                 id="nc-nombre"
@@ -292,8 +291,8 @@ export default function ModalNuevaCohorte({
             <div>
               <label htmlFor="nc-fecha-teoria" className={LABEL_CLASS}>
                 <span className="inline-flex items-center gap-1.5">
-                  <CalendarDays size={12} strokeWidth={1.75} aria-hidden />
-                  Fecha de teoría *
+                  <CalendarDays size={13} strokeWidth={1.75} aria-hidden />
+                  Fecha de clase teórica *
                 </span>
               </label>
               <input
@@ -302,13 +301,13 @@ export default function ModalNuevaCohorte({
                 required
                 value={fechaTeoria}
                 onChange={(e) => setFechaTeoria(e.target.value)}
-                className={`mt-1 [color-scheme:dark] ${INPUT_CLASS}`}
+                className={`mt-1 ${INPUT_CLASS}`}
               />
             </div>
 
             <div>
               <label htmlFor="nc-max-titulares" className={LABEL_CLASS}>
-                Tope titulares en parrilla *
+                Cupo máximo de alumnos *
               </label>
               <input
                 id="nc-max-titulares"
@@ -327,12 +326,11 @@ export default function ModalNuevaCohorte({
             </div>
           </div>
 
-          {/* ── Selector de cupo con recálculo de Grupos A/B y Duplas 1..8 ── */}
-          <section className="rounded-sm border border-zinc-800 bg-zinc-950 p-3">
+          <section className="rounded-xl border border-slate-200 bg-slate-50 p-4">
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <p className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400">
-                <Users size={13} strokeWidth={1.75} aria-hidden />
-                Cupo de alumnos para cálculo de Duplas
+              <p className="flex items-center gap-1.5 text-xs font-bold text-slate-700">
+                <Users size={14} className="text-blue-600" strokeWidth={1.75} aria-hidden />
+                Cantidad para distribución de duplas
               </p>
               <div className="flex flex-wrap items-center gap-1.5">
                 {OPCIONES_CUPO_DUPLAS.map((op) => {
@@ -343,10 +341,10 @@ export default function ModalNuevaCohorte({
                       type="button"
                       aria-pressed={activo}
                       onClick={() => actualizarCupo(op)}
-                      className={`h-8 rounded-sm border px-2.5 font-mono text-xs transition-colors ${
+                      className={`h-8 rounded-lg border px-3 text-xs font-semibold transition-colors ${
                         activo
-                          ? 'border-white bg-white font-semibold text-zinc-950'
-                          : 'border-zinc-700 bg-zinc-900 text-zinc-300 hover:border-zinc-500'
+                          ? 'border-blue-300 bg-blue-600 text-white'
+                          : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-100'
                       }`}
                     >
                       {op}
@@ -364,31 +362,30 @@ export default function ModalNuevaCohorte({
                     const v = Number(e.target.value);
                     if (Number.isFinite(v)) actualizarCupo(v);
                   }}
-                  className="h-8 w-16 rounded-sm border border-zinc-700 bg-zinc-900 px-2 font-mono text-xs text-white outline-none"
+                  className="h-8 w-16 rounded-lg border border-slate-300 bg-white px-2 text-xs font-semibold text-slate-900 outline-none focus:border-blue-500"
                 />
               </div>
             </div>
 
-            {/* ── Ajuste de días, franjas y sesiones ───────────── */}
-            <div className="mt-3 border-t border-zinc-800 pt-2.5">
+            <div className="mt-3 border-t border-slate-200 pt-3">
               <button
                 type="button"
                 onClick={() => setMostrarCursadoDinamico((v) => !v)}
-                className="inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.12em] text-zinc-400 hover:text-white"
+                className="inline-flex items-center gap-1.5 text-xs font-semibold text-blue-700 hover:text-blue-900"
               >
-                <SlidersHorizontal size={12} aria-hidden />
+                <SlidersHorizontal size={13} aria-hidden />
                 {mostrarCursadoDinamico
                   ? 'Ocultar configuración de días y franjas'
-                  : `Personalizar días (${formatearDiasGrupoCorto(configCursado.dias_grupo_a)} / ${configCursado.dias_grupo_b.length > 0 ? formatearDiasGrupoCorto(configCursado.dias_grupo_b) : 'Sin B'}), franjas (${configCursado.franjas_activas.length}) y sesiones (${configCursado.sesiones_objetivo})`}
+                  : `Personalizar días (${formatearDiasGrupoCorto(configCursado.dias_grupo_a)} / ${configCursado.dias_grupo_b.length > 0 ? formatearDiasGrupoCorto(configCursado.dias_grupo_b) : 'Sin B'}), horarios (${configCursado.franjas_activas.length}) y clases (${configCursado.sesiones_objetivo})`}
               </button>
 
               {mostrarCursadoDinamico && (
-                <div className="mt-2.5 grid gap-2.5 rounded-sm border border-zinc-800 bg-zinc-900/50 p-2.5 sm:grid-cols-3">
+                <div className="mt-3 grid gap-3 rounded-lg border border-slate-200 bg-white p-3 sm:grid-cols-3">
                   <div>
-                    <p className="font-mono text-[9.5px] uppercase tracking-[0.12em] text-emerald-400">
+                    <p className="text-xs font-bold text-emerald-700">
                       Grupo A
                     </p>
-                    <div className="mt-1 flex flex-wrap gap-1">
+                    <div className="mt-1.5 flex flex-wrap gap-1">
                       {DIAS_HABILES_NC.map((d) => {
                         const on = diasGrupoA.includes(d.num);
                         return (
@@ -404,10 +401,10 @@ export default function ModalNuevaCohorte({
                                   : [...prev, d.num].sort((a, b) => a - b)
                               )
                             }
-                            className={`h-7 rounded-sm border px-2 font-mono text-[10px] ${
+                            className={`h-7 rounded-md border px-2 text-xs font-semibold ${
                               on
-                                ? 'border-emerald-500 bg-emerald-500/20 text-emerald-200'
-                                : 'border-zinc-700 bg-zinc-950 text-zinc-500'
+                                ? 'border-emerald-300 bg-emerald-50 text-emerald-700'
+                                : 'border-slate-300 bg-white text-slate-500'
                             }`}
                           >
                             {d.corto}
@@ -419,7 +416,7 @@ export default function ModalNuevaCohorte({
 
                   <div>
                     <div className="flex items-center justify-between">
-                      <p className="font-mono text-[9.5px] uppercase tracking-[0.12em] text-cyan-400">
+                      <p className="text-xs font-bold text-blue-700">
                         Grupo B
                       </p>
                       <button
@@ -427,12 +424,12 @@ export default function ModalNuevaCohorte({
                         onClick={() =>
                           setDiasGrupoB((prev) => (prev.length === 0 ? [2, 4] : []))
                         }
-                        className="font-mono text-[9px] text-zinc-400 underline"
+                        className="text-xs font-medium text-blue-600 underline"
                       >
                         {diasGrupoB.length === 0 ? 'Activar' : 'Desactivar'}
                       </button>
                     </div>
-                    <div className="mt-1 flex flex-wrap gap-1">
+                    <div className="mt-1.5 flex flex-wrap gap-1">
                       {DIAS_HABILES_NC.map((d) => {
                         const on = diasGrupoB.includes(d.num);
                         return (
@@ -446,10 +443,10 @@ export default function ModalNuevaCohorte({
                                   : [...prev, d.num].sort((a, b) => a - b)
                               )
                             }
-                            className={`h-7 rounded-sm border px-2 font-mono text-[10px] ${
+                            className={`h-7 rounded-md border px-2 text-xs font-semibold ${
                               on
-                                ? 'border-cyan-500 bg-cyan-500/20 text-cyan-200'
-                                : 'border-zinc-700 bg-zinc-950 text-zinc-500'
+                                ? 'border-blue-300 bg-blue-50 text-blue-700'
+                                : 'border-slate-300 bg-white text-slate-500'
                             }`}
                           >
                             {d.corto}
@@ -460,8 +457,8 @@ export default function ModalNuevaCohorte({
                   </div>
 
                   <div className="space-y-1.5">
-                    <p className="font-mono text-[9.5px] uppercase tracking-[0.12em] text-zinc-400">
-                      Franjas y Sesiones
+                    <p className="text-xs font-bold text-slate-700">
+                      Horarios y Clases
                     </p>
                     <div className="flex flex-wrap gap-1">
                       {FRANJAS_ESTANDAR_LABELS.map((fl) => {
@@ -479,10 +476,10 @@ export default function ModalNuevaCohorte({
                                   : [...prev, fl]
                               )
                             }
-                            className={`h-7 rounded-sm border px-1.5 font-mono text-[9.5px] ${
+                            className={`h-7 rounded-md border px-2 text-xs font-semibold ${
                               on
-                                ? 'border-white bg-white font-semibold text-zinc-950'
-                                : 'border-zinc-700 bg-zinc-950 text-zinc-500'
+                                ? 'border-blue-300 bg-blue-600 text-white'
+                                : 'border-slate-300 bg-white text-slate-600'
                             }`}
                           >
                             {fl.split('-')[0]}
@@ -490,8 +487,8 @@ export default function ModalNuevaCohorte({
                         );
                       })}
                     </div>
-                    <label className="flex items-center gap-2 font-mono text-[10px] text-zinc-400">
-                      <span>Sesiones:</span>
+                    <label className="flex items-center gap-2 text-xs font-medium text-slate-700">
+                      <span>Clases:</span>
                       <input
                         type="number"
                         min={2}
@@ -501,7 +498,7 @@ export default function ModalNuevaCohorte({
                           const v = Number(e.target.value);
                           if (Number.isFinite(v)) setSesionesObjetivo(Math.trunc(v));
                         }}
-                        className="h-7 w-14 rounded-sm border border-zinc-700 bg-zinc-950 px-2 font-mono text-[11px] text-white"
+                        className="h-7 w-14 rounded-md border border-slate-300 bg-white px-2 text-xs font-semibold text-slate-900"
                       />
                     </label>
                   </div>
@@ -509,50 +506,49 @@ export default function ModalNuevaCohorte({
               )}
             </div>
 
-            {/* ── Vista automática Grupos A/B y Duplas dinámicas ──── */}
-            <div className="mt-3 space-y-2.5 border-t border-zinc-800 pt-3">
-              <div className="flex flex-wrap items-center justify-between gap-2 font-mono text-[10px] tracking-[0.1em]">
-                <span className="flex items-center gap-1.5 text-emerald-400">
-                  <Layers size={12} strokeWidth={1.75} aria-hidden />
-                  GRUPO A ({formatearDiasGrupoCorto(configCursado.dias_grupo_a)}):{' '}
-                  {estructuraDuplas.grupoACantidad} ALUMNOS
+            <div className="mt-3 space-y-2.5 border-t border-slate-200 pt-3">
+              <div className="flex flex-wrap items-center justify-between gap-2 text-xs font-semibold">
+                <span className="flex items-center gap-1.5 text-emerald-700">
+                  <Layers size={13} strokeWidth={1.75} aria-hidden />
+                  Grupo A ({formatearDiasGrupoCorto(configCursado.dias_grupo_a)}):{' '}
+                  {estructuraDuplas.grupoACantidad} alumnos
                 </span>
-                <span className="text-cyan-400">
+                <span className="text-blue-700">
                   {configCursado.dias_grupo_b.length > 0
-                    ? `GRUPO B (${formatearDiasGrupoCorto(configCursado.dias_grupo_b)}): ${estructuraDuplas.grupoBCantidad} ALUMNOS`
-                    : 'GRUPO B DESACTIVADO'}
+                    ? `Grupo B (${formatearDiasGrupoCorto(configCursado.dias_grupo_b)}): ${estructuraDuplas.grupoBCantidad} alumnos`
+                    : 'Grupo B desactivado'}
                 </span>
                 {estructuraDuplas.cuposReserva > 0 && (
-                  <span className="text-amber-300">
-                    +{estructuraDuplas.cuposReserva} RESERVA / SUPLENTES
+                  <span className="text-amber-800">
+                    +{estructuraDuplas.cuposReserva} en espera
                   </span>
                 )}
               </div>
 
-              <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-4">
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                 {estructuraDuplas.duplas.map((d) => (
                   <div
                     key={d.duplaNumero}
-                    className={`rounded-sm border px-2.5 py-2 font-mono ${
+                    className={`rounded-lg border px-3 py-2 text-xs ${
                       d.integrantesPrevistos > 0
                         ? d.grupo === 'GRUPO_A'
-                          ? 'border-emerald-500/30 bg-emerald-950/15'
-                          : 'border-cyan-500/30 bg-cyan-950/15'
-                        : 'border-zinc-800 bg-zinc-900/40 opacity-60'
+                          ? 'border-emerald-200 bg-emerald-50'
+                          : 'border-blue-200 bg-blue-50'
+                        : 'border-slate-200 bg-white opacity-60'
                     }`}
                   >
-                    <div className="flex items-center justify-between gap-1 text-[9.5px] font-semibold">
-                      <span className="text-white">DUPLA #{d.duplaNumero}</span>
+                    <div className="flex items-center justify-between gap-1 font-bold">
+                      <span className="text-slate-900">Dupla #{d.duplaNumero}</span>
                       <span
                         className={
-                          d.grupo === 'GRUPO_A' ? 'text-emerald-400' : 'text-cyan-400'
+                          d.grupo === 'GRUPO_A' ? 'text-emerald-700' : 'text-blue-700'
                         }
                       >
                         {d.grupo === 'GRUPO_A' ? 'A' : 'B'} · {d.diasLabel}
                       </span>
                     </div>
-                    <p className="mt-1 text-[9px] text-zinc-400">{d.horarioLabel}</p>
-                    <p className="mt-0.5 text-[9px] text-zinc-500">
+                    <p className="mt-1 text-slate-700">{d.horarioLabel}</p>
+                    <p className="mt-0.5 text-slate-500">
                       Puestos #{d.puestoDesde}–#{d.puestoHasta} ({d.integrantesPrevistos}/2)
                     </p>
                   </div>
@@ -561,54 +557,52 @@ export default function ModalNuevaCohorte({
             </div>
           </section>
 
-          {/* ── Proyección automática de calendario ─────────────── */}
           {proyeccion && (
-            <div className="rounded-sm border border-zinc-800 bg-zinc-950 px-3 py-2.5 font-mono text-[10.5px] leading-relaxed text-zinc-300">
-              <p className="text-white">
-                PROYECCIÓN AUTOMÁTICA ({configCursado.sesiones_objetivo} SESIONES POR ALUMNO):
+            <div className="rounded-lg border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-xs text-slate-700">
+              <p className="font-bold text-slate-900">
+                Fechas estimadas ({configCursado.sesiones_objetivo} clases por alumno):
               </p>
               <p className="mt-0.5">
-                Inicio Simulador: <strong className="text-white">{formatoCortoIso(proyeccion.fechaInicioSimulador)}</strong>{' '}
-                · Fin Simulador: <strong className="text-white">{formatoCortoIso(proyeccion.fechaFinSimulador)}</strong>{' '}
-                · Pase a Terreno: <strong className="text-emerald-400">{formatoCortoIso(proyeccion.fechaPaseTerreno)}</strong>
+                Inicio Simulador: <strong className="text-slate-900">{formatoCortoIso(proyeccion.fechaInicioSimulador)}</strong>{' '}
+                · Fin Simulador: <strong className="text-slate-900">{formatoCortoIso(proyeccion.fechaFinSimulador)}</strong>{' '}
+                · Pase a Patio: <strong className="text-emerald-700">{formatoCortoIso(proyeccion.fechaPaseTerreno)}</strong>
               </p>
             </div>
           )}
 
-          {/* ── Opción de activación inmediata ──────────────────── */}
-          <label className="flex cursor-pointer items-start gap-2.5 rounded-sm border border-zinc-800 bg-zinc-950 px-3 py-2.5">
+          <label className="flex cursor-pointer items-start gap-2.5 rounded-lg border border-slate-200 bg-white px-3.5 py-2.5">
             <input
               type="checkbox"
               checked={activarInmediatamente}
               onChange={(e) => setActivarInmediatamente(e.target.checked)}
-              className="mt-0.5 h-4 w-4 rounded-none border border-zinc-600 bg-zinc-950 accent-emerald-500"
+              className="mt-0.5 h-4 w-4 rounded border-slate-300 text-blue-600"
             />
-            <span className="font-mono text-[10.5px] leading-relaxed text-zinc-300">
-              Activar cohorte inmediatamente al crearla.
+            <span className="text-xs font-medium leading-relaxed text-slate-800">
+              Activar este curso inmediatamente al crearlo.
               {cohorteActivaCodigo ? (
-                <span className="block text-[9.5px] text-zinc-500">
-                  La cohorte activa actual ({cohorteActivaCodigo}) pasará a estado finalizada.
+                <span className="block text-slate-500">
+                  El curso activo actual ({cohorteActivaCodigo}) pasará a histórico.
                 </span>
               ) : null}
             </span>
           </label>
         </div>
 
-        <footer className="flex items-center justify-end gap-2 border-t border-zinc-800 bg-zinc-950 px-5 py-3">
+        <footer className="flex items-center justify-end gap-2 border-t border-slate-200 bg-slate-50 px-5 py-3.5">
           <button
             type="button"
             onClick={onCerrar}
             disabled={pendiente}
-            className="h-10 rounded-sm border border-zinc-700 bg-zinc-900 px-4 font-mono text-[11px] uppercase tracking-[0.12em] text-zinc-300 transition-colors hover:border-zinc-500 hover:text-white disabled:opacity-50"
+            className="h-10 rounded-lg border border-slate-300 bg-white px-4 text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-100 disabled:opacity-50"
           >
             Cancelar
           </button>
           <button
             type="submit"
             disabled={pendiente || !proyeccion}
-            className="h-10 rounded-sm border border-white bg-white px-5 font-mono text-[11px] font-semibold uppercase tracking-[0.12em] text-zinc-950 transition-colors hover:bg-zinc-200 disabled:cursor-not-allowed disabled:border-zinc-700 disabled:bg-zinc-800 disabled:text-zinc-500"
+            className="h-10 rounded-lg bg-blue-600 px-5 text-xs font-semibold text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-45"
           >
-            {pendiente ? 'CREANDO COHORTE…' : 'CREAR COHORTE Y FRANJAS'}
+            {pendiente ? 'Creando curso…' : 'Crear curso y turnos'}
           </button>
         </footer>
       </form>

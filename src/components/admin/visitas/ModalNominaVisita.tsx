@@ -129,29 +129,28 @@ export default function ModalNominaVisita({
       role="dialog"
       aria-modal="true"
       aria-labelledby="titulo-modal-nomina-visita"
-      className="fixed inset-0 z-40 flex items-start justify-center overflow-y-auto bg-black/75 p-4 backdrop-blur-xs"
+      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-900/50 p-4 backdrop-blur-xs"
       onClick={onCerrar}
     >
       <div
-        className="my-6 flex w-full max-w-4xl flex-col rounded-sm border border-zinc-700 bg-zinc-900 shadow-2xl"
+        className="my-6 flex w-full max-w-4xl flex-col rounded-xl border border-slate-200 bg-white shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* ── Cabecera ── */}
-        <header className="flex items-start justify-between gap-3 border-b border-zinc-800 px-5 py-3.5">
+        <header className="flex items-start justify-between gap-3 border-b border-slate-200 px-5 py-4">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="inline-flex items-center gap-1.5 rounded-sm border border-zinc-700 bg-zinc-950 px-2 py-0.5 font-mono text-xs font-semibold text-zinc-100">
-                <Users size={12} strokeWidth={2} aria-hidden />
+              <span className="inline-flex items-center gap-1.5 rounded-md border border-blue-200 bg-blue-50 px-2.5 py-0.5 text-xs font-semibold text-blue-700">
+                <Users size={13} strokeWidth={2} aria-hidden />
                 {visita.codigo_reserva}
               </span>
-              <span className="font-mono text-[11px] uppercase tracking-[0.12em] text-zinc-400">
+              <span className="text-xs font-medium text-slate-600">
                 {formatearFechaIsoCorto(visita.fecha_visita)}
                 {visita.turno ? ` · ${visita.turno}` : ''}
               </span>
             </div>
             <h2
               id="titulo-modal-nomina-visita"
-              className="mt-1.5 truncate text-base font-semibold text-zinc-100"
+              className="mt-1.5 truncate text-lg font-bold text-slate-900"
             >
               {institucionNombre}
             </h2>
@@ -160,60 +159,57 @@ export default function ModalNominaVisita({
           <button
             type="button"
             onClick={onCerrar}
-            aria-label="Cerrar detalle de nómina"
-            className="rounded-sm border border-zinc-800 bg-zinc-950 p-1.5 text-zinc-400 transition-colors hover:border-zinc-600 hover:text-white"
+            aria-label="Cerrar lista de asistentes"
+            className="rounded-lg p-1.5 text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900"
           >
-            <X size={15} strokeWidth={2} />
+            <X size={18} strokeWidth={2} />
           </button>
         </header>
 
-        {/* ── Resumen operativo + Métricas de nómina ── */}
-        <div className="grid grid-cols-1 gap-3 border-b border-zinc-800 bg-zinc-950/60 px-5 py-3 sm:grid-cols-3">
-          <div className="rounded-sm border border-zinc-800 bg-zinc-950 px-3 py-2">
-            <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-500">
-              CURSO Y CUPO DECLARADO
+        <div className="grid grid-cols-1 gap-3 border-b border-slate-200 bg-slate-50 px-5 py-3.5 sm:grid-cols-3">
+          <div className="rounded-lg border border-slate-200 bg-white px-3.5 py-2.5">
+            <p className="text-xs font-semibold text-slate-500">
+              Curso y cantidad
             </p>
-            <p className="mt-1 text-sm font-medium text-zinc-200">
+            <p className="mt-1 text-sm font-semibold text-slate-900">
               {visita.anio} · {visita.division?.trim() || 'S/D'} ·{' '}
-              <span className="font-mono">{visita.cant_alumnos} alumnos</span>
+              <span>{visita.cant_alumnos} alumnos</span>
             </p>
-            <p className="mt-0.5 font-mono text-[11px] text-zinc-400">
+            <p className="mt-0.5 text-xs text-slate-600">
               Docente: {visita.nombre_docente} ({visita.cel_docente})
             </p>
           </div>
 
-          <div className="rounded-sm border border-zinc-800 bg-zinc-950 px-3 py-2">
-            <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-500">
-              ESTADO Y LOGÍSTICA TUP
+          <div className="rounded-lg border border-slate-200 bg-white px-3.5 py-2.5">
+            <p className="text-xs font-semibold text-slate-500">
+              Estado y colectivo
             </p>
-            <p className="mt-1 font-mono text-xs uppercase text-zinc-200">
-              VISITA: {visita.estado_visita}
+            <p className="mt-1 text-sm font-semibold text-slate-900">
+              Visita: {visita.estado_visita}
             </p>
-            <p className="mt-1 flex items-center gap-1.5 font-mono text-[11px] text-zinc-400">
-              <Bus size={12} className="shrink-0 text-zinc-500" aria-hidden />
+            <p className="mt-1 flex items-center gap-1.5 text-xs text-slate-600">
+              <Bus size={13} className="shrink-0 text-blue-600" aria-hidden />
               {visita.requiere_tup
-                ? `TUP ACTIVO · ${(visita.tup_estado_traslado ?? 'pendiente').toUpperCase()}`
-                : 'TRASLADO POR CUENTA PROPIA'}
+                ? `Colectivo TUP · ${(visita.tup_estado_traslado ?? 'pendiente').replace(/_/g, ' ')}`
+                : 'Traslado por cuenta propia'}
             </p>
           </div>
 
-          <div className="rounded-sm border border-zinc-800 bg-zinc-950 px-3 py-2">
-            <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-500">
-              NÓMINA CARGADA (PÓLIZA)
+          <div className="rounded-lg border border-slate-200 bg-white px-3.5 py-2.5">
+            <p className="text-xs font-semibold text-slate-500">
+              Lista cargada (seguro)
             </p>
             {cargando ? (
-              <p className="mt-1.5 font-mono text-xs text-zinc-400">
-                Consultando...
-              </p>
+              <p className="mt-1.5 text-xs text-slate-500">Consultando…</p>
             ) : (
               <>
-                <p className="mt-1 font-mono text-lg font-semibold text-white tabular-nums">
+                <p className="mt-1 text-xl font-bold text-slate-900 tabular-nums">
                   {resumenRoles.total}{' '}
-                  <span className="text-xs font-normal text-zinc-400">
+                  <span className="text-xs font-normal text-slate-500">
                     personas
                   </span>
                 </p>
-                <p className="font-mono text-[11px] text-zinc-400">
+                <p className="text-xs text-slate-600">
                   {resumenRoles.alumnos} alumnos · {resumenRoles.docentes}{' '}
                   docentes
                 </p>
@@ -222,83 +218,78 @@ export default function ModalNominaVisita({
           </div>
         </div>
 
-        {/* ── Tabla de asistentes ── */}
         <div className="max-h-[55vh] overflow-y-auto px-5 py-4">
           {cargando && (
-            <div className="flex items-center justify-center gap-2 py-10 font-mono text-xs text-zinc-400">
-              <Loader2 size={15} className="animate-spin" />
-              CARGANDO NÓMINA DE ASISTENTES…
+            <div className="flex items-center justify-center gap-2 py-10 text-sm text-slate-500">
+              <Loader2 size={16} className="animate-spin" />
+              Cargando lista de asistentes…
             </div>
           )}
 
           {!cargando && error && (
             <div
               role="alert"
-              className="flex flex-wrap items-center justify-between gap-3 rounded-sm border border-red-900 bg-red-950/60 px-4 py-3 text-sm text-red-200"
+              className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-800"
             >
               <span className="flex items-center gap-2">
-                <AlertTriangle size={15} className="shrink-0 text-red-400" />
+                <AlertTriangle size={16} className="shrink-0 text-rose-600" />
                 {error}
               </span>
               <button
                 type="button"
                 onClick={() => void cargarNomina(visita.id)}
-                className="inline-flex items-center gap-1.5 rounded-sm border border-zinc-700 bg-zinc-900 px-2.5 py-1 font-mono text-[11px] text-zinc-200 hover:border-zinc-500"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-rose-300 bg-white px-3 py-1.5 text-xs font-semibold text-rose-800 hover:bg-rose-100"
               >
                 <RefreshCw size={12} />
-                REINTENTAR
+                Reintentar
               </button>
             </div>
           )}
 
           {!cargando && !error && asistentes.length === 0 && (
-            <div className="rounded-sm border border-dashed border-zinc-800 bg-zinc-950 px-4 py-10 text-center">
-              <p className="font-mono text-xs uppercase tracking-[0.12em] text-zinc-400">
-                SIN ASISTENTES REGISTRADOS
-              </p>
-              <p className="mt-1 text-xs text-zinc-500">
-                Esta reserva no posee filas cargadas en{' '}
-                <code className="font-mono text-zinc-300">visita_asistentes</code>.
+            <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-10 text-center">
+              <p className="text-sm font-semibold text-slate-700">
+                Sin asistentes registrados todavía
               </p>
             </div>
           )}
 
           {!cargando && !error && asistentes.length > 0 && (
-            <div className="overflow-x-auto rounded-sm border border-zinc-800 bg-zinc-950">
+            <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
               <table className="w-full border-collapse text-sm">
                 <thead>
-                  <tr className="border-b border-zinc-800 bg-zinc-900 text-left font-mono text-[10px] uppercase tracking-[0.12em] text-zinc-400">
-                    <th className="px-3 py-2">#</th>
-                    <th className="px-3 py-2">Apellido y Nombre</th>
-                    <th className="px-3 py-2">DNI</th>
-                    <th className="px-3 py-2">Fecha Nac.</th>
-                    <th className="px-3 py-2">Rol</th>
+                  <tr className="border-b border-slate-200 bg-slate-50 text-left text-xs font-semibold uppercase tracking-wider text-slate-600">
+                    <th className="px-3.5 py-2.5">#</th>
+                    <th className="px-3.5 py-2.5">Apellido y Nombre</th>
+                    <th className="px-3.5 py-2.5">DNI</th>
+                    <th className="px-3.5 py-2.5">Fecha Nac.</th>
+                    <th className="px-3.5 py-2.5">Rol</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-zinc-800/80">
+                <tbody className="divide-y divide-slate-100">
                   {asistentes.map((persona, indice) => (
                     <tr
                       key={persona.id}
-                      className="transition-colors hover:bg-zinc-900/60"
+                      className="transition-colors hover:bg-slate-50"
                     >
-                      <td className="px-3 py-2 font-mono text-xs text-zinc-500 tabular-nums">
+                      <td className="px-3.5 py-2.5 text-xs font-medium text-slate-500 tabular-nums">
                         {String(indice + 1).padStart(2, '0')}
                       </td>
-                      <td className="px-3 py-2 font-medium text-zinc-100">
+                      <td className="px-3.5 py-2.5 font-semibold text-slate-900">
                         {persona.apellido_nombre}
                       </td>
-                      <td className="px-3 py-2 font-mono text-xs text-zinc-300 tabular-nums">
+                      <td className="px-3.5 py-2.5 text-xs text-slate-700 tabular-nums">
                         {persona.dni?.trim() || '—'}
                       </td>
-                      <td className="px-3 py-2 font-mono text-xs text-zinc-400 tabular-nums">
+                      <td className="px-3.5 py-2.5 text-xs text-slate-600 tabular-nums">
                         {formatearFechaIsoCorto(persona.fecha_nacimiento)}
                       </td>
-                      <td className="px-3 py-2">
+                      <td className="px-3.5 py-2.5">
                         <span
-                          className={`inline-flex rounded-sm border px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.08em] ${
+                          className={`inline-flex rounded-md border px-2 py-0.5 text-xs font-semibold ${
                             persona.rol === 'Docente'
-                              ? 'border-sky-500/40 bg-sky-950/30 text-sky-300'
-                              : 'border-zinc-700 bg-zinc-900 text-zinc-300'
+                              ? 'border-blue-200 bg-blue-50 text-blue-700'
+                              : 'border-slate-200 bg-slate-100 text-slate-700'
                           }`}
                         >
                           {persona.rol}
@@ -312,27 +303,26 @@ export default function ModalNominaVisita({
           )}
         </div>
 
-        {/* ── Footer ── */}
-        <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-zinc-800 px-5 py-3">
-          <span className="font-mono text-[10px] tracking-[0.12em] text-zinc-500">
-            CONTACTO: {visita.email_contacto}
+        <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 bg-slate-50 px-5 py-3.5">
+          <span className="text-xs text-slate-600">
+            Contacto: {visita.email_contacto}
           </span>
           <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={() => void exportarExcelModal()}
               disabled={cargando || asistentes.length === 0 || exportando}
-              className="inline-flex items-center gap-1.5 rounded-sm border border-zinc-700 bg-zinc-950 px-3 py-1.5 font-mono text-[11px] tracking-[0.08em] text-zinc-200 transition-colors hover:border-zinc-500 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              <Download size={13} strokeWidth={1.75} />
-              {exportando ? 'EXPORTANDO…' : 'EXPORTAR EXCEL'}
+              <Download size={14} strokeWidth={1.75} />
+              {exportando ? 'Exportando…' : 'Exportar Excel'}
             </button>
             <button
               type="button"
               onClick={onCerrar}
-              className="rounded-sm bg-zinc-100 px-3.5 py-1.5 font-mono text-[11px] font-semibold tracking-[0.08em] text-zinc-950 transition-colors hover:bg-white"
+              className="rounded-lg bg-slate-900 px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-slate-800"
             >
-              CERRAR
+              Cerrar
             </button>
           </div>
         </footer>

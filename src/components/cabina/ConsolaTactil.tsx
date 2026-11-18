@@ -119,26 +119,26 @@ const NIVELES_ASISTENCIA: readonly {
   {
     valor: 'AUTONOMO',
     etiqueta: 'AUTÓNOMO',
-    detalle: 'SIN INTERVENCIÓN',
-    activoClase: 'bg-emerald-500 text-emerald-950 border-emerald-500',
+    detalle: 'Sin intervención',
+    activoClase: 'bg-emerald-600 text-white border-emerald-700',
   },
   {
     valor: 'AYUDA_VERBAL',
     etiqueta: 'AYUDA VERBAL',
-    detalle: 'GUÍA PUNTUAL',
-    activoClase: 'bg-amber-400 text-amber-950 border-amber-400',
+    detalle: 'Guía puntual',
+    activoClase: 'bg-amber-400 text-amber-950 border-amber-500',
   },
   {
     valor: 'INTERVENCION_CONSTANTE',
     etiqueta: 'INT. CONSTANTE',
-    detalle: 'CORRECCIÓN CONTINUA',
-    activoClase: 'bg-orange-500 text-orange-950 border-orange-500',
+    detalle: 'Corrección continua',
+    activoClase: 'bg-orange-500 text-white border-orange-600',
   },
   {
     valor: 'INTERVENCION_CRITICA',
     etiqueta: 'INT. CRÍTICA',
-    detalle: 'INTERVENCIÓN MANDOS',
-    activoClase: 'bg-red-500 text-red-950 border-red-500',
+    detalle: 'Intervención mandos',
+    activoClase: 'bg-rose-600 text-white border-rose-700',
   },
 ];
 
@@ -152,39 +152,39 @@ const BLOQUES_SPLIT: readonly {
     valor: 'PILOTO_A',
     rolCorto: 'PILOTO A',
     mitad: '0–30 MIN',
-    detalle: 'OPERA CABINA · 1° BLOQUE',
+    detalle: 'Opera cabina · 1° bloque',
   },
   {
     valor: 'COPILOTO_B',
     rolCorto: 'COPILOTO B',
     mitad: '0–30 MIN',
-    detalle: 'OBSERVA Y ASISTE · 1° BLOQUE',
+    detalle: 'Observa y asiste · 1° bloque',
   },
   {
     valor: 'PILOTO_B',
     rolCorto: 'PILOTO B',
     mitad: '30–60 MIN',
-    detalle: 'OPERA CABINA · 2° BLOQUE',
+    detalle: 'Opera cabina · 2° bloque',
   },
   {
     valor: 'COPILOTO_A',
     rolCorto: 'COPILOTO A',
     mitad: '30–60 MIN',
-    detalle: 'OBSERVA Y ASISTE · 2° BLOQUE',
+    detalle: 'Observa y asiste · 2° bloque',
   },
 ];
 
 const COLOR_PUNTAJE_ACTIVO: Record<PuntajeEje, string> = {
-  0: 'bg-red-500 border-red-500 text-red-950',
-  10: 'bg-amber-400 border-amber-400 text-amber-950',
-  20: 'bg-emerald-500 border-emerald-500 text-emerald-950',
+  0: 'bg-rose-600 border-rose-700 text-white',
+  10: 'bg-amber-400 border-amber-500 text-amber-950',
+  20: 'bg-emerald-600 border-emerald-700 text-white',
 };
 
 const BADGE_DICTAMEN: Record<DictamenCabina, { fondo: string; texto: string }> = {
-  APTO_DIRECTO: { fondo: 'bg-emerald-500', texto: 'text-emerald-950' },
-  APTO_OBSERVACION: { fondo: 'bg-emerald-500', texto: 'text-emerald-950' },
+  APTO_DIRECTO: { fondo: 'bg-emerald-600', texto: 'text-white' },
+  APTO_OBSERVACION: { fondo: 'bg-emerald-600', texto: 'text-white' },
   CONDICIONAL: { fondo: 'bg-amber-400', texto: 'text-amber-950' },
-  NO_APTO: { fondo: 'bg-red-500', texto: 'text-red-950' },
+  NO_APTO: { fondo: 'bg-rose-600', texto: 'text-white' },
 };
 
 function formatearReloj(totalSeg: number): string {
@@ -642,13 +642,13 @@ export default function ConsolaTactil({
   const feedbackBanner = feedback ? (
     <p
       role="status"
-      className={`mb-2 w-full rounded-sm border px-3 py-2 text-[11px] font-bold uppercase tracking-[0.12em] ${
+      className={`mb-2 w-full rounded-lg border px-3.5 py-2.5 text-xs font-semibold ${
         feedback.ok
-          ? 'border-emerald-700 bg-emerald-950 text-emerald-300'
-          : 'border-red-700 bg-red-950 text-red-300'
+          ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
+          : 'border-rose-200 bg-rose-50 text-rose-800'
       }`}
     >
-      {feedback.ok ? '▸ ' : '✕ '}
+      {feedback.ok ? '✓ ' : '✕ '}
       {feedback.texto}
     </p>
   ) : null;
@@ -656,18 +656,18 @@ export default function ConsolaTactil({
   // Pantalla de cierre cuando no queda ningún postulante pendiente en sesión.
   if (jornadaFinalizada) {
     return (
-      <div className="mx-auto flex flex-1 w-full max-w-3xl flex-col items-center justify-center gap-5 px-6 text-center">
+      <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col items-center justify-center gap-5 rounded-xl border border-slate-200 bg-white px-6 py-12 text-center shadow-sm">
         <span
           aria-hidden
-          className="h-2.5 w-2.5 rounded-full bg-emerald-400"
+          className="h-3 w-3 rounded-full bg-emerald-500"
         />
         {feedbackBanner ? <div className="w-full max-w-sm">{feedbackBanner}</div> : null}
-        <h2 className="text-base font-bold uppercase tracking-[0.18em] text-zinc-100">
-          SIN POSTULANTES PENDIENTES · JORNADA FINALIZADA
+        <h2 className="text-lg font-bold text-slate-900">
+          Sin alumnos pendientes · Jornada finalizada
         </h2>
-        <p className="max-w-sm text-[10.5px] uppercase leading-relaxed tracking-[0.12em] text-zinc-500">
-          Se evaluaron {evaluados.size} puestos en etapa {etapaActual.codigo}.
-          Recargue la pantalla para reflejar los últimos cambios del servidor.
+        <p className="max-w-sm text-sm leading-relaxed text-slate-600">
+          Se evaluaron {evaluados.size} alumnos en etapa {etapaActual.codigo}.
+          Recargá la pantalla para ver los últimos cambios guardados.
         </p>
         <button
           type="button"
@@ -676,22 +676,28 @@ export default function ConsolaTactil({
             setIdSeleccionado(alumnos[0]?.inscripcion_id ?? null);
             resetPantalla();
           }}
-          className="flex h-16 w-full max-w-sm items-center justify-center rounded-sm border border-zinc-100 bg-zinc-100 text-sm font-bold uppercase tracking-[0.18em] text-zinc-950 transition-colors active:bg-zinc-300"
+          className="flex h-14 w-full max-w-sm items-center justify-center rounded-xl bg-blue-600 text-sm font-bold text-white shadow-sm transition-colors hover:bg-blue-700 active:bg-blue-800"
         >
-          REINICIAR SESIÓN
+          Reiniciar sesión de evaluación
         </button>
       </div>
     );
   }
 
   return (
-    <div className="mx-auto flex flex-1 w-full max-w-3xl flex-col">
+    <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col space-y-4">
       {/* ── Cabecera ─────────────────────────────────────────────── */}
-      <header className="border-b border-zinc-800 px-4 pb-3 pt-4">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <h1 className="text-sm font-semibold uppercase tracking-[0.18em] text-zinc-100">
-            {'// CONSOLA VIVA DE CABINA'}
-          </h1>
+      <header className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h1 className="text-lg font-bold text-slate-900">
+              Evaluar en Cabina / Patio
+            </h1>
+            <p className="mt-0.5 text-xs font-medium text-slate-600">
+              Etapa {etapaActual.codigo} · Curso activo · {pendientes} pendientes de{' '}
+              {alumnos.length}
+            </p>
+          </div>
           <button
             type="button"
             onClick={() => {
@@ -700,31 +706,27 @@ export default function ConsolaTactil({
               void conmutarSimuladorAutoelevadorCabina(siguienteEstado);
             }}
             aria-pressed={simuladorEnLinea}
-            className={`inline-flex min-h-[36px] items-center gap-2 rounded-sm border px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.1em] transition-colors ${
+            className={`inline-flex min-h-[40px] items-center gap-2 rounded-lg border px-3.5 py-1.5 text-xs font-bold transition-colors ${
               simuladorEnLinea
-                ? 'border-amber-500/60 bg-amber-950/40 text-amber-300'
-                : 'border-emerald-500/40 bg-emerald-950/30 text-emerald-300'
+                ? 'border-amber-300 bg-amber-50 text-amber-800'
+                : 'border-emerald-300 bg-emerald-50 text-emerald-800'
             }`}
           >
             <span
               aria-hidden
-              className={`h-2 w-2 rounded-full ${
-                simuladorEnLinea ? 'bg-amber-400 animate-pulse' : 'bg-emerald-400'
+              className={`h-2.5 w-2.5 rounded-full ${
+                simuladorEnLinea ? 'bg-amber-500 animate-pulse' : 'bg-emerald-500'
               }`}
             />
-            {simuladorEnLinea ? 'SIM-01 EN OPERACIÓN (3D)' : 'SIM-01 LIBRE (3D)'}
+            {simuladorEnLinea ? 'Simulador Autoelevador en uso (3D)' : 'Simulador libre (3D)'}
           </button>
         </div>
-        <p className="mt-1 text-[10px] uppercase tracking-[0.14em] text-zinc-500">
-          ETAPA {etapaActual.codigo} · COHORTE ACTIVA · {pendientes} PENDIENTES DE{' '}
-          {alumnos.length}
-        </p>
       </header>
 
       {/* ── Selector de etapa de evaluación ──────────────────────── */}
-      <section className="border-b border-zinc-800 px-4 py-3">
-        <p className="mb-2 text-[9px] uppercase tracking-[0.16em] text-zinc-500">
-          ETAPA DE EVALUACIÓN EN CABINA
+      <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+        <p className="mb-2.5 text-xs font-bold uppercase tracking-wider text-slate-500">
+          Etapa de evaluación
         </p>
         <div role="group" aria-label="Etapa de evaluación" className="grid grid-cols-2 gap-2 sm:grid-cols-4">
           {ETAPAS.map((item) => {
@@ -735,18 +737,18 @@ export default function ConsolaTactil({
                 type="button"
                 aria-pressed={activa}
                 onClick={() => setEtapa(item.valor)}
-                className={`flex min-h-[48px] flex-col items-center justify-center rounded-sm border px-2 py-1.5 text-center transition-colors ${
+                className={`flex min-h-[52px] flex-col items-center justify-center rounded-xl border px-2 py-2 text-center transition-colors ${
                   activa
-                    ? 'border-zinc-100 bg-zinc-100 text-zinc-950'
-                    : 'border-zinc-800 bg-zinc-900 text-zinc-300 active:bg-zinc-800'
+                    ? 'border-blue-600 bg-blue-600 text-white shadow-sm'
+                    : 'border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100'
                 }`}
               >
-                <span className="text-[11px] font-bold uppercase tracking-[0.1em]">
+                <span className="text-xs font-bold">
                   {item.codigo}
                 </span>
                 <span
-                  className={`text-[8.5px] uppercase tracking-[0.08em] ${
-                    activa ? 'text-zinc-700' : 'text-zinc-500'
+                  className={`text-[11px] ${
+                    activa ? 'text-blue-100' : 'text-slate-500'
                   }`}
                 >
                   {item.subtitulo}
@@ -759,8 +761,8 @@ export default function ConsolaTactil({
 
       {/* ── Selector de alumnos (chips con scroll horizontal) ────── */}
       <nav
-        aria-label="Postulantes en turno"
-        className="flex gap-2 overflow-x-auto border-b border-zinc-800 px-4 py-3"
+        aria-label="Alumnos en turno"
+        className="flex gap-2.5 overflow-x-auto rounded-xl border border-slate-200 bg-white p-3 shadow-sm"
       >
         {alumnos.map((a) => {
           const activo = a.inscripcion_id === idSeleccionado;
@@ -771,10 +773,10 @@ export default function ConsolaTactil({
               type="button"
               onClick={() => setIdSeleccionado(a.inscripcion_id)}
               aria-pressed={activo}
-              className={`flex min-h-[48px] h-14 shrink-0 flex-col items-start justify-center rounded-sm border px-4 transition-colors ${
+              className={`flex min-h-[52px] shrink-0 flex-col items-start justify-center rounded-xl border px-4 py-2 transition-colors ${
                 activo
-                  ? 'border-zinc-100 bg-zinc-100 text-zinc-950'
-                  : 'border-zinc-800 bg-zinc-900 text-zinc-300 active:bg-zinc-800'
+                  ? 'border-blue-600 bg-blue-600 text-white shadow-sm'
+                  : 'border-slate-200 bg-slate-50 text-slate-800 hover:bg-slate-100'
               }`}
             >
               <span className="flex items-center gap-1.5">
@@ -782,18 +784,18 @@ export default function ConsolaTactil({
                   <span
                     aria-hidden
                     className={`h-2.5 w-2.5 rounded-full ${
-                      activo ? 'bg-emerald-600' : 'bg-emerald-400'
+                      activo ? 'bg-emerald-300' : 'bg-emerald-500'
                     }`}
                     title="Evaluado en esta sesión"
                   />
                 ) : null}
-                <span className="max-w-44 truncate text-xs font-bold uppercase tracking-[0.08em]">
+                <span className="max-w-44 truncate text-xs font-bold">
                   {a.nombre_completo}
                 </span>
               </span>
               <span
-                className={`text-[10px] tracking-[0.12em] ${
-                  activo ? 'text-zinc-600' : 'text-zinc-500'
+                className={`text-[11px] ${
+                  activo ? 'text-blue-100' : 'text-slate-500'
                 }`}
               >
                 DNI {a.dni}
@@ -807,11 +809,11 @@ export default function ConsolaTactil({
       {etapa === 'PRACTICA_REAL' ? (
         <section
           aria-label="Tablet en Patio — Práctica Real"
-          className="space-y-3 border-b border-zinc-800 bg-amber-950/10 px-4 py-3"
+          className="space-y-3 rounded-xl border border-amber-200 bg-white p-4 shadow-sm"
         >
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-amber-300">
-              TABLET EN PATIO · PRÁCTICA REAL (CERO STORAGE)
+            <span className="text-xs font-bold uppercase tracking-wider text-amber-800">
+              Evaluación en Patio · Máquina Real
             </span>
             <div className="flex gap-2">
               {(['PRESENTE', 'AUSENTE'] as const).map((st) => (
@@ -820,12 +822,12 @@ export default function ConsolaTactil({
                   type="button"
                   aria-pressed={asistenciaTerreno === st}
                   onClick={() => setAsistenciaTerreno(st)}
-                  className={`min-h-[40px] rounded-sm border px-3 text-[10px] font-bold uppercase tracking-[0.1em] ${
+                  className={`min-h-[42px] rounded-lg border px-4 text-xs font-bold transition-colors ${
                     asistenciaTerreno === st
                       ? st === 'PRESENTE'
-                        ? 'border-emerald-400 bg-emerald-500 text-emerald-950'
-                        : 'border-red-400 bg-red-500 text-red-950'
-                      : 'border-zinc-700 bg-zinc-900 text-zinc-300'
+                        ? 'border-emerald-700 bg-emerald-600 text-white'
+                        : 'border-rose-700 bg-rose-600 text-white'
+                      : 'border-slate-300 bg-slate-50 text-slate-700'
                   }`}
                 >
                   {st}
@@ -834,34 +836,34 @@ export default function ConsolaTactil({
             </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             <label className="block">
-              <span className="mb-1 block text-[9px] uppercase tracking-[0.14em] text-zinc-400">
-                PREDIO / LUGAR
+              <span className="mb-1 block text-xs font-semibold text-slate-700">
+                Predio / Lugar
               </span>
               <input
                 type="text"
                 maxLength={150}
                 value={lugarTerreno}
                 onChange={(e) => setLugarTerreno(e.target.value)}
-                className="min-h-[44px] w-full rounded-sm border border-zinc-700 bg-zinc-950 px-3 text-xs text-zinc-100"
+                className="min-h-[44px] w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-900"
               />
             </label>
             <label className="block">
-              <span className="mb-1 block text-[9px] uppercase tracking-[0.14em] text-zinc-400">
-                MÁQUINA REAL
+              <span className="mb-1 block text-xs font-semibold text-slate-700">
+                Máquina real
               </span>
               <input
                 type="text"
                 maxLength={120}
                 value={maquinaTerreno}
                 onChange={(e) => setMaquinaTerreno(e.target.value)}
-                className="min-h-[44px] w-full rounded-sm border border-zinc-700 bg-zinc-950 px-3 text-xs text-zinc-100"
+                className="min-h-[44px] w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-900"
               />
             </label>
             <label className="block">
-              <span className="mb-1 block text-[9px] uppercase tracking-[0.14em] text-zinc-400">
-                HORAS TERRENO (HS)
+              <span className="mb-1 block text-xs font-semibold text-slate-700">
+                Horas en patio (hs)
               </span>
               <input
                 type="number"
@@ -874,24 +876,24 @@ export default function ConsolaTactil({
                   const v = Number(e.target.value);
                   if (Number.isFinite(v)) setHorasTerreno(Math.max(0, v));
                 }}
-                className="min-h-[44px] w-full rounded-sm border border-zinc-700 bg-zinc-950 px-3 text-xs text-zinc-100 disabled:opacity-50"
+                className="min-h-[44px] w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-900 disabled:bg-slate-100 disabled:opacity-60"
               />
             </label>
           </div>
 
-          <div className="flex flex-wrap items-center justify-between gap-3 rounded-sm border border-zinc-800 bg-zinc-900/70 p-2.5">
-            <label className="inline-flex min-h-[40px] cursor-pointer items-center gap-2 text-[11px] font-bold uppercase tracking-[0.08em] text-amber-200">
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
+            <label className="inline-flex min-h-[40px] cursor-pointer items-center gap-2 text-xs font-semibold text-amber-800">
               <input
                 type="checkbox"
                 checked={requiereHorasExtra}
                 onChange={(e) => setRequiereHorasExtra(e.target.checked)}
-                className="h-4 w-4 accent-amber-400"
+                className="h-4 w-4 accent-amber-600"
               />
-              ¿REQUIERE MÁS HORAS DE REFUERZO?
+              ¿Requiere más horas de refuerzo?
             </label>
             {requiereHorasExtra && (
-              <label className="inline-flex items-center gap-2 text-[10px] uppercase text-zinc-300">
-                <span>HORAS EXTRA SUGERIDAS:</span>
+              <label className="inline-flex items-center gap-2 text-xs font-semibold text-slate-700">
+                <span>Horas extra sugeridas:</span>
                 <input
                   type="number"
                   min={0.5}
@@ -902,33 +904,33 @@ export default function ConsolaTactil({
                     const v = Number(e.target.value);
                     if (Number.isFinite(v)) setHorasExtraSugeridas(Math.max(0.5, v));
                   }}
-                  className="h-9 w-20 rounded-sm border border-amber-500/50 bg-zinc-950 px-2 text-xs text-white"
+                  className="h-9 w-20 rounded-lg border border-amber-300 bg-white px-2 text-sm text-slate-900"
                 />
               </label>
             )}
           </div>
 
           <div>
-            <p className="mb-1.5 text-[9px] font-bold uppercase tracking-[0.14em] text-emerald-300">
-              DECISIÓN MANUAL INSTRUCTOR EN TERRENO (EL INSTRUCTOR MANDA)
+            <p className="mb-2 text-xs font-bold text-slate-800">
+              Decisión del instructor en patio
             </p>
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
               {(
                 [
                   {
                     valor: 'APROBADO_EMPRESAS',
-                    etiqueta: 'APRUEBA · APTO EMPRESAS',
-                    activo: 'border-emerald-400 bg-emerald-500 text-emerald-950',
+                    etiqueta: 'Aprueba · Apto empresas',
+                    activo: 'border-emerald-700 bg-emerald-600 text-white',
                   },
                   {
                     valor: 'REQUIERE_MAS_HORAS',
-                    etiqueta: 'REQUIERE MÁS HORAS',
-                    activo: 'border-amber-400 bg-amber-400 text-amber-950',
+                    etiqueta: 'Requiere más horas',
+                    activo: 'border-amber-500 bg-amber-400 text-amber-950',
                   },
                   {
                     valor: 'NO_APTO',
-                    etiqueta: 'NO APTO TERRENO',
-                    activo: 'border-red-500 bg-red-500 text-red-950',
+                    etiqueta: 'No apto en patio',
+                    activo: 'border-rose-700 bg-rose-600 text-white',
                   },
                 ] as const
               ).map((op) => (
@@ -937,10 +939,10 @@ export default function ConsolaTactil({
                   type="button"
                   aria-pressed={decisionTerreno === op.valor}
                   onClick={() => setDecisionTerreno(op.valor)}
-                  className={`min-h-[48px] rounded-sm border px-3 text-[10.5px] font-bold uppercase tracking-[0.08em] transition-colors ${
+                  className={`min-h-[48px] rounded-xl border px-3 text-xs font-bold transition-colors ${
                     decisionTerreno === op.valor
                       ? op.activo
-                      : 'border-zinc-700 bg-zinc-900 text-zinc-300'
+                      : 'border-slate-300 bg-slate-50 text-slate-700 hover:bg-slate-100'
                   }`}
                 >
                   {op.etiqueta}
@@ -952,21 +954,21 @@ export default function ConsolaTactil({
       ) : (
       <section
         aria-label="Cronómetro Split 30/30 y rol en dupla"
-        className="space-y-3 border-b border-zinc-800 px-4 py-3"
+        className="space-y-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
       >
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-2">
-            <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-400">
-              SPLIT 30/30 · BLOQUE EN DUPLA
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-600">
+              Reloj de dupla (30 + 30 min)
             </span>
             <span
-              className={`rounded-sm border px-2 py-0.5 text-[9.5px] font-bold uppercase tracking-[0.1em] ${
+              className={`rounded-full border px-2.5 py-0.5 text-xs font-bold ${
                 segundoBloqueActivo
-                  ? 'border-cyan-500/50 bg-cyan-950/50 text-cyan-300'
-                  : 'border-emerald-500/50 bg-emerald-950/50 text-emerald-300'
+                  ? 'border-blue-200 bg-blue-50 text-blue-700'
+                  : 'border-emerald-200 bg-emerald-50 text-emerald-700'
               }`}
             >
-              {segundoBloqueActivo ? '2° BLOQUE (30–60M)' : '1° BLOQUE (0–30M)'}
+              {segundoBloqueActivo ? '2° Bloque (30–60m)' : '1° Bloque (0–30m)'}
             </span>
           </div>
           <button
@@ -976,17 +978,17 @@ export default function ConsolaTactil({
               setAudioSilenciado((sil) => !sil);
             }}
             aria-pressed={!audioSilenciado}
-            className="flex min-h-[48px] items-center gap-1.5 rounded-sm border border-zinc-700 bg-zinc-900 px-3 text-[10px] font-semibold uppercase tracking-[0.1em] text-zinc-300 transition-colors active:bg-zinc-800"
+            className="flex min-h-[44px] items-center gap-1.5 rounded-lg border border-slate-300 bg-slate-50 px-3 text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-100"
           >
             {audioSilenciado ? (
               <>
-                <VolumeX size={14} strokeWidth={1.75} aria-hidden />
-                ALARMA SILENCIADA
+                <VolumeX size={15} strokeWidth={1.85} aria-hidden />
+                Alarma silenciada
               </>
             ) : (
               <>
-                <Volume2 size={14} strokeWidth={1.75} aria-hidden />
-                ALARMA 30M ACTIVA
+                <Volume2 size={15} strokeWidth={1.85} aria-hidden />
+                Alarma 30m activa
               </>
             )}
           </button>
@@ -994,15 +996,15 @@ export default function ConsolaTactil({
 
         {/* Reloj + Botones de control */}
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-          <div className="flex min-w-44 flex-col rounded-sm border border-zinc-800 bg-zinc-900 px-4 py-2">
-            <span className="text-[9px] uppercase tracking-[0.16em] text-zinc-500">
+          <div className="flex min-w-44 flex-col rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5">
+            <span className="text-[11px] font-semibold text-slate-500">
               {segundos < SEGUNDOS_MITAD_SPLIT
-                ? `INTERCAMBIO EN ${formatearReloj(restanteSplitSeg)}`
-                : 'MITAD 30:00 COMPLETADA'}
+                ? `Intercambio en ${formatearReloj(restanteSplitSeg)}`
+                : 'Mitad 30:00 completada'}
             </span>
-            <span className="text-3xl font-bold tabular-nums tracking-[0.06em] text-zinc-50">
+            <span className="text-3xl font-bold tabular-nums text-slate-900">
               {formatearReloj(segundos)}
-              <span className="ml-1.5 text-xs font-normal text-zinc-500">
+              <span className="ml-1.5 text-xs font-medium text-slate-500">
                 / 60:00
               </span>
             </span>
@@ -1018,17 +1020,17 @@ export default function ConsolaTactil({
                 void conmutarSimuladorAutoelevadorCabina(true);
               }}
               disabled={corriendo}
-              className="flex min-h-[48px] items-center justify-center rounded-sm border border-emerald-700 bg-emerald-950 text-[11px] font-bold tracking-[0.12em] text-emerald-300 transition-colors active:bg-emerald-900 disabled:border-zinc-800 disabled:bg-zinc-900 disabled:text-zinc-600"
+              className="flex min-h-[48px] items-center justify-center rounded-xl border border-emerald-700 bg-emerald-600 text-xs font-bold text-white transition-colors hover:bg-emerald-700 disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
             >
-              {corriendo ? 'EN MARCHA' : 'INICIAR'}
+              {corriendo ? 'En marcha' : 'Iniciar'}
             </button>
             <button
               type="button"
               onClick={() => setCorriendo(false)}
               disabled={!corriendo}
-              className="flex min-h-[48px] items-center justify-center rounded-sm border border-amber-700 bg-amber-950 text-[11px] font-bold tracking-[0.12em] text-amber-300 transition-colors active:bg-amber-900 disabled:border-zinc-800 disabled:bg-zinc-900 disabled:text-zinc-600"
+              className="flex min-h-[48px] items-center justify-center rounded-xl border border-amber-400 bg-amber-50 text-xs font-bold text-amber-800 transition-colors hover:bg-amber-100 disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
             >
-              PAUSA
+              Pausa
             </button>
             <button
               type="button"
@@ -1040,32 +1042,32 @@ export default function ConsolaTactil({
                 setSimuladorEnLinea(false);
                 void conmutarSimuladorAutoelevadorCabina(false);
               }}
-              className="flex min-h-[48px] items-center justify-center rounded-sm border border-zinc-700 bg-zinc-900 text-[11px] font-bold tracking-[0.12em] text-zinc-200 transition-colors active:bg-zinc-800"
+              className="flex min-h-[48px] items-center justify-center rounded-xl border border-slate-300 bg-white text-xs font-bold text-slate-700 transition-colors hover:bg-slate-100"
             >
-              RESET
+              Reiniciar
             </button>
           </div>
         </div>
 
         {/* Barra de progreso Split 30/30 con marcador medio */}
         <div className="space-y-1">
-          <div className="relative h-2.5 w-full overflow-hidden rounded-sm border border-zinc-800 bg-zinc-900">
+          <div className="relative h-3 w-full overflow-hidden rounded-full border border-slate-200 bg-slate-100">
             <div
               className={`h-full transition-all duration-300 ${
-                segundos >= SEGUNDOS_MITAD_SPLIT ? 'bg-amber-400' : 'bg-emerald-500'
+                segundos >= SEGUNDOS_MITAD_SPLIT ? 'bg-amber-500' : 'bg-emerald-600'
               }`}
               style={{ width: `${progresoSplitPct}%` }}
             />
             <span
               aria-hidden
               title="Marca minuto 30:00 (Intercambio)"
-              className="absolute inset-y-0 left-1/2 w-0.5 bg-zinc-100/80"
+              className="absolute inset-y-0 left-1/2 w-0.5 bg-slate-700"
             />
           </div>
-          <div className="flex justify-between text-[8.5px] uppercase tracking-[0.12em] text-zinc-500">
-            <span>00:00 INICIO</span>
-            <span className="text-amber-300">30:00 INTERCAMBIO</span>
-            <span>60:00 FIN</span>
+          <div className="flex justify-between text-[11px] font-medium text-slate-500">
+            <span>00:00 Inicio</span>
+            <span className="font-semibold text-amber-700">30:00 Cambio</span>
+            <span>60:00 Fin</span>
           </div>
         </div>
 
@@ -1074,23 +1076,23 @@ export default function ConsolaTactil({
           <div
             role="status"
             aria-live="assertive"
-            className="flex flex-wrap items-center justify-between gap-2 rounded-sm border border-amber-400 bg-amber-950/60 px-3 py-2.5"
+            className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-amber-300 bg-amber-50 px-3.5 py-3"
           >
             <div className="min-w-0">
-              <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-amber-300">
-                MINUTO 30 ALCANZADO · INTERCAMBIAR PILOTO / COPILOTO
+              <p className="text-xs font-bold text-amber-900">
+                Minuto 30 alcanzado · Intercambiar Piloto / Copiloto
               </p>
-              <p className="mt-0.5 text-[9.5px] uppercase tracking-[0.08em] text-amber-200/80">
+              <p className="mt-0.5 text-xs text-amber-800">
                 Rotar puesto en cabina entre integrante A y B para el segundo bloque.
               </p>
             </div>
             <button
               type="button"
               onClick={confirmarIntercambioSplit}
-              className="flex min-h-[48px] shrink-0 items-center gap-1.5 rounded-sm border border-amber-400 bg-amber-400 px-3 text-[10px] font-bold uppercase tracking-[0.1em] text-amber-950 transition-colors active:bg-amber-300"
+              className="flex min-h-[44px] shrink-0 items-center gap-1.5 rounded-lg bg-amber-400 px-3.5 text-xs font-bold text-amber-950 transition-colors hover:bg-amber-300"
             >
-              <ArrowLeftRight size={14} strokeWidth={2} aria-hidden />
-              INTERCAMBIAR BLOQUE
+              <ArrowLeftRight size={15} strokeWidth={2} aria-hidden />
+              Intercambiar bloque
             </button>
           </div>
         )}
@@ -1114,18 +1116,18 @@ export default function ConsolaTactil({
                     setIntercambioConfirmado(true);
                   }
                 }}
-                className={`flex min-h-[48px] flex-col items-center justify-center rounded-sm border px-2 py-1.5 text-center transition-colors ${
+                className={`flex min-h-[48px] flex-col items-center justify-center rounded-xl border px-2 py-2 text-center transition-colors ${
                   activo
-                    ? 'border-cyan-400 bg-cyan-500 text-cyan-950'
-                    : 'border-zinc-800 bg-zinc-900 text-zinc-300 active:bg-zinc-800'
+                    ? 'border-blue-600 bg-blue-600 text-white'
+                    : 'border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100'
                 }`}
               >
-                <span className="text-[11px] font-bold uppercase tracking-[0.08em]">
+                <span className="text-xs font-bold">
                   {b.rolCorto}
                 </span>
                 <span
-                  className={`mt-0.5 text-[8.5px] font-semibold uppercase tracking-[0.06em] ${
-                    activo ? 'text-cyan-950/80' : 'text-zinc-500'
+                  className={`mt-0.5 text-[11px] font-medium ${
+                    activo ? 'text-blue-100' : 'text-slate-500'
                   }`}
                 >
                   {b.mitad}
@@ -1138,16 +1140,16 @@ export default function ConsolaTactil({
       )}
 
       {/* ── Los 4 ejes: pastillas gigantes [0][10][20] ───────────── */}
-      <section className="flex flex-col gap-3 px-4 py-4">
-        <h2 className="text-[10px] uppercase tracking-[0.16em] text-zinc-500">
-          EJES DE EVALUACIÓN
+      <section className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+        <h2 className="text-xs font-bold uppercase tracking-wider text-slate-500">
+          Ejes de evaluación
         </h2>
         {EJES.map((eje) => (
           <div
             key={eje.clave}
-            className="rounded-sm border border-zinc-800 bg-zinc-900 p-3"
+            className="rounded-xl border border-slate-200 bg-slate-50 p-3"
           >
-            <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-zinc-300">
+            <p className="mb-2 text-xs font-bold text-slate-800">
               {eje.etiqueta}
             </p>
             <div role="group" aria-label={eje.etiqueta} className="grid grid-cols-3 gap-2">
@@ -1161,16 +1163,16 @@ export default function ConsolaTactil({
                     onClick={() =>
                       setPuntajes((p) => ({ ...p, [eje.clave]: op.valor }))
                     }
-                    className={`flex min-h-[48px] h-14 flex-col items-center justify-center rounded-sm border text-center transition-colors ${
+                    className={`flex min-h-[54px] flex-col items-center justify-center rounded-xl border text-center transition-colors ${
                       seleccionado
                         ? COLOR_PUNTAJE_ACTIVO[op.valor]
-                        : 'border-zinc-700 bg-zinc-950 text-zinc-300 active:bg-zinc-800'
+                        : 'border-slate-300 bg-white text-slate-800 hover:bg-slate-100'
                     }`}
                   >
                     <span className="text-base font-bold tabular-nums leading-none">
                       {op.valor}
                     </span>
-                    <span className="mt-1 px-1 text-[9.5px] font-semibold uppercase leading-tight tracking-[0.08em]">
+                    <span className="mt-1 px-1 text-[11px] font-semibold leading-tight">
                       {op.texto}
                     </span>
                   </button>
@@ -1182,34 +1184,34 @@ export default function ConsolaTactil({
       </section>
 
       {/* ── Bonus segundo intento ────────────────────────────────── */}
-      <section className="px-4 pb-4">
+      <section>
         <button
           type="button"
           role="switch"
           aria-checked={bonus === 10}
           onClick={() => setBonus((b) => (b === 10 ? 0 : 10))}
-          className={`flex min-h-[48px] h-14 w-full items-center justify-between rounded-sm border px-4 transition-colors ${
+          className={`flex min-h-[56px] w-full items-center justify-between rounded-xl border px-4 shadow-sm transition-colors ${
             bonus === 10
-              ? 'border-emerald-500 bg-emerald-950'
-              : 'border-zinc-800 bg-zinc-900 active:bg-zinc-800'
+              ? 'border-emerald-300 bg-emerald-50'
+              : 'border-slate-200 bg-white hover:bg-slate-50'
           }`}
         >
           <span
-            className={`text-[11px] font-bold uppercase tracking-[0.12em] ${
-              bonus === 10 ? 'text-emerald-300' : 'text-zinc-400'
+            className={`text-xs font-bold ${
+              bonus === 10 ? 'text-emerald-800' : 'text-slate-700'
             }`}
           >
-            +10 PTS: MEJORÓ EN 2DO INTENTO
+            +10 pts: Mejoró en 2do intento
           </span>
           <span
             aria-hidden
-            className={`flex h-7 w-12 items-center rounded-sm border p-0.5 transition-colors ${
-              bonus === 10 ? 'border-emerald-500 bg-emerald-500' : 'border-zinc-600 bg-zinc-950'
+            className={`flex h-7 w-12 items-center rounded-full border p-0.5 transition-colors ${
+              bonus === 10 ? 'border-emerald-600 bg-emerald-600' : 'border-slate-300 bg-slate-200'
             }`}
           >
             <span
-              className={`h-5 w-5 rounded-sm transition-transform ${
-                bonus === 10 ? 'translate-x-5 bg-emerald-950' : 'translate-x-0 bg-zinc-600'
+              className={`h-5 w-5 rounded-full bg-white shadow-xs transition-transform ${
+                bonus === 10 ? 'translate-x-5' : 'translate-x-0'
               }`}
             />
           </span>
@@ -1217,9 +1219,9 @@ export default function ConsolaTactil({
       </section>
 
       {/* ── Selector de nivel de asistencia del instructor ───────── */}
-      <section className="px-4 pb-4">
-        <h2 className="mb-2 text-[10px] uppercase tracking-[0.16em] text-zinc-500">
-          NIVEL DE ASISTENCIA DEL INSTRUCTOR
+      <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+        <h2 className="mb-2.5 text-xs font-bold uppercase tracking-wider text-slate-500">
+          Nivel de asistencia del instructor
         </h2>
         <div
           role="group"
@@ -1234,16 +1236,16 @@ export default function ConsolaTactil({
                 type="button"
                 aria-pressed={activa}
                 onClick={() => setNivelAsistencia(nivel.valor)}
-                className={`flex min-h-[48px] h-16 flex-col items-center justify-center rounded-sm border px-2 py-1.5 text-center transition-colors ${
+                className={`flex min-h-[58px] flex-col items-center justify-center rounded-xl border px-2 py-2 text-center transition-colors ${
                   activa
                     ? nivel.activoClase
-                    : 'border-zinc-700 bg-zinc-950 text-zinc-300 active:bg-zinc-800'
+                    : 'border-slate-300 bg-slate-50 text-slate-800 hover:bg-slate-100'
                 }`}
               >
-                <span className="text-[11px] font-bold uppercase leading-tight tracking-[0.08em]">
+                <span className="text-xs font-bold leading-tight">
                   {nivel.etiqueta}
                 </span>
-                <span className="mt-0.5 text-[8.5px] font-semibold uppercase tracking-[0.06em] opacity-80">
+                <span className="mt-0.5 text-[11px] font-medium opacity-85">
                   {nivel.detalle}
                 </span>
               </button>
@@ -1251,17 +1253,17 @@ export default function ConsolaTactil({
           })}
         </div>
         {nivelAsistencia === 'INTERVENCION_CRITICA' && !hardFail && (
-          <p className="mt-2 rounded-sm border border-amber-500/40 bg-amber-950/30 px-3 py-1.5 text-[10px] uppercase tracking-[0.08em] text-amber-300">
-            ATENCIÓN: Con intervención crítica sobre mandos evalúe activar Hard-Fail si existió riesgo de seguridad.
+          <p className="mt-2.5 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-800">
+            Atención: con intervención crítica sobre mandos evaluá activar Falta crítica si existió riesgo de seguridad.
           </p>
         )}
       </section>
 
       {/* ── Tarjeta hard-fail ────────────────────────────────────── */}
-      <section className="px-4 pb-4">
+      <section>
         <div
-          className={`rounded-sm border p-3 ${
-            hardFail ? 'border-red-500 bg-red-950/40' : 'border-red-500/60 bg-zinc-900'
+          className={`rounded-xl border p-4 shadow-sm ${
+            hardFail ? 'border-rose-300 bg-rose-50' : 'border-rose-200 bg-white'
           }`}
         >
           <button
@@ -1274,40 +1276,40 @@ export default function ConsolaTactil({
                 return !h;
               })
             }
-            className="flex min-h-[48px] h-14 w-full items-center justify-between"
+            className="flex min-h-[48px] w-full items-center justify-between"
           >
             <span className="flex items-center gap-2.5">
               <span
                 aria-hidden
                 className={`h-2.5 w-2.5 rounded-full ${
-                  hardFail ? 'bg-red-500 animate-pulse' : 'bg-zinc-700'
+                  hardFail ? 'bg-rose-600 animate-pulse' : 'bg-slate-300'
                 }`}
               />
               <span
-                className={`text-[11px] font-bold uppercase tracking-[0.14em] ${
-                  hardFail ? 'text-red-400' : 'text-zinc-400'
+                className={`text-xs font-bold uppercase tracking-wider ${
+                  hardFail ? 'text-rose-700' : 'text-slate-700'
                 }`}
               >
-                HARD-FAIL · FALTA CRÍTICA
+                Falta crítica (Desaprueba directo)
               </span>
             </span>
             <span
               aria-hidden
-              className={`flex h-7 w-12 items-center rounded-sm border p-0.5 transition-colors ${
-                hardFail ? 'border-red-500 bg-red-500' : 'border-zinc-600 bg-zinc-950'
+              className={`flex h-7 w-12 items-center rounded-full border p-0.5 transition-colors ${
+                hardFail ? 'border-rose-600 bg-rose-600' : 'border-slate-300 bg-slate-200'
               }`}
             >
               <span
-                className={`h-5 w-5 rounded-sm transition-transform ${
-                  hardFail ? 'translate-x-5 bg-red-950' : 'translate-x-0 bg-zinc-600'
+                className={`h-5 w-5 rounded-full bg-white shadow-xs transition-transform ${
+                  hardFail ? 'translate-x-5' : 'translate-x-0'
                 }`}
               />
             </span>
           </button>
           {hardFail ? (
-            <label className="mt-2 block">
-              <span className="mb-1 block text-[9px] font-bold uppercase tracking-[0.16em] text-red-400">
-                MOTIVO OBLIGATORIO * (FUERZA NO APTO)
+            <label className="mt-2.5 block">
+              <span className="mb-1 block text-xs font-bold text-rose-700">
+                Motivo obligatorio * (fuerza No Apto)
               </span>
               <textarea
                 ref={motivoHardFailRef}
@@ -1318,11 +1320,11 @@ export default function ConsolaTactil({
                 value={motivoHardFail}
                 onChange={(ev) => setMotivoHardFail(ev.target.value)}
                 rows={2}
-                placeholder="Describa la falta crítica (obligatorio para guardar)…"
-                className={`w-full resize-none rounded-sm border bg-zinc-950 px-3 py-2 text-xs text-zinc-100 placeholder:text-zinc-600 focus:outline-none ${
+                placeholder="Describí la falta crítica (obligatorio para guardar)…"
+                className={`w-full resize-none rounded-lg border bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none ${
                   motivoHardFail.trim().length === 0
-                    ? 'border-red-500 focus:border-red-400'
-                    : 'border-red-500/50 focus:border-red-500'
+                    ? 'border-rose-500'
+                    : 'border-rose-300'
                 }`}
               />
             </label>
@@ -1331,139 +1333,135 @@ export default function ConsolaTactil({
       </section>
 
       {/* ── Observaciones e Instructor ───────────────────────────── */}
-      <section className="px-4 pb-4">
-        <div className="rounded-sm border border-zinc-800 bg-zinc-900 p-3">
-          <p className="mb-2 text-[10px] uppercase tracking-[0.16em] text-zinc-500">
-            OBSERVACIONES RÁPIDAS DEL INSTRUCTOR
-          </p>
-          <div className="flex flex-wrap gap-2">
-            {OBSERVACIONES_RAPIDAS_PRESETS.map((chip) => {
-              const marcado = observacionesRapidas.includes(chip);
-              return (
-                <button
-                  key={chip}
-                  type="button"
-                  aria-pressed={marcado}
-                  onClick={() => toggleObservacionRapida(chip)}
-                  className={`min-h-[48px] rounded-sm border px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.08em] transition-colors ${
-                    marcado
-                      ? 'border-zinc-100 bg-zinc-100 text-zinc-950'
-                      : 'border-zinc-700 bg-zinc-950 text-zinc-300 active:bg-zinc-800'
-                  }`}
-                >
-                  {chip}
-                </button>
-              );
-            })}
-          </div>
-          <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <label className="block">
-              <span className="mb-1 block text-[9px] uppercase tracking-[0.16em] text-zinc-500">
-                INSTRUCTOR EVALUADOR
-              </span>
-              <input
-                type="text"
-                maxLength={120}
-                value={instructor}
-                onChange={(ev) => setInstructor(ev.target.value)}
-                placeholder="Nombre o usuario del instructor"
-                className="min-h-[48px] w-full rounded-sm border border-zinc-700 bg-zinc-950 px-3 text-xs text-zinc-100 placeholder:text-zinc-600 focus:border-zinc-400 focus:outline-none"
-              />
-            </label>
-            <label className="block">
-              <span className="mb-1 block text-[9px] uppercase tracking-[0.16em] text-zinc-500">
-                NOTAS DE DESEMPEÑO (OPCIONAL)
-              </span>
-              <input
-                type="text"
-                maxLength={2000}
-                value={observacionesDetalle}
-                onChange={(ev) => setObservacionesDetalle(ev.target.value)}
-                placeholder="Detalle técnico breve para legajo…"
-                className="min-h-[48px] w-full rounded-sm border border-zinc-700 bg-zinc-950 px-3 text-xs text-zinc-100 placeholder:text-zinc-600 focus:border-zinc-400 focus:outline-none"
-              />
-            </label>
-          </div>
+      <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+        <p className="mb-2.5 text-xs font-bold uppercase tracking-wider text-slate-500">
+          Observaciones rápidas del instructor
+        </p>
+        <div className="flex flex-wrap gap-2">
+          {OBSERVACIONES_RAPIDAS_PRESETS.map((chip) => {
+            const marcado = observacionesRapidas.includes(chip);
+            return (
+              <button
+                key={chip}
+                type="button"
+                aria-pressed={marcado}
+                onClick={() => toggleObservacionRapida(chip)}
+                className={`min-h-[44px] rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors ${
+                  marcado
+                    ? 'border-blue-600 bg-blue-600 text-white'
+                    : 'border-slate-300 bg-slate-50 text-slate-700 hover:bg-slate-100'
+                }`}
+              >
+                {chip}
+              </button>
+            );
+          })}
+        </div>
+        <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <label className="block">
+            <span className="mb-1 block text-xs font-semibold text-slate-600">
+              Instructor evaluador
+            </span>
+            <input
+              type="text"
+              maxLength={120}
+              value={instructor}
+              onChange={(ev) => setInstructor(ev.target.value)}
+              placeholder="Nombre o usuario del instructor"
+              className="min-h-[44px] w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-900 placeholder:text-slate-400"
+            />
+          </label>
+          <label className="block">
+            <span className="mb-1 block text-xs font-semibold text-slate-600">
+              Notas de desempeño (opcional)
+            </span>
+            <input
+              type="text"
+              maxLength={2000}
+              value={observacionesDetalle}
+              onChange={(ev) => setObservacionesDetalle(ev.target.value)}
+              placeholder="Detalle breve para la ficha del alumno…"
+              className="min-h-[44px] w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-900 placeholder:text-slate-400"
+            />
+          </label>
         </div>
       </section>
 
-      {/* ── Decisión manual del instructor T0 (El Instructor Manda) ─ */}
+      {/* ── Decisión manual del instructor T0 ───────────────────── */}
       {etapa !== 'PRACTICA_REAL' && (
-        <section className="px-4 pb-4">
-          <div className="rounded-sm border border-zinc-800 bg-zinc-900 p-3">
-            <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-emerald-300">
-              DECISIÓN MANUAL DEL INSTRUCTOR (T0 · EL INSTRUCTOR MANDA)
-            </p>
-            <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-              {(
-                [
-                  {
-                    valor: 'AUTO',
-                    etiqueta: 'SEGÚN DICTAMEN AUTO',
-                    activo: 'border-zinc-200 bg-zinc-200 text-zinc-950',
-                  },
-                  {
-                    valor: 'APROBADO_A_CAPACITACION',
-                    etiqueta: 'APRUEBA → CAPACITACIÓN',
-                    activo: 'border-emerald-400 bg-emerald-500 text-emerald-950',
-                  },
-                  {
-                    valor: 'RECHAZADO',
-                    etiqueta: 'NO APRUEBA (DESCARTAR)',
-                    activo: 'border-red-500 bg-red-500 text-red-950',
-                  },
-                ] as const
-              ).map((op) => (
-                <button
-                  key={op.valor}
-                  type="button"
-                  aria-pressed={decisionManualT0 === op.valor}
-                  onClick={() => setDecisionManualT0(op.valor)}
-                  className={`min-h-[48px] rounded-sm border px-3 text-[10px] font-bold uppercase tracking-[0.08em] transition-colors ${
-                    decisionManualT0 === op.valor
-                      ? op.activo
-                      : 'border-zinc-700 bg-zinc-950 text-zinc-300'
-                  }`}
-                >
-                  {op.etiqueta}
-                </button>
-              ))}
-            </div>
+        <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+          <p className="mb-2.5 text-xs font-bold uppercase tracking-wider text-slate-700">
+            Decisión del instructor en diagnóstico
+          </p>
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+            {(
+              [
+                {
+                  valor: 'AUTO',
+                  etiqueta: 'Según resultado automático',
+                  activo: 'border-blue-600 bg-blue-600 text-white',
+                },
+                {
+                  valor: 'APROBADO_A_CAPACITACION',
+                  etiqueta: 'Aprueba → Pasa a curso',
+                  activo: 'border-emerald-700 bg-emerald-600 text-white',
+                },
+                {
+                  valor: 'RECHAZADO',
+                  etiqueta: 'No aprueba',
+                  activo: 'border-rose-700 bg-rose-600 text-white',
+                },
+              ] as const
+            ).map((op) => (
+              <button
+                key={op.valor}
+                type="button"
+                aria-pressed={decisionManualT0 === op.valor}
+                onClick={() => setDecisionManualT0(op.valor)}
+                className={`min-h-[48px] rounded-xl border px-3 text-xs font-bold transition-colors ${
+                  decisionManualT0 === op.valor
+                    ? op.activo
+                    : 'border-slate-300 bg-slate-50 text-slate-700 hover:bg-slate-100'
+                }`}
+              >
+                {op.etiqueta}
+              </button>
+            ))}
           </div>
         </section>
       )}
 
       {/* ── Panel en vivo: score + dictamen ──────────────────────── */}
-      <section className="px-4 pb-4">
-        <div className="flex items-center justify-between gap-3 rounded-sm border border-zinc-800 bg-zinc-900 px-4 py-3">
+      <section>
+        <div className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-5 py-4 shadow-sm">
           <div className="flex flex-col">
-            <span className="text-[9px] uppercase tracking-[0.16em] text-zinc-500">
-              SCORE EN VIVO
+            <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+              Puntaje en vivo
             </span>
-            <span className="text-4xl font-bold tabular-nums leading-none tracking-[0.04em] text-zinc-50">
+            <span className="text-4xl font-bold tabular-nums leading-none text-slate-900">
               {preview.score_total !== null ? (
                 <>
                   {preview.score_total}
-                  <span className="text-lg text-zinc-600">/90</span>
+                  <span className="text-lg font-medium text-slate-400">/90</span>
                 </>
               ) : (
-                <span className="text-zinc-600">—</span>
+                <span className="text-slate-400">—</span>
               )}
             </span>
           </div>
           <div className="flex flex-col items-end gap-1.5">
-            <span className="text-[9px] uppercase tracking-[0.16em] text-zinc-500">
-              DICTAMEN · {etapaActual.codigo}
+            <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+              Resultado · {etapaActual.codigo}
             </span>
             {badge && preview.dictamen ? (
               <span
-                className={`rounded-sm px-3 py-2 text-xs font-bold uppercase tracking-[0.12em] ${badge.fondo} ${badge.texto}`}
+                className={`rounded-lg px-3.5 py-2 text-xs font-bold ${badge.fondo} ${badge.texto}`}
               >
-                {preview.dictamen.replace('_', ' ')}
+                {preview.dictamen.replaceAll('_', ' ')}
               </span>
             ) : (
-              <span className="rounded-sm border border-zinc-700 bg-zinc-950 px-3 py-2 text-xs font-bold uppercase tracking-[0.12em] text-zinc-500">
-                PENDIENTE
+              <span className="rounded-lg border border-slate-200 bg-slate-100 px-3.5 py-2 text-xs font-bold text-slate-500">
+                Pendiente
               </span>
             )}
           </div>
@@ -1471,21 +1469,21 @@ export default function ConsolaTactil({
       </section>
 
       {/* ── Feedback + botón final ───────────────────────────────── */}
-      <footer className="mt-auto border-t border-zinc-800 px-4 pb-5 pt-3">
+      <footer className="pb-6 pt-1">
         {feedbackBanner}
         <button
           type="button"
           onClick={guardar}
           disabled={enTransicion}
-          className="flex min-h-[48px] h-16 w-full items-center justify-center gap-2 rounded-sm border border-zinc-100 bg-zinc-100 text-sm font-bold uppercase tracking-[0.18em] text-zinc-950 transition-colors active:bg-zinc-300 disabled:border-zinc-700 disabled:bg-zinc-800 disabled:text-zinc-500"
+          className="flex h-16 w-full items-center justify-center gap-2 rounded-xl bg-blue-600 text-sm font-bold text-white shadow-sm transition-colors hover:bg-blue-700 active:bg-blue-800 disabled:bg-slate-300 disabled:text-slate-500"
         >
           {enTransicion ? (
             <>
-              <span aria-hidden className="h-2.5 w-2.5 animate-pulse rounded-full bg-zinc-500" />
-              GUARDANDO…
+              <span aria-hidden className="h-2.5 w-2.5 animate-pulse rounded-full bg-white" />
+              Guardando evaluación…
             </>
           ) : (
-            'GUARDAR Y SIGUIENTE'
+            'Guardar evaluación y pasar al siguiente'
           )}
         </button>
       </footer>

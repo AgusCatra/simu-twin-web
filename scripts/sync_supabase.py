@@ -231,6 +231,7 @@ def construir_metricas_camel(rep: dict) -> dict:
         "clasificacionAptitud": clasi.get("aptitud"),
         "hallazgosMastil": hallazgos_mastil,
         "alertaFalsoPositivoSuelo": len(descartes_det) > 0,
+        "indiceCuidadoMecanico": ps.calcular_indice_cuidado_mecanico(rep),
     }
 
 
@@ -471,9 +472,20 @@ def ejecutar_sync(input_dir: str, dry_run: bool = False):
 
         postulantes_tocar.add(pid)
 
-        fecha_diag = validos[0].get("fecha_calendario") or "SIN_FECHA"
-        primer_dia = [x for x in validos if (x.get("fecha_calendario") or "SIN_FECHA") == fecha_diag]
-        posteriores = [x for x in validos if (x.get("fecha_calendario") or "SIN_FECHA") != fecha_diag]
+        medium_load = [x for x in validos if ps.es_medium_load_operation(x.get("exercise_name"))]
+        intermedias = [x for x in validos if not ps.es_medium_load_operation(x.get("exercise_name"))]
+
+        for rep in intermedias:
+            filas_upsert.append(
+                construir_evaluacion_row(pid, rep, "PRACTICA_INTERMEDIA", False, None)
+            )
+
+        if not medium_load:
+            continue
+
+        fecha_diag = medium_load[0].get("fecha_calendario") or "SIN_FECHA"
+        primer_dia = [x for x in medium_load if (x.get("fecha_calendario") or "SIN_FECHA") == fecha_diag]
+        posteriores = [x for x in medium_load if (x.get("fecha_calendario") or "SIN_FECHA") != fecha_diag]
 
         mejor_t0 = min(
             primer_dia,

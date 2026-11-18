@@ -18,16 +18,15 @@ import {
  *  TOKENS DE ESTILO (mismos valores que FormularioActividadModal)
  * ═══════════════════════════════════════════════════════════════════════ */
 
-const LABEL_CLASS =
-  'block font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-500';
+const LABEL_CLASS = 'block text-xs font-semibold text-slate-700 mb-1';
 const INPUT_CLASS =
-  'w-full rounded-sm border border-zinc-800 bg-zinc-950 px-2.5 py-1.5 text-sm text-zinc-100 placeholder:text-zinc-600 focus:border-zinc-500 focus:outline-none';
+  'w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20';
 const SELECT_CLASS = INPUT_CLASS;
 const BTN_SECUNDARIO =
-  'inline-flex items-center gap-1.5 rounded-sm border border-zinc-700 bg-zinc-900 px-2.5 py-1.5 font-mono text-[11px] tracking-[0.08em] text-zinc-300 transition-colors hover:border-zinc-500 hover:text-white disabled:cursor-not-allowed disabled:opacity-50';
-const PANEL_CLASS = 'rounded-sm border border-zinc-800 bg-zinc-950';
+  'inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-100 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-50';
+const PANEL_CLASS = 'rounded-xl border border-slate-200 bg-slate-50/70';
 const ERROR_CLASS =
-  'rounded-sm border border-red-900 bg-red-950 px-3 py-2 text-sm text-red-200';
+  'rounded-lg border border-rose-200 bg-rose-50 px-3.5 py-2.5 text-sm font-medium text-rose-800';
 
 function esEstadoVisitaValido(valor: string): valor is EstadoVisita {
   return (ESTADOS_VISITA as readonly string[]).includes(valor);
@@ -222,25 +221,24 @@ export default function ModalEditarVisita({
       role="dialog"
       aria-modal="true"
       aria-labelledby="titulo-modal-editar-visita"
-      className="fixed inset-0 z-40 flex items-start justify-center overflow-y-auto bg-black/70 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-900/50 p-4 backdrop-blur-xs"
     >
       <form
         onSubmit={enviar}
-        className="my-6 w-full max-w-4xl rounded-sm border border-zinc-700 bg-zinc-900"
+        className="my-6 w-full max-w-4xl rounded-xl border border-slate-200 bg-white shadow-xl"
       >
-        {/* ── CABECERA ── */}
-        <header className="flex items-start justify-between gap-3 border-b border-zinc-800 px-5 py-3">
+        <header className="flex items-start justify-between gap-3 border-b border-slate-200 px-5 py-4">
           <div>
             <h2
               id="titulo-modal-editar-visita"
-              className="font-mono text-sm font-semibold uppercase tracking-[0.14em] text-zinc-100"
+              className="text-lg font-bold text-slate-900"
             >
-              [ MODIFICAR RESERVA // {visita.codigo_reserva} ]
+              Editar visita · {visita.codigo_reserva}
             </h2>
-            <p className="mt-1 font-mono text-[10px] tracking-[0.14em] text-zinc-500">
-              ESTADO ACTUAL:{' '}
-              <span className="text-zinc-300">
-                {visita.estado_visita.toUpperCase()}
+            <p className="mt-0.5 text-xs text-slate-600">
+              Estado actual:{' '}
+              <span className="font-semibold text-slate-900">
+                {visita.estado_visita}
               </span>
             </p>
           </div>
@@ -248,13 +246,12 @@ export default function ModalEditarVisita({
             type="button"
             onClick={onCerrar}
             aria-label="Cerrar formulario"
-            className="rounded-sm border border-zinc-800 bg-zinc-950 p-1.5 text-zinc-400 transition-colors hover:border-zinc-600 hover:text-white"
+            className="rounded-lg p-1.5 text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900"
           >
-            <X size={14} strokeWidth={2} />
+            <X size={18} strokeWidth={2} />
           </button>
         </header>
 
-        {/* ── CUERPO ── */}
         <div className="space-y-5 px-5 py-4">
           {error && (
             <p role="alert" className={ERROR_CLASS}>
@@ -263,19 +260,18 @@ export default function ModalEditarVisita({
           )}
 
           {fechaCambioReprogramacion && (
-            <p className="rounded-sm border border-amber-900 bg-amber-950 px-3 py-2 text-sm text-amber-200">
-              ⚠ REPROGRAMACIÓN: la fecha cambiará de{' '}
+            <p className="rounded-lg border border-amber-200 bg-amber-50 px-3.5 py-2.5 text-sm font-medium text-amber-900">
+              Reprogramación: la fecha cambiará de{' '}
               {formatearFecha(visita.fecha_visita)} a{' '}
-              {formatearFecha(fechaVisita)}
+              {formatearFecha(fechaVisita)}.
             </p>
           )}
 
-          {/* ── SECCIÓN 01 · AGENDA Y TURNO ── */}
           <section className={PANEL_CLASS}>
-            <h3 className="border-b border-zinc-800 px-3 py-2 font-mono text-[10px] tracking-[0.16em] text-zinc-500">
-              01 · AGENDA Y TURNO
+            <h3 className="border-b border-slate-200 px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-slate-600">
+              1. Fecha y curso
             </h3>
-            <div className="grid grid-cols-1 gap-3 p-3 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="grid grid-cols-1 gap-3 p-4 sm:grid-cols-2 lg:grid-cols-4">
               <div className="sm:col-span-2">
                 <label htmlFor="editar_fecha_visita" className={LABEL_CLASS}>
                   Fecha de visita *
@@ -293,7 +289,6 @@ export default function ModalEditarVisita({
                   )}
                   {!cargandoFechas && (
                     <>
-                      {/* Opción de la fecha actual siempre presente */}
                       {!fechasDisponibles.some((f) => f.fecha === visita.fecha_visita) && (
                         <option value={visita.fecha_visita}>
                           {formatearFecha(visita.fecha_visita)} (actual)
@@ -308,7 +303,7 @@ export default function ModalEditarVisita({
                           {formatearFecha(item.fecha)}
                           {item.fecha === visita.fecha_visita ? ' (actual)' : ''}
                           {item.ocupada
-                            ? ` — OCUPADA (${item.ocupada_por_codigo ?? 'N/A'})`
+                            ? ` — Ocupada (${item.ocupada_por_codigo ?? 'N/A'})`
                             : ''}
                         </option>
                       ))}
@@ -370,12 +365,11 @@ export default function ModalEditarVisita({
             </div>
           </section>
 
-          {/* ── SECCIÓN 02 · CONTACTOS INSTITUCIONALES ── */}
           <section className={PANEL_CLASS}>
-            <h3 className="border-b border-zinc-800 px-3 py-2 font-mono text-[10px] tracking-[0.16em] text-zinc-500">
-              02 · CONTACTOS INSTITUCIONALES
+            <h3 className="border-b border-slate-200 px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-slate-600">
+              2. Contactos de la escuela
             </h3>
-            <div className="grid grid-cols-1 gap-3 p-3 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid grid-cols-1 gap-3 p-4 sm:grid-cols-2 lg:grid-cols-3">
               <div>
                 <label htmlFor="editar_nombre_director" className={LABEL_CLASS}>
                   Nombre del director/a
@@ -445,20 +439,19 @@ export default function ModalEditarVisita({
             </div>
           </section>
 
-          {/* ── SECCIÓN 03 · LOGÍSTICA TUP ── */}
           <section className={PANEL_CLASS}>
-            <h3 className="border-b border-zinc-800 px-3 py-2 font-mono text-[10px] tracking-[0.16em] text-zinc-500">
-              03 · LOGÍSTICA TUP (TRANSPORTE)
+            <h3 className="border-b border-slate-200 px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-slate-600">
+              3. Colectivo TUP
             </h3>
-            <div className="space-y-3 p-3">
-              <label className="flex cursor-pointer items-center gap-2 font-mono text-[11px] tracking-[0.08em] text-zinc-300">
+            <div className="space-y-3 p-4">
+              <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-slate-800">
                 <input
                   type="checkbox"
                   checked={requiereTup}
                   onChange={(e) => setRequiereTup(e.target.checked)}
-                  className="h-3 w-3 shrink-0 cursor-pointer rounded-none border border-zinc-600 bg-zinc-950 accent-emerald-500"
+                  className="h-4 w-4 shrink-0 cursor-pointer rounded border-slate-300 text-blue-600 focus:ring-blue-500"
                 />
-                REQUIERE TRANSPORTE TUP
+                Requiere colectivo TUP
               </label>
 
               {requiereTup && (
@@ -533,12 +526,11 @@ export default function ModalEditarVisita({
             </div>
           </section>
 
-          {/* ── SECCIÓN 04 · ESTADO Y NOTAS ── */}
           <section className={PANEL_CLASS}>
-            <h3 className="border-b border-zinc-800 px-3 py-2 font-mono text-[10px] tracking-[0.16em] text-zinc-500">
-              04 · ESTADO Y NOTAS
+            <h3 className="border-b border-slate-200 px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-slate-600">
+              4. Estado y notas
             </h3>
-            <div className="grid grid-cols-1 gap-3 p-3 sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-3 p-4 sm:grid-cols-2">
               <div>
                 <label htmlFor="editar_estado_visita" className={LABEL_CLASS}>
                   Estado de la reserva *
@@ -571,7 +563,7 @@ export default function ModalEditarVisita({
                   value={observacionesDocente}
                   onChange={(e) => setObservacionesDocente(e.target.value)}
                   rows={3}
-                  placeholder="Notas adicionales, requerimientos especiales…"
+                  placeholder="Notas adicionales…"
                   className={`${INPUT_CLASS} resize-y`}
                 />
               </div>
@@ -579,23 +571,22 @@ export default function ModalEditarVisita({
           </section>
         </div>
 
-        {/* ── FOOTER ── */}
-        <footer className="flex items-center justify-end gap-3 border-t border-zinc-800 px-5 py-3">
+        <footer className="flex items-center justify-end gap-3 border-t border-slate-200 bg-slate-50 px-5 py-3.5">
           <button
             type="button"
             onClick={onCerrar}
             className={BTN_SECUNDARIO}
             disabled={pendiente}
           >
-            CANCELAR
+            Cancelar
           </button>
           <button
             type="submit"
             disabled={pendiente || cargandoFechas}
-            className="inline-flex items-center gap-1.5 rounded-sm bg-emerald-700 px-4 py-1.5 font-mono text-[11px] font-semibold tracking-[0.08em] text-white transition-colors hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {pendiente ? <Loader2 size={13} className="animate-spin" /> : null}
-            {pendiente ? 'GUARDANDO…' : 'GUARDAR CAMBIOS'}
+            {pendiente ? <Loader2 size={14} className="animate-spin" /> : null}
+            {pendiente ? 'Guardando…' : 'Guardar cambios'}
           </button>
         </footer>
       </form>

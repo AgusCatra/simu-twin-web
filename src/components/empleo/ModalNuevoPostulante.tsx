@@ -27,10 +27,9 @@ const OPCIONES_TURNO: readonly { valor: OrigenTurno; etiqueta: string }[] = [
   { valor: 'INDEFINIDO', etiqueta: 'INDISTINTO' },
 ];
 
-const LABEL_CLASS =
-  'block font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-500';
+const LABEL_CLASS = 'block text-xs font-semibold text-slate-700';
 const INPUT_CLASS =
-  'w-full rounded-sm border border-zinc-800 bg-zinc-950 px-3 py-2 font-mono text-xs text-zinc-100 placeholder:text-zinc-600 focus:border-zinc-500 focus:outline-none';
+  'w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20';
 
 export default function ModalNuevoPostulante({
   abierto,
@@ -139,7 +138,7 @@ export default function ModalNuevoPostulante({
       role="dialog"
       aria-modal="true"
       aria-labelledby="titulo-modal-nuevo-postulante"
-      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/75 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-900/50 p-4 backdrop-blur-xs"
       onClick={(e) => {
         if (e.target === e.currentTarget && !pendiente) {
           onCerrar();
@@ -148,29 +147,29 @@ export default function ModalNuevoPostulante({
     >
       <form
         onSubmit={manejarSubmit}
-        className="my-8 w-full max-w-lg rounded-sm border border-zinc-700 bg-zinc-900"
+        className="my-8 w-full max-w-lg rounded-xl border border-slate-200 bg-white shadow-xl"
       >
-        <header className="flex items-start justify-between gap-3 border-b border-zinc-800 px-5 py-3">
+        <header className="flex items-start justify-between gap-3 border-b border-slate-200 px-5 py-4">
           <div>
             <h2
               id="titulo-modal-nuevo-postulante"
-              className="flex items-center gap-2 font-mono text-sm font-semibold uppercase tracking-[0.14em] text-zinc-100"
+              className="flex items-center gap-2 text-lg font-bold text-slate-900"
             >
-              <UserPlus size={15} strokeWidth={1.75} aria-hidden />
-              ALTA DE POSTULANTE
+              <UserPlus size={18} className="text-blue-600" strokeWidth={1.85} aria-hidden />
+              Agregar Alumno
             </h2>
-            <p className="mt-1 font-mono text-[10px] tracking-[0.12em] text-zinc-500">
-              INSCRIPCIÓN EN COHORTE {cohorteCodigo}
+            <p className="mt-0.5 text-xs text-slate-600">
+              Inscripción al curso {cohorteCodigo}
             </p>
           </div>
           <button
             type="button"
             onClick={onCerrar}
             disabled={pendiente}
-            aria-label="Cerrar modal de nuevo postulante"
-            className="flex h-9 w-9 items-center justify-center rounded-sm border border-zinc-800 bg-zinc-950 text-zinc-400 transition-colors hover:border-zinc-600 hover:text-white disabled:opacity-50"
+            aria-label="Cerrar modal de nuevo alumno"
+            className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900 disabled:opacity-50"
           >
-            <X size={15} strokeWidth={2} />
+            <X size={16} strokeWidth={2} />
           </button>
         </header>
 
@@ -178,7 +177,7 @@ export default function ModalNuevoPostulante({
           {error && (
             <p
               role="alert"
-              className="rounded-sm border border-red-900 bg-red-950 px-3 py-2 font-mono text-xs text-red-200"
+              className="rounded-lg border border-rose-200 bg-rose-50 px-3.5 py-2.5 text-xs font-medium text-rose-800"
             >
               {error}
             </p>
@@ -220,7 +219,7 @@ export default function ModalNuevoPostulante({
 
             <div>
               <label htmlFor="np-ranking" className={LABEL_CLASS}>
-                Orden en ranking (#) *
+                Orden de prioridad (#) *
               </label>
               <input
                 id="np-ranking"
@@ -239,26 +238,25 @@ export default function ModalNuevoPostulante({
             </div>
           </div>
 
-          <div className="rounded-sm border border-zinc-800 bg-zinc-950 px-3 py-2 font-mono text-[10px] tracking-[0.08em]">
+          <div className="rounded-lg border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-xs">
             {duplaSugerida ? (
-              <p className="text-emerald-400">
-                PROYECCIÓN DUPLA: Dupla #{duplaSugerida.duplaNumero} ·{' '}
+              <p className="font-medium text-emerald-700">
+                Turno sugerido: Dupla #{duplaSugerida.duplaNumero} ·{' '}
                 {duplaSugerida.grupo.replace('_', ' ')} ({duplaSugerida.diasLabel}) ·{' '}
                 {duplaSugerida.horarioLabel}
               </p>
             ) : (
-              <p className="text-amber-300">
-                PROYECCIÓN DUPLA: Puesto #{rankingOrden} queda en nómina de reserva /
-                suplentes (&gt;16 titulares en duplas).
+              <p className="font-medium text-amber-800">
+                El puesto #{rankingOrden} quedará como suplente o en lista de espera.
               </p>
             )}
           </div>
 
           <div>
-            <p className={LABEL_CLASS}>Disponibilidad horaria (Turno origen) *</p>
+            <p className={LABEL_CLASS}>Disponibilidad horaria *</p>
             <div
               role="group"
-              aria-label="Turno de origen del postulante"
+              aria-label="Turno preferente"
               className="mt-1 grid grid-cols-3 gap-2"
             >
               {OPCIONES_TURNO.map((t) => {
@@ -269,10 +267,10 @@ export default function ModalNuevoPostulante({
                     type="button"
                     aria-pressed={activo}
                     onClick={() => setOrigenTurno(t.valor)}
-                    className={`h-10 rounded-sm border px-2 font-mono text-[10px] font-semibold uppercase tracking-[0.08em] transition-colors ${
+                    className={`h-10 rounded-lg border px-2 text-xs font-semibold transition-colors ${
                       activo
-                        ? 'border-white bg-white text-zinc-950'
-                        : 'border-zinc-800 bg-zinc-950 text-zinc-300 hover:border-zinc-600'
+                        ? 'border-blue-300 bg-blue-50 text-blue-700'
+                        : 'border-slate-300 bg-white text-slate-600 hover:bg-slate-100'
                     }`}
                   >
                     {t.etiqueta}
@@ -299,7 +297,7 @@ export default function ModalNuevoPostulante({
 
           <div>
             <label htmlFor="np-obs" className={LABEL_CLASS}>
-              Observaciones de Empleo (Opcional)
+              Observaciones (Opcional)
             </label>
             <textarea
               id="np-obs"
@@ -307,27 +305,27 @@ export default function ModalNuevoPostulante({
               maxLength={2000}
               value={obsEmpleo}
               onChange={(e) => setObsEmpleo(e.target.value)}
-              placeholder="Disponibilidad laboral, antecedentes o notas de derivación…"
+              placeholder="Disponibilidad laboral o notas de seguimiento…"
               className={`mt-1 resize-y ${INPUT_CLASS}`}
             />
           </div>
         </div>
 
-        <footer className="flex items-center justify-end gap-2 border-t border-zinc-800 bg-zinc-950 px-5 py-3">
+        <footer className="flex items-center justify-end gap-2 border-t border-slate-200 bg-slate-50 px-5 py-3.5">
           <button
             type="button"
             onClick={onCerrar}
             disabled={pendiente}
-            className="h-10 rounded-sm border border-zinc-700 bg-zinc-900 px-4 font-mono text-[11px] uppercase tracking-[0.12em] text-zinc-300 transition-colors hover:border-zinc-500 hover:text-white disabled:opacity-50"
+            className="h-10 rounded-lg border border-slate-300 bg-white px-4 text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-100 disabled:opacity-50"
           >
             Cancelar
           </button>
           <button
             type="submit"
             disabled={pendiente}
-            className="h-10 rounded-sm border border-emerald-500 bg-emerald-500 px-5 font-mono text-[11px] font-semibold uppercase tracking-[0.12em] text-emerald-950 transition-colors hover:bg-emerald-400 disabled:cursor-not-allowed disabled:border-zinc-700 disabled:bg-zinc-800 disabled:text-zinc-500"
+            className="h-10 rounded-lg bg-blue-600 px-5 text-xs font-semibold text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-45"
           >
-            {pendiente ? 'INSCRIBIENDO…' : 'INSCRIBIR POSTULANTE'}
+            {pendiente ? 'Inscribiendo…' : 'Inscribir alumno'}
           </button>
         </footer>
       </form>

@@ -56,7 +56,7 @@ export default function PanelGestionRoles({
       );
       setFeedback({
         tipo: 'ok',
-        texto: `Rol de ${usuario.email} actualizado a ${ETIQUETA_ROL[nuevoRol]}.`,
+        texto: `Permisos de ${usuario.email} actualizados a ${ETIQUETA_ROL[nuevoRol]}.`,
       });
       router.refresh();
     });
@@ -64,40 +64,40 @@ export default function PanelGestionRoles({
 
   return (
     <section
-      aria-label="Gestión de roles RBAC del sistema"
-      className="rounded-sm border border-zinc-800 bg-zinc-950"
+      aria-label="Usuarios y permisos"
+      className="rounded-xl border border-slate-200 bg-white shadow-sm"
     >
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-zinc-800 px-4 py-3">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 px-5 py-4">
         <div>
-          <h2 className="flex items-center gap-2 font-mono text-xs font-semibold uppercase tracking-[0.14em] text-zinc-100">
-            <UserCog size={14} className="text-sky-400" aria-hidden />
-            CONTROL DE ROLES Y PERMISOS (RBAC) · SUPERADMIN
+          <h2 className="flex items-center gap-2 text-base font-bold text-slate-900">
+            <UserCog size={18} className="text-blue-600" aria-hidden />
+            Usuarios y Permisos
           </h2>
-          <p className="mt-0.5 font-mono text-[10px] tracking-[0.1em] text-zinc-500">
-            PUBLIC.PERFILES_USUARIOS · ASIGNACIÓN INMEDIATA DE ACCESOS POR MÓDULO
+          <p className="mt-0.5 text-sm text-slate-600">
+            Asigná el perfil de acceso de cada integrante del centro.
           </p>
         </div>
-        <span className="inline-flex items-center gap-1 rounded-sm border border-zinc-700 bg-zinc-900 px-2.5 py-1 font-mono text-[10px] text-zinc-300">
-          <Shield size={11} className="text-emerald-400" aria-hidden />
-          {usuarios.length} USUARIOS
+        <span className="inline-flex items-center gap-1.5 rounded-md border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-700">
+          <Shield size={13} className="text-emerald-600" aria-hidden />
+          {usuarios.length} usuarios
         </span>
       </div>
 
       {feedback && (
         <div
           role={feedback.tipo === 'error' ? 'alert' : 'status'}
-          className={`mx-4 mt-3 flex items-center gap-2 rounded-sm border px-3 py-2 font-mono text-[11px] ${
+          className={`mx-5 mt-4 flex items-center gap-2 rounded-lg border px-3.5 py-2.5 text-sm font-medium ${
             feedback.tipo === 'ok'
-              ? 'border-emerald-700/60 bg-emerald-950/35 text-emerald-200'
-              : 'border-rose-800/70 bg-rose-950/40 text-rose-200'
+              ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
+              : 'border-rose-200 bg-rose-50 text-rose-800'
           }`}
         >
-          {feedback.tipo === 'ok' && <CheckCircle2 size={13} aria-hidden />}
+          {feedback.tipo === 'ok' && <CheckCircle2 size={16} aria-hidden />}
           <span>{feedback.texto}</span>
         </div>
       )}
 
-      <div className="divide-y divide-zinc-800/80 p-2">
+      <div className="divide-y divide-slate-100 px-5 py-2">
         {usuarios.map((u) => {
           const esPropio = u.id === usuarioActualId;
           const cargando = guardandoId === u.id;
@@ -105,25 +105,23 @@ export default function PanelGestionRoles({
           return (
             <div
               key={u.id}
-              className="flex flex-wrap items-center justify-between gap-3 px-2 py-2.5"
+              className="flex flex-wrap items-center justify-between gap-3 py-3"
             >
               <div className="min-w-0">
-                <p className="truncate text-sm font-medium text-zinc-100">
+                <p className="truncate text-sm font-semibold text-slate-900">
                   {u.nombre_completo}{' '}
                   {esPropio && (
-                    <span className="ml-1 rounded-sm border border-emerald-500/40 bg-emerald-950/40 px-1.5 py-0.5 font-mono text-[9px] text-emerald-300">
-                      TÚ
+                    <span className="ml-1.5 rounded-md border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-700">
+                      Tu cuenta
                     </span>
                   )}
                   {u.esFallbackFailSafe && (
-                    <span className="ml-1 rounded-sm border border-amber-500/40 bg-amber-950/35 px-1.5 py-0.5 font-mono text-[9px] text-amber-300">
-                      FAIL-SAFE
+                    <span className="ml-1.5 rounded-md border border-amber-200 bg-amber-50 px-2 py-0.5 text-xs font-semibold text-amber-800">
+                      Sin asignar
                     </span>
                   )}
                 </p>
-                <p className="truncate font-mono text-[11px] text-zinc-400">
-                  {u.email}
-                </p>
+                <p className="truncate text-sm text-slate-600">{u.email}</p>
               </div>
 
               <div className="flex items-center gap-2">
@@ -134,7 +132,7 @@ export default function PanelGestionRoles({
                   onChange={(e) =>
                     manejarCambioRol(u, e.target.value as RolSistema)
                   }
-                  className="h-9 rounded-sm border border-zinc-700 bg-zinc-900 px-2.5 font-mono text-xs text-zinc-100 focus:border-zinc-500 focus:outline-none disabled:cursor-not-allowed disabled:opacity-60"
+                  className="h-10 rounded-lg border border-slate-300 bg-white px-3 text-sm font-medium text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500"
                 >
                   {ROLES_SISTEMA.map((r) => (
                     <option key={r} value={r}>

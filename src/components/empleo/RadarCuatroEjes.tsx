@@ -101,8 +101,8 @@ export default function RadarCuatroEjes({ ejes, mostrarFinal = false }: Props) {
           <polygon
             key={nivel}
             points={ringPoints(nivel)}
-            className="fill-none stroke-zinc-800"
-            strokeWidth={nivel === 100 ? 1 : 0.6}
+            className="fill-none stroke-slate-200"
+            strokeWidth={nivel === 100 ? 1 : 0.7}
           />
         ))}
 
@@ -116,18 +116,18 @@ export default function RadarCuatroEjes({ ejes, mostrarFinal = false }: Props) {
               y1={CY}
               x2={x}
               y2={y}
-              className="stroke-zinc-700"
-              strokeWidth={0.6}
+              className="stroke-slate-300"
+              strokeWidth={0.7}
             />
           );
         })}
 
-        {/* Polígono Prueba Final (cian) — debajo del diagnóstico para contraste */}
+        {/* Polígono Prueba Final (azul) */}
         {mostrarFinal && (
           <polygon
             points={polygonPoints(fin)}
-            className="fill-cyan-400/15 stroke-cyan-300"
-            strokeWidth={1.25}
+            className="fill-blue-500/15 stroke-blue-600"
+            strokeWidth={1.5}
             strokeDasharray="3 2"
           />
         )}
@@ -135,8 +135,8 @@ export default function RadarCuatroEjes({ ejes, mostrarFinal = false }: Props) {
         {/* Polígono línea base / mejor diagnóstico (esmeralda) */}
         <polygon
           points={polygonPoints(diag)}
-          className="fill-emerald-500/20 stroke-emerald-400"
-          strokeWidth={1.5}
+          className="fill-emerald-500/20 stroke-emerald-600"
+          strokeWidth={1.75}
         />
 
         {/* Vértices del diagnóstico */}
@@ -147,8 +147,8 @@ export default function RadarCuatroEjes({ ejes, mostrarFinal = false }: Props) {
               key={`v-${e}`}
               cx={x}
               cy={y}
-              r={2}
-              className="fill-emerald-400"
+              r={2.5}
+              className="fill-emerald-600"
             />
           );
         })}
@@ -163,8 +163,8 @@ export default function RadarCuatroEjes({ ejes, mostrarFinal = false }: Props) {
               y={y}
               textAnchor={ANCLA[e]}
               dominantBaseline="middle"
-              className="fill-zinc-500 font-mono"
-              style={{ fontSize: 7, letterSpacing: '0.08em' }}
+              className="fill-slate-600 font-semibold"
+              style={{ fontSize: 7.5, letterSpacing: '0.06em' }}
             >
               {ETIQUETA[e]}
             </text>
@@ -172,15 +172,15 @@ export default function RadarCuatroEjes({ ejes, mostrarFinal = false }: Props) {
         })}
       </svg>
 
-      <figcaption className="mt-1 flex flex-wrap items-center justify-center gap-x-3 gap-y-1">
-        <span className="flex items-center gap-1.5 font-mono text-[9px] tracking-[0.1em] text-zinc-500">
-          <span className="h-2 w-2 rounded-sm bg-emerald-400/80" aria-hidden />
-          DIAGNÓSTICO
+      <figcaption className="mt-1.5 flex flex-wrap items-center justify-center gap-x-4 gap-y-1">
+        <span className="flex items-center gap-1.5 text-xs font-medium text-slate-600">
+          <span className="h-2.5 w-2.5 rounded-xs bg-emerald-600" aria-hidden />
+          Diagnóstico
         </span>
         {mostrarFinal && (
-          <span className="flex items-center gap-1.5 font-mono text-[9px] tracking-[0.1em] text-zinc-500">
-            <span className="h-2 w-2 rounded-sm bg-cyan-300/80" aria-hidden />
-            PRUEBA FINAL
+          <span className="flex items-center gap-1.5 text-xs font-medium text-slate-600">
+            <span className="h-2.5 w-2.5 rounded-xs bg-blue-600" aria-hidden />
+            Prueba Final
           </span>
         )}
       </figcaption>

@@ -82,33 +82,33 @@ export default function BotonExportarCronograma({
         type="button"
         onClick={copiarWhatsApp}
         aria-live="polite"
-        className={`flex h-9 items-center gap-2 rounded-sm border px-3 font-mono text-[10px] tracking-[0.14em] transition-colors focus-visible:outline-1 focus-visible:outline-white ${
+        className={`flex h-10 items-center gap-2 rounded-lg border px-3.5 text-xs font-semibold transition-colors ${
           copiado
-            ? 'border-emerald-500 bg-emerald-500 font-semibold text-emerald-950'
+            ? 'border-emerald-300 bg-emerald-50 text-emerald-800'
             : error
-              ? 'border-red-500 bg-red-500/10 text-red-300'
-              : 'border-emerald-500/60 text-emerald-400 hover:border-emerald-500 hover:bg-emerald-500/10'
+              ? 'border-rose-300 bg-rose-50 text-rose-700'
+              : 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
         }`}
       >
         {copiado ? (
-          <Check size={13} strokeWidth={2} aria-hidden />
+          <Check size={14} strokeWidth={2} aria-hidden />
         ) : (
-          <MessageCircle size={13} strokeWidth={1.75} aria-hidden />
+          <MessageCircle size={14} strokeWidth={1.85} aria-hidden />
         )}
         {copiado
-          ? '✓ COPIADO AL PORTAPAPELES'
+          ? 'Copiado al portapapeles'
           : error
-            ? 'NO SE PUDO COPIAR'
-            : 'COPIAR WHATSAPP'}
+            ? 'No se pudo copiar'
+            : 'Copiar WhatsApp'}
       </button>
 
       <button
         type="button"
         onClick={imprimir}
-        className="flex h-9 items-center gap-2 rounded-sm border border-zinc-700 px-3 font-mono text-[10px] tracking-[0.14em] text-zinc-300 transition-colors hover:border-zinc-500 hover:text-white focus-visible:outline-1 focus-visible:outline-white"
+        className="flex h-10 items-center gap-2 rounded-lg border border-slate-300 bg-white px-3.5 text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-100 hover:text-slate-900"
       >
-        <Printer size={13} strokeWidth={1.75} aria-hidden />
-        IMPRIMIR / PDF
+        <Printer size={14} strokeWidth={1.85} aria-hidden />
+        Imprimir / PDF
       </button>
     </div>
   );

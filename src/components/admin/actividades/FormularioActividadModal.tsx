@@ -62,15 +62,15 @@ function calcularDuracion(inicio: string, fin: string): number | null {
   return diferencia > 0 ? diferencia : null;
 }
 
-const LABEL_CLASS =
-  'block font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-500';
+const LABEL_CLASS = 'mb-1 block text-xs font-semibold text-slate-700';
 const INPUT_CLASS =
-  'w-full rounded-sm border border-zinc-800 bg-zinc-950 px-2.5 py-1.5 text-sm text-zinc-100 placeholder:text-zinc-600 focus:border-zinc-500 focus:outline-none';
+  'w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20';
 const SELECT_CLASS = INPUT_CLASS;
 const BTN_SECUNDARIO =
-  'inline-flex items-center gap-1.5 rounded-sm border border-zinc-700 bg-zinc-900 px-2.5 py-1.5 font-mono text-[11px] tracking-[0.08em] text-zinc-300 transition-colors hover:border-zinc-500 hover:text-white disabled:cursor-not-allowed disabled:opacity-50';
-const PANEL_CLASS = 'rounded-sm border border-zinc-800 bg-zinc-950';
-const ERROR_CLASS = 'rounded-sm border border-red-900 bg-red-950 px-3 py-2 text-sm text-red-200';
+  'inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-100 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-50';
+const PANEL_CLASS = 'rounded-xl border border-slate-200 bg-slate-50/70';
+const ERROR_CLASS =
+  'rounded-lg border border-rose-200 bg-rose-50 px-3.5 py-2.5 text-sm font-medium text-rose-800';
 
 export default function FormularioActividadModal({
   abierto,
@@ -207,31 +207,31 @@ export default function FormularioActividadModal({
       role="dialog"
       aria-modal="true"
       aria-labelledby="titulo-modal-actividad"
-      className="fixed inset-0 z-40 flex items-start justify-center overflow-y-auto bg-black/70 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-900/50 p-4 backdrop-blur-xs"
     >
       <form
         onSubmit={enviar}
-        className="my-6 w-full max-w-5xl rounded-sm border border-zinc-700 bg-zinc-900"
+        className="my-6 w-full max-w-5xl rounded-xl border border-slate-200 bg-white shadow-xl"
       >
-        <header className="flex items-start justify-between gap-3 border-b border-zinc-800 px-5 py-3">
+        <header className="flex items-start justify-between gap-3 border-b border-slate-200 px-5 py-4">
           <div>
             <h2
               id="titulo-modal-actividad"
-              className="font-mono text-sm font-semibold uppercase tracking-[0.14em] text-zinc-100"
+              className="text-lg font-bold text-slate-900"
             >
-              [ NUEVA ACTIVIDAD ]
+              Nueva Actividad
             </h2>
-            <p className="mt-1 font-mono text-[10px] tracking-[0.14em] text-zinc-500">
-              REGISTRO PRESENCIAL · ENTIDAD, NÓMINA Y SIMULADORES
+            <p className="mt-0.5 text-sm text-slate-600">
+              Registro de entidad, simuladores utilizados y lista de participantes
             </p>
           </div>
           <button
             type="button"
             onClick={onCerrar}
             aria-label="Cerrar formulario"
-            className="rounded-sm border border-zinc-800 bg-zinc-950 p-1.5 text-zinc-400 transition-colors hover:border-zinc-600 hover:text-white"
+            className="rounded-lg p-1.5 text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900"
           >
-            <X size={14} strokeWidth={2} />
+            <X size={18} strokeWidth={2} />
           </button>
         </header>
 
@@ -242,15 +242,14 @@ export default function FormularioActividadModal({
             </p>
           )}
 
-          {/* ── Cabecera de la actividad ─────────────────────────── */}
           <section className={PANEL_CLASS}>
-            <h3 className="border-b border-zinc-800 px-3 py-2 font-mono text-[10px] tracking-[0.16em] text-zinc-500">
-              01 · DATOS DE LA ACTIVIDAD
+            <h3 className="border-b border-slate-200 px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-slate-600">
+              1. Datos de la actividad
             </h3>
-            <div className="grid grid-cols-1 gap-3 p-3 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid grid-cols-1 gap-3 p-4 sm:grid-cols-2 lg:grid-cols-3">
               <div className="sm:col-span-2">
                 <label htmlFor="entidad_nombre" className={LABEL_CLASS}>
-                  Entidad / Empresa *
+                  Institución / Empresa *
                 </label>
                 <input
                   id="entidad_nombre"
@@ -258,7 +257,7 @@ export default function FormularioActividadModal({
                   value={entidadNombre}
                   onChange={(e) => setEntidadNombre(e.target.value)}
                   required
-                  placeholder="Ej: MUNICIPALIDAD DE ROSARIO"
+                  placeholder="Ej: Municipalidad de Rosario"
                   className={INPUT_CLASS}
                 />
               </div>
@@ -336,11 +335,11 @@ export default function FormularioActividadModal({
                   onChange={(e) => setDuracionManual(e.target.value)}
                   disabled={duracionAuto !== null}
                   required
-                  className={`${INPUT_CLASS} disabled:cursor-not-allowed disabled:bg-zinc-900 disabled:text-zinc-400`}
+                  className={`${INPUT_CLASS} disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-600`}
                 />
                 {duracionAuto !== null && (
-                  <p className="mt-1 font-mono text-[10px] tracking-[0.1em] text-emerald-400">
-                    AUTO-CALCULADA · {duracionAuto} MIN
+                  <p className="mt-1 text-xs font-medium text-emerald-700">
+                    Calculada automáticamente: {duracionAuto} min
                   </p>
                 )}
               </div>
@@ -402,22 +401,21 @@ export default function FormularioActividadModal({
                   value={observaciones}
                   onChange={(e) => setObservaciones(e.target.value)}
                   rows={2}
-                  placeholder="Notas operativas, requisitos, etc."
+                  placeholder="Notas adicionales…"
                   className={`${INPUT_CLASS} resize-y`}
                 />
               </div>
             </div>
           </section>
 
-          {/* ── Simuladores involucrados ────────────────────────── */}
           <section className={PANEL_CLASS}>
-            <h3 className="border-b border-zinc-800 px-3 py-2 font-mono text-[10px] tracking-[0.16em] text-zinc-500">
-              02 · SIMULADORES INVOLUCRADOS ({simuladoresIds.length})
+            <h3 className="border-b border-slate-200 px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-slate-600">
+              2. Simuladores utilizados ({simuladoresIds.length})
             </h3>
-            <div className="flex flex-wrap gap-2 p-3">
+            <div className="flex flex-wrap gap-2 p-4">
               {simuladores.length === 0 && (
-                <p className="font-mono text-[11px] text-zinc-500">
-                  SIN SIMULADORES DISPONIBLES EN LA FLOTA.
+                <p className="text-xs text-slate-500">
+                  No hay simuladores disponibles.
                 </p>
               )}
               {simuladores.map((sim) => {
@@ -425,34 +423,34 @@ export default function FormularioActividadModal({
                 return (
                   <label
                     key={sim.id}
-                    className={`flex cursor-pointer items-center gap-2 rounded-sm border px-2.5 py-1.5 font-mono text-[11px] tracking-[0.08em] transition-colors ${
+                    className={`flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-xs font-semibold transition-colors ${
                       activo
-                        ? 'border-emerald-700 bg-emerald-950 text-emerald-100'
-                        : 'border-zinc-800 bg-zinc-950 text-zinc-400 hover:border-zinc-600 hover:text-zinc-100'
+                        ? 'border-blue-300 bg-blue-50 text-blue-700'
+                        : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-100'
                     }`}
                   >
                     <input
                       type="checkbox"
                       checked={activo}
                       onChange={() => alternarSimulador(sim.id)}
-                      className="h-3 w-3 shrink-0 cursor-pointer rounded-none border border-zinc-600 bg-zinc-950 accent-emerald-500"
+                      className="h-4 w-4 shrink-0 cursor-pointer rounded border-slate-300 text-blue-600"
                     />
-                    {sim.nombre.toUpperCase()}
-                    <span className="text-zinc-600">·</span>
+                    {sim.nombre}
+                    <span className="text-slate-400">·</span>
                     <span
                       className={
                         sim.estado === 'en_operacion'
-                          ? 'text-emerald-400'
+                          ? 'text-amber-700'
                           : sim.estado === 'mantenimiento'
-                            ? 'text-amber-400'
-                            : 'text-zinc-500'
+                            ? 'text-rose-700'
+                            : 'text-emerald-700'
                       }
                     >
                       {sim.estado === 'en_operacion'
-                        ? 'OP'
+                        ? 'En uso'
                         : sim.estado === 'mantenimiento'
-                          ? 'MT'
-                          : 'LB'}
+                          ? 'Mantenimiento'
+                          : 'Libre'}
                     </span>
                   </label>
                 );
@@ -460,48 +458,36 @@ export default function FormularioActividadModal({
             </div>
           </section>
 
-          {/* ── Nómina dinámica ─────────────────────────────────── */}
           <section className={PANEL_CLASS}>
-            <div className="flex items-center justify-between gap-2 border-b border-zinc-800 px-3 py-2">
-              <h3 className="font-mono text-[10px] tracking-[0.16em] text-zinc-500">
-                03 · NÓMINA DE PARTICIPANTES ({participantes.length})
+            <div className="flex items-center justify-between gap-2 border-b border-slate-200 px-4 py-2.5">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-600">
+                3. Lista de participantes ({participantes.length})
               </h3>
               <button
                 type="button"
                 onClick={agregarParticipante}
                 className={BTN_SECUNDARIO}
               >
-                <Plus size={12} strokeWidth={2.25} />
-                [ + AGREGAR PERSONA ]
+                <Plus size={13} strokeWidth={2.25} />
+                Agregar persona
               </button>
             </div>
 
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto bg-white">
               <table className="w-full border-collapse text-sm">
                 <thead>
-                  <tr>
-                    <th className="border-b border-zinc-800 bg-zinc-900 px-2 py-1.5 text-left font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-500">
-                      Apellido y Nombre *
-                    </th>
-                    <th className="border-b border-zinc-800 bg-zinc-900 px-2 py-1.5 text-left font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-500">
-                      DNI
-                    </th>
-                    <th className="border-b border-zinc-800 bg-zinc-900 px-2 py-1.5 text-left font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-500">
-                      Género
-                    </th>
-                    <th className="border-b border-zinc-800 bg-zinc-900 px-2 py-1.5 text-left font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-500">
-                      Puesto
-                    </th>
-                    <th
-                      aria-label="Acciones"
-                      className="w-10 border-b border-zinc-800 bg-zinc-900 px-2 py-1.5"
-                    />
+                  <tr className="border-b border-slate-200 bg-slate-50 text-left text-xs font-semibold uppercase tracking-wider text-slate-600">
+                    <th className="px-3 py-2.5">Apellido y Nombre *</th>
+                    <th className="px-3 py-2.5">DNI</th>
+                    <th className="px-3 py-2.5">Género</th>
+                    <th className="px-3 py-2.5">Puesto / Ocupación</th>
+                    <th aria-label="Acciones" className="w-12 px-3 py-2.5" />
                   </tr>
                 </thead>
                 <tbody>
                   {participantes.map((fila) => (
-                    <tr key={fila.clave} className="hover:bg-zinc-900/50">
-                      <td className="border-b border-zinc-800 px-2 py-1.5">
+                    <tr key={fila.clave} className="hover:bg-slate-50">
+                      <td className="border-b border-slate-100 px-3 py-2">
                         <input
                           type="text"
                           value={fila.apellido_nombre}
@@ -510,11 +496,11 @@ export default function FormularioActividadModal({
                               apellido_nombre: e.target.value,
                             })
                           }
-                          placeholder="Ej: PEREZ, JUAN"
+                          placeholder="Ej: Pérez, Juan"
                           className={INPUT_CLASS}
                         />
                       </td>
-                      <td className="border-b border-zinc-800 px-2 py-1.5">
+                      <td className="border-b border-slate-100 px-3 py-2">
                         <input
                           type="text"
                           inputMode="numeric"
@@ -526,7 +512,7 @@ export default function FormularioActividadModal({
                           className={INPUT_CLASS}
                         />
                       </td>
-                      <td className="border-b border-zinc-800 px-2 py-1.5">
+                      <td className="border-b border-slate-100 px-3 py-2">
                         <select
                           value={fila.genero}
                           onChange={(e) =>
@@ -545,7 +531,7 @@ export default function FormularioActividadModal({
                           )}
                         </select>
                       </td>
-                      <td className="border-b border-zinc-800 px-2 py-1.5">
+                      <td className="border-b border-slate-100 px-3 py-2">
                         <input
                           type="text"
                           value={fila.puesto}
@@ -556,16 +542,16 @@ export default function FormularioActividadModal({
                           className={INPUT_CLASS}
                         />
                       </td>
-                      <td className="border-b border-zinc-800 px-2 py-1.5 text-center">
+                      <td className="border-b border-slate-100 px-3 py-2 text-center">
                         <button
                           type="button"
                           onClick={() => eliminarParticipante(fila.clave)}
                           aria-label="Eliminar participante"
                           title="Eliminar participante"
                           disabled={participantes.length === 1}
-                          className="rounded-sm border border-zinc-800 bg-zinc-950 p-1.5 text-zinc-500 transition-colors hover:border-red-900 hover:bg-red-950 hover:text-red-200 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-zinc-800 disabled:hover:bg-zinc-950 disabled:hover:text-zinc-500"
+                          className="rounded-lg border border-slate-200 bg-white p-2 text-slate-500 transition-colors hover:border-rose-300 hover:bg-rose-50 hover:text-rose-700 disabled:cursor-not-allowed disabled:opacity-40"
                         >
-                          <Trash2 size={12} strokeWidth={2} />
+                          <Trash2 size={14} strokeWidth={2} />
                         </button>
                       </td>
                     </tr>
@@ -576,10 +562,10 @@ export default function FormularioActividadModal({
           </section>
         </div>
 
-        <footer className="flex items-center justify-between gap-2 border-t border-zinc-800 bg-zinc-950 px-5 py-3">
-          <p className="font-mono text-[10px] tracking-[0.14em] text-zinc-600">
+        <footer className="flex items-center justify-between gap-2 border-t border-slate-200 bg-slate-50 px-5 py-3.5">
+          <p className="text-xs font-medium text-slate-600">
             {participantes.filter((p) => p.apellido_nombre.trim().length > 0).length}{' '}
-            PERSONAS · {simuladoresIds.length} SIMULADORES
+            personas · {simuladoresIds.length} simuladores
           </p>
           <div className="flex items-center gap-2">
             <button
@@ -588,14 +574,14 @@ export default function FormularioActividadModal({
               disabled={pendiente}
               className={BTN_SECUNDARIO}
             >
-              CANCELAR
+              Cancelar
             </button>
             <button
               type="submit"
               disabled={pendiente}
-              className="inline-flex items-center gap-2 rounded-sm border border-emerald-700 bg-emerald-900 px-3 py-2 font-mono text-[11px] tracking-[0.1em] text-emerald-50 transition-colors hover:border-emerald-500 hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-50"
+              className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {pendiente ? 'REGISTRANDO…' : '[ REGISTRAR ACTIVIDAD Y NÓMINA ]'}
+              {pendiente ? 'Guardando…' : 'Registrar actividad'}
             </button>
           </div>
         </footer>

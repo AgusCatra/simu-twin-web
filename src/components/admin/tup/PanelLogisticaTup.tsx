@@ -85,64 +85,64 @@ export default function PanelLogisticaTup({
       {errorLectura && (
         <div
           role="alert"
-          className="flex items-center justify-between gap-3 rounded-sm border border-rose-900 bg-rose-950/40 px-3 py-2.5 text-xs text-rose-200"
+          className="flex items-center justify-between gap-3 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-800"
         >
           <span className="flex items-center gap-2">
-            <AlertTriangle size={14} className="shrink-0 text-rose-400" />
+            <AlertTriangle size={16} className="shrink-0 text-rose-600" />
             {errorLectura}
           </span>
           <button
             type="button"
             onClick={() => router.refresh()}
-            className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-sm border border-rose-800 bg-zinc-950 px-2.5 font-mono text-[10px] tracking-[0.1em] text-zinc-200"
+            className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-rose-300 bg-white px-3 text-xs font-semibold text-rose-800 hover:bg-rose-100"
           >
-            <RefreshCw size={12} />
-            REINTENTAR
+            <RefreshCw size={13} />
+            Reintentar
           </button>
         </div>
       )}
 
-      {/* ── Contadores operativos (LEDs) ───────────────────────── */}
-      <div className="rounded-sm border border-zinc-800 bg-zinc-950 px-3 py-2.5">
-        <div className="mb-2 flex items-center justify-between gap-2">
-          <p className="font-mono text-[9.5px] tracking-[0.18em] text-zinc-600">
-            {'// ESTADO DE OPERACIONES'}
+      {/* Contadores operativos */}
+      <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="mb-3 flex items-center justify-between gap-2">
+          <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+            Resumen de viajes
           </p>
           <button
             type="button"
             onClick={() => router.refresh()}
-            className="inline-flex items-center gap-1 font-mono text-[10px] tracking-[0.1em] text-zinc-400 hover:text-zinc-100"
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-blue-700 hover:text-blue-900"
           >
-            <RefreshCw size={11} />
-            ACTUALIZAR
+            <RefreshCw size={13} />
+            Actualizar
           </button>
         </div>
-        <dl className="grid grid-cols-3 gap-2 font-mono text-[10.5px] tracking-[0.1em]">
-          <div className="flex items-center gap-1.5">
-            <span aria-hidden className="h-2 w-2 shrink-0 rounded-full bg-zinc-400" />
-            <dt className="text-zinc-500">PEND/HOY</dt>
-            <dd className="ml-auto text-zinc-100">{conteos.pendientesHoy}</dd>
+        <dl className="grid grid-cols-3 gap-3 text-sm">
+          <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+            <span aria-hidden className="h-2.5 w-2.5 shrink-0 rounded-full bg-slate-400" />
+            <dt className="text-xs font-medium text-slate-600">Hoy</dt>
+            <dd className="ml-auto font-bold text-slate-900 tabular-nums">{conteos.pendientesHoy}</dd>
           </div>
-          <div className="flex items-center gap-1.5">
-            <span aria-hidden className="h-2 w-2 shrink-0 animate-pulse rounded-full bg-amber-400" />
-            <dt className="text-zinc-500">EN CURSO</dt>
-            <dd className="ml-auto text-zinc-100">{conteos.enCurso}</dd>
+          <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2">
+            <span aria-hidden className="h-2.5 w-2.5 shrink-0 animate-pulse rounded-full bg-amber-500" />
+            <dt className="text-xs font-medium text-amber-800">En viaje</dt>
+            <dd className="ml-auto font-bold text-amber-900 tabular-nums">{conteos.enCurso}</dd>
           </div>
-          <div className="flex items-center gap-1.5">
-            <span aria-hidden className="h-2 w-2 shrink-0 rounded-full bg-emerald-400" />
-            <dt className="text-zinc-500">FINALIZ.</dt>
-            <dd className="ml-auto text-zinc-100">{conteos.finalizados}</dd>
+          <div className="flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2">
+            <span aria-hidden className="h-2.5 w-2.5 shrink-0 rounded-full bg-emerald-500" />
+            <dt className="text-xs font-medium text-emerald-800">Listos</dt>
+            <dd className="ml-auto font-bold text-emerald-900 tabular-nums">{conteos.finalizados}</dd>
           </div>
         </dl>
       </div>
 
-      {/* ── Barra de filtros segmentada ────────────────────────── */}
+      {/* Filtros segmentados */}
       <div
         role="tablist"
         aria-label="Filtros de traslados"
-        className="grid grid-cols-4 gap-0 overflow-hidden rounded-sm border border-zinc-800"
+        className="grid grid-cols-4 gap-1.5 rounded-xl border border-slate-200 bg-white p-1.5 shadow-sm"
       >
-        {FILTROS.map((opcion, indice) => {
+        {FILTROS.map((opcion) => {
           const activo = filtro === opcion.valor;
           return (
             <button
@@ -151,12 +151,10 @@ export default function PanelLogisticaTup({
               role="tab"
               aria-selected={activo}
               onClick={() => setFiltro(opcion.valor)}
-              className={`flex h-11 items-center justify-center font-mono text-[10px] font-semibold tracking-[0.1em] transition-colors ${
-                indice > 0 ? 'border-l border-zinc-800' : ''
-              } ${
+              className={`flex h-11 items-center justify-center rounded-lg text-xs font-semibold transition-colors ${
                 activo
-                  ? 'bg-zinc-100 text-zinc-950'
-                  : 'bg-zinc-950 text-zinc-400 hover:bg-zinc-900 hover:text-zinc-100'
+                  ? 'border border-blue-200 bg-blue-50 text-blue-700'
+                  : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
               }`}
             >
               {opcion.etiqueta}
@@ -165,38 +163,35 @@ export default function PanelLogisticaTup({
         })}
       </div>
 
-      {/* ── Meta del filtro activo ─────────────────────────────── */}
-      <div className="flex items-center justify-between border-b border-zinc-800 pb-2 font-mono text-[10px] tracking-[0.14em] text-zinc-500">
+      <div className="flex items-center justify-between text-xs font-medium text-slate-500">
         <span>
-          FILTRO: <span className="text-zinc-200">{filtro.toUpperCase()}</span>
+          Vista: <strong className="text-slate-900">{filtro.toUpperCase()}</strong>
         </span>
-        <span>
-          {visibles.length}/{conteos.total} REG
+        <span className="tabular-nums">
+          {visibles.length} de {conteos.total} viajes
         </span>
       </div>
 
-      {/* ── Lista de tarjetas o vacío descriptivo ──────────────── */}
       {traslados.length === 0 ? (
-        <div className="rounded-sm border border-dashed border-zinc-800 bg-zinc-950 px-4 py-10 text-center">
-          <p className="font-mono text-xs font-semibold uppercase tracking-[0.14em] text-zinc-300">
-            Sin traslados TUP programados
+        <div className="rounded-xl border border-dashed border-slate-300 bg-white px-5 py-10 text-center">
+          <p className="text-base font-bold text-slate-800">
+            Sin traslados programados
           </p>
-          <p className="mt-2 text-[13px] leading-relaxed text-zinc-500">
-            No existen visitas educativas confirmadas o reprogramadas con servicio de
-            transporte municipal desde hoy ({hoyISO}).
+          <p className="mt-1.5 text-sm text-slate-600">
+            No hay visitas escolares confirmadas con colectivo TUP desde hoy ({hoyISO}).
           </p>
         </div>
       ) : visibles.length === 0 ? (
-        <div className="rounded-sm border border-dashed border-zinc-800 bg-zinc-950 px-4 py-8 text-center">
-          <p className="font-mono text-[11px] tracking-[0.16em] text-zinc-500">
-            ▸ SIN TRASLADOS EN «{filtro.toUpperCase()}»
+        <div className="rounded-xl border border-dashed border-slate-300 bg-white px-5 py-8 text-center">
+          <p className="text-sm font-semibold text-slate-700">
+            No hay viajes en la categoría «{filtro.toUpperCase()}»
           </p>
-          <p className="mt-2 text-[13px] leading-relaxed text-zinc-400">
+          <p className="mt-1 text-sm text-slate-600">
             {filtro === 'hoy'
-              ? 'No hay visitas con transporte TUP programadas para hoy. Revise PRÓXIMOS o TODOS para ver la agenda.'
+              ? 'No hay traslados TUP programados para hoy. Revisá PRÓXIMOS o TODOS.'
               : filtro === 'proximos'
-                ? 'No hay traslados futuros pendientes en la agenda.'
-                : 'Todavía no hay traslados marcados como FINALIZADO.'}
+                ? 'No hay traslados futuros pendientes.'
+                : 'Todavía no hay viajes marcados como finalizados.'}
           </p>
         </div>
       ) : (

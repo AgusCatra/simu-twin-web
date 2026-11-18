@@ -733,6 +733,31 @@ def calcular_delta_par(base, comp):
     }
 
 
+def es_medium_load_operation(exercise_name):
+    """Determina si el ejercicio corresponde al estandar Medium Load Operation."""
+    norm = " ".join(str(exercise_name or "").strip().lower().split())
+    return norm == "medium load operation"
+
+
+def calcular_indice_cuidado_mecanico(rep):
+    """Replica el Indice de Cuidado Mecanico (0-100%) de analitica-predictiva.ts."""
+    tel = rep.get("telemetria") or {}
+    console = rep.get("console_events") or {}
+    frenadas = max(0, float(tel.get("frenadas_panico_count") or 0))
+    serrucho = max(0, float(tel.get("steering_serrucho_index") or 0))
+    volantazos = max(0, float(tel.get("steering_volantazos_extremos") or 0))
+    horquilla_pct = max(0, float(tel.get("fork_height_elevada_pct") or 0))
+    osc_tilt = max(0, float(tel.get("tilt_oscilaciones_count") or 0))
+    colisiones = max(0, float(rep.get("n_colisiones") or 0))
+    sats = max(0, float((console.get("saturaciones_palancas") or {}).get("total") or 0))
+
+    pen_frenos = min(24.0, frenadas * 3.0)
+    pen_dir = min(28.0, min(18.0, max(0.0, (serrucho - 0.8) * 6.0)) + min(20.0, volantazos * 3.0))
+    pen_hid = min(28.0, min(16.0, sats * 2.0) + min(15.0, (horquilla_pct / 100.0) * 25.0) + min(10.0, osc_tilt * 2.0))
+    pen_col = min(36.0, colisiones * 12.0)
+    return int(round(max(0.0, min(100.0, 100.0 - pen_frenos - pen_dir - pen_hid - pen_col))))
+
+
 def agrupar_y_clasificar_lote(resultados, postulantes_db):
     """Agrupa cronologicamente por alumno, filtra abortados/duplicados y calcula deltas."""
     grupos = {}
@@ -776,13 +801,23 @@ def agrupar_y_clasificar_lote(resultados, postulantes_db):
                 vistos[firma] = it["archivo"]
             validos.append(it)
 
+        medium_load = []
+        intermedias = []
+        for it in validos:
+            it["indice_cuidado_mecanico"] = calcular_indice_cuidado_mecanico(it)
+            if es_medium_load_operation(it.get("exercise_name")):
+                medium_load.append(it)
+            else:
+                it["etapa_sugerida"] = "PRACTICA_INTERMEDIA"
+                intermedias.append(it)
+
         fecha_diag = None
-        if validos:
-            fecha_diag = validos[0].get("fecha_calendario") or "SIN_FECHA"
+        if medium_load:
+            fecha_diag = medium_load[0].get("fecha_calendario") or "SIN_FECHA"
 
         primer_dia = []
         dias_posteriores = []
-        for idx, it in enumerate(validos):
+        for it in medium_load:
             f_cal = it.get("fecha_calendario") or "SIN_FECHA"
             if f_cal == fecha_diag:
                 it["etapa_sugerida"] = (
@@ -805,7 +840,7 @@ def agrupar_y_clasificar_lote(resultados, postulantes_db):
             )
             mejor_t0["es_mejor_diagnostico"] = True
 
-        # Deltas V1->V2 (mismo dia) y T0->T1 (dia posterior)
+        # Deltas V1->V2 y T0->T1 calculados EXCLUSIVAMENTE sobre Medium Load Operation
         delta_v1_v2 = None
         if len(primer_dia) >= 2:
             delta_v1_v2 = calcular_delta_par(primer_dia[0], primer_dia[-1])
@@ -825,6 +860,7 @@ def agrupar_y_clasificar_lote(resultados, postulantes_db):
                 "match_postulante": match_db,
                 "total_pdfs": len(items),
                 "validos": len(validos),
+                "practicas_intermedias": len(intermedias),
                 "fechas": sorted(
                     {
                         (x.get("exercise_start_time_iso") or x.get("exercise_start_time") or "N/D")
@@ -832,7 +868,7 @@ def agrupar_y_clasificar_lote(resultados, postulantes_db):
                     }
                 ),
                 "etapas": [x["etapa_sugerida"] for x in items],
-                "perfiles": [x["perfil_operador"] for x in validos],
+                "perfiles": [x["perfil_operador"] for x in medium_load],
                 "delta_v1_v2": delta_v1_v2,
                 "delta_t0_t1": delta_t0_t1,
             }

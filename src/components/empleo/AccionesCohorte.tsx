@@ -6,11 +6,6 @@ import ModalNuevaCohorte from './ModalNuevaCohorte';
 import ModalNuevoPostulante from './ModalNuevoPostulante';
 import ModalLoteTelemetria from './ModalLoteTelemetria';
 
-/**
- * Botonera interactiva en la cabecera de /gestion/cohortes para disparar los
- * modales de alta de nueva cohorte, alta de postulante e importación por lote PDF.
- */
-
 interface PostulanteLoteRef {
   postulante_id: string;
   nombre_completo: string;
@@ -44,10 +39,10 @@ export default function AccionesCohorte({
         <button
           type="button"
           onClick={() => setModalCohorteAbierto(true)}
-          className="flex h-9 items-center gap-2 rounded-sm border border-zinc-700 bg-zinc-900 px-3 font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-200 transition-colors hover:border-white hover:text-white focus-visible:outline-1 focus-visible:outline-white"
+          className="inline-flex h-10 items-center gap-2 rounded-lg border border-slate-300 bg-white px-3.5 text-xs font-semibold text-slate-700 shadow-2xs transition-colors hover:bg-slate-100 hover:text-slate-900"
         >
-          <FolderPlus size={13} strokeWidth={1.75} aria-hidden />
-          NUEVA COHORTE
+          <FolderPlus size={14} strokeWidth={1.85} aria-hidden />
+          Nuevo Curso
         </button>
 
         {cohorteActivaId && cohorteActivaCodigo && (
@@ -55,18 +50,18 @@ export default function AccionesCohorte({
             <button
               type="button"
               onClick={() => setModalLoteAbierto(true)}
-              className="flex h-9 items-center gap-2 rounded-sm border border-emerald-500/50 bg-emerald-950/35 px-3 font-mono text-[10px] font-semibold uppercase tracking-[0.12em] text-emerald-300 transition-colors hover:border-emerald-400 hover:bg-emerald-950/60 focus-visible:outline-1 focus-visible:outline-white"
+              className="inline-flex h-10 items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-3.5 text-xs font-semibold text-blue-700 shadow-2xs transition-colors hover:bg-blue-100"
             >
-              <FileUp size={13} strokeWidth={1.75} aria-hidden />
-              SUBIR LOTE PDFs TITÁN
+              <FileUp size={14} strokeWidth={1.85} aria-hidden />
+              Subir Reportes del Simulador
             </button>
             <button
               type="button"
               onClick={() => setModalPostulanteAbierto(true)}
-              className="flex h-9 items-center gap-2 rounded-sm border border-emerald-500/70 bg-emerald-500 px-3 font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-emerald-950 transition-colors hover:bg-emerald-400 focus-visible:outline-1 focus-visible:outline-white"
+              className="inline-flex h-10 items-center gap-2 rounded-lg bg-blue-600 px-3.5 text-xs font-semibold text-white shadow-2xs transition-colors hover:bg-blue-700"
             >
-              <UserPlus size={13} strokeWidth={1.75} aria-hidden />
-              NUEVO POSTULANTE
+              <UserPlus size={14} strokeWidth={1.85} aria-hidden />
+              Agregar Alumno
             </button>
           </>
         )}

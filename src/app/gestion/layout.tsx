@@ -1,19 +1,20 @@
 import type { Metadata } from 'next';
+import PanelLayoutShell from '@/components/admin/PanelLayoutShell';
 
 export const metadata: Metadata = {
-  title: 'Gestión de Cohortes · Hub Simuladores',
+  title: 'Cursos y Alumnos · Centro de Simuladores',
   description:
-    'Panel operativo del equipo de Empleo: configuración de cohorte, ranking de postulantes y parrilla de cabina.',
+    'Gestión de cursos, alumnos, turnos, reportes del simulador e informes para empresas.',
 };
 
-export default function GestionLayout({
+export default async function GestionLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
   return (
-    <div className="min-h-screen bg-zinc-900 font-sans text-zinc-100">
-      <main className="mx-auto w-full max-w-7xl p-4 sm:p-6">{children}</main>
-    </div>
+    <PanelLayoutShell>
+      <div className="mx-auto w-full max-w-7xl">{children}</div>
+    </PanelLayoutShell>
   );
 }

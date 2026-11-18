@@ -51,15 +51,15 @@ const CHECKS: readonly { campo: CampoCheckOperativo; etiqueta: string }[] = [
   { campo: 'check_drive_sum', etiqueta: 'DRIVE' },
 ];
 
-const PANEL_CLASS = 'overflow-hidden rounded-sm border border-zinc-800 bg-zinc-950';
+const PANEL_CLASS = 'overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm';
 const TH_CLASS =
-  'border-b border-zinc-800 bg-zinc-900 px-3 py-2 text-left font-mono text-[11px] font-medium uppercase tracking-[0.1em] text-zinc-400';
-const TD_CLASS = 'border-b border-zinc-800 px-3 py-2.5 align-top text-sm text-zinc-300';
+  'border-b border-slate-200 bg-slate-50 px-3.5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600';
+const TD_CLASS = 'border-b border-slate-100 px-3.5 py-3 align-top text-sm text-slate-800';
 const BTN_CLASS =
-  'inline-flex items-center gap-1.5 rounded-sm border border-zinc-700 bg-zinc-900 px-2.5 py-1.5 font-mono text-[11px] tracking-[0.06em] text-zinc-300 transition-colors hover:border-zinc-500 hover:text-white disabled:cursor-not-allowed disabled:opacity-50';
+  'inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-100 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-50';
 const ALERTA_CLASS =
-  'rounded-sm border border-red-900 bg-red-950 px-3 py-2 text-sm text-red-200';
-const MONO_SECUNDARIO = 'font-mono text-[11px] text-zinc-500';
+  'rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-800';
+const MONO_SECUNDARIO = 'text-xs text-slate-600';
 
 function esEstadoVisita(valor: string): valor is EstadoVisita {
   return (ESTADOS_VISITA as readonly string[]).includes(valor);
@@ -78,18 +78,18 @@ function normalizarBusqueda(texto: string): string {
 function obtenerClaseEstadoSelect(estado: string): string {
   const norm = estado.trim().toLowerCase();
   if (norm === 'confirmada') {
-    return 'border-emerald-700/60 bg-emerald-950/35 text-emerald-300';
+    return 'border-emerald-200 bg-emerald-50 text-emerald-700';
   }
   if (norm === 'reprogramada') {
-    return 'border-sky-700/60 bg-sky-950/35 text-sky-300';
+    return 'border-blue-200 bg-blue-50 text-blue-700';
   }
-  if (norm === 'finalizada') {
-    return 'border-cyan-700/60 bg-cyan-950/35 text-cyan-300';
+  if (norm === 'finalizada' || norm === 'realizada') {
+    return 'border-slate-300 bg-slate-100 text-slate-800';
   }
   if (norm === 'cancelada') {
-    return 'border-rose-800/70 bg-rose-950/35 text-rose-300';
+    return 'border-rose-200 bg-rose-50 text-rose-700';
   }
-  return 'border-zinc-700 bg-zinc-900 text-zinc-300';
+  return 'border-amber-200 bg-amber-50 text-amber-800';
 }
 
 /** Devuelve la copia de la visita con un checkbox operativo actualizado. */
@@ -356,30 +356,29 @@ export default function TablaVisitasAdmin({
       {feedbackStock && (
         <div
           role="status"
-          className="flex flex-wrap items-center justify-between gap-2 rounded-sm border border-emerald-700/60 bg-emerald-950/35 px-3 py-2 font-mono text-xs text-emerald-200"
+          className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm font-medium text-emerald-800"
         >
           <span>{feedbackStock}</span>
           <button
             type="button"
             onClick={() => setFeedbackStock(null)}
             aria-label="Cerrar aviso de stock"
-            className="text-emerald-400 hover:text-white"
+            className="text-emerald-700 hover:text-emerald-900"
           >
-            <X size={14} />
+            <X size={16} />
           </button>
         </div>
       )}
 
       <div className={PANEL_CLASS}>
-        {/* ── Barra de herramientas: filtros por estado + búsqueda ── */}
-        <div className="space-y-3 border-b border-zinc-800 bg-zinc-900 px-3 py-3">
+        <div className="space-y-3 border-b border-slate-200 bg-slate-50/70 px-4 py-3.5">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <p className="font-mono text-[11px] tracking-[0.1em] text-zinc-400">
-              RESERVAS VISIBLES:{' '}
-              <span className="text-zinc-100">
+            <p className="text-sm font-medium text-slate-600">
+              Reservas visibles:{' '}
+              <span className="font-bold text-slate-900 tabular-nums">
                 {visitasFiltradas.length}
               </span>{' '}
-              <span className="text-zinc-600">/ {visitas.length} TOTAL</span>
+              <span className="text-slate-500">de {visitas.length} totales</span>
             </p>
             <button
               type="button"
@@ -388,16 +387,15 @@ export default function TablaVisitasAdmin({
               className={BTN_CLASS}
             >
               <RefreshCw
-                size={12}
+                size={13}
                 strokeWidth={2}
                 className={cargando ? 'animate-spin' : undefined}
               />
-              ACTUALIZAR
+              Actualizar
             </button>
           </div>
 
           <div className="flex flex-col gap-2.5 lg:flex-row lg:items-center lg:justify-between">
-            {/* Filtro por estado */}
             <div
               role="group"
               aria-label="Filtrar visitas por estado"
@@ -407,13 +405,13 @@ export default function TablaVisitasAdmin({
                 type="button"
                 onClick={() => setFiltroEstado('TODOS')}
                 aria-pressed={filtroEstado === 'TODOS'}
-                className={`rounded-sm border px-2.5 py-1 font-mono text-[10.5px] uppercase tracking-[0.1em] transition-colors ${
+                className={`rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors ${
                   filtroEstado === 'TODOS'
-                    ? 'border-zinc-200 bg-zinc-100 font-semibold text-zinc-950'
-                    : 'border-zinc-700 bg-zinc-950 text-zinc-400 hover:border-zinc-500 hover:text-zinc-200'
+                    ? 'border-blue-200 bg-blue-50 text-blue-700'
+                    : 'border-slate-300 bg-white text-slate-600 hover:bg-slate-100 hover:text-slate-900'
                 }`}
               >
-                TODOS ({visitas.length})
+                Todos ({visitas.length})
               </button>
 
               {ESTADOS_VISITA.map((estado) => {
@@ -424,10 +422,10 @@ export default function TablaVisitasAdmin({
                     type="button"
                     onClick={() => setFiltroEstado(estado)}
                     aria-pressed={activo}
-                    className={`rounded-sm border px-2.5 py-1 font-mono text-[10.5px] uppercase tracking-[0.1em] transition-colors ${
+                    className={`rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors ${
                       activo
-                        ? 'border-zinc-200 bg-zinc-100 font-semibold text-zinc-950'
-                        : 'border-zinc-700 bg-zinc-950 text-zinc-400 hover:border-zinc-500 hover:text-zinc-200'
+                        ? 'border-blue-200 bg-blue-50 text-blue-700'
+                        : 'border-slate-300 bg-white text-slate-600 hover:bg-slate-100 hover:text-slate-900'
                     }`}
                   >
                     {estado} ({conteosPorEstado[estado]})
@@ -436,73 +434,71 @@ export default function TablaVisitasAdmin({
               })}
             </div>
 
-            {/* Buscador por código o institución */}
             <div className="relative w-full lg:max-w-xs">
               <Search
-                size={13}
+                size={14}
                 strokeWidth={2}
                 aria-hidden
-                className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-zinc-500"
+                className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
               />
               <input
                 type="search"
                 value={busqueda}
                 onChange={(e) => setBusqueda(e.target.value)}
-                placeholder="Buscar código (VT26-...) o escuela"
+                placeholder="Buscar código o escuela…"
                 aria-label="Buscar por código de reserva o institución"
-                className="w-full rounded-sm border border-zinc-700 bg-zinc-950 py-1.5 pl-8 pr-8 font-mono text-xs text-zinc-100 placeholder:text-zinc-600 focus:border-zinc-400 focus:outline-none"
+                className="w-full rounded-lg border border-slate-300 bg-white py-2 pl-9 pr-8 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
               />
               {busqueda.length > 0 && (
                 <button
                   type="button"
                   onClick={() => setBusqueda('')}
                   aria-label="Limpiar búsqueda"
-                  className="absolute right-2 top-1/2 -translate-y-1/2 rounded-sm p-0.5 text-zinc-500 hover:text-zinc-200"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded p-0.5 text-slate-400 hover:text-slate-700"
                 >
-                  <X size={13} />
+                  <X size={14} />
                 </button>
               )}
             </div>
           </div>
         </div>
 
-        {/* ── Tabla de reservas ── */}
         <div className="overflow-x-auto">
           <table className="w-full border-collapse text-sm">
             <thead>
               <tr>
                 <th scope="col" className={TH_CLASS}>
-                  Código, Fecha &amp; Estado
+                  Código, Fecha y Estado
                 </th>
                 <th scope="col" className={TH_CLASS}>
-                  Institución
+                  Escuela
                 </th>
                 <th scope="col" className={TH_CLASS}>
                   Contacto
                 </th>
                 <th scope="col" className={TH_CLASS}>
-                  Checks Operativos
+                  Requisitos
                 </th>
                 <th scope="col" className={TH_CLASS}>
-                  Acción
+                  Acciones
                 </th>
               </tr>
             </thead>
             <tbody>
               {cargando && visitas.length === 0 && (
                 <tr>
-                  <td colSpan={5} className={`${TD_CLASS} font-mono text-[11px] text-zinc-500`}>
-                    CARGANDO RESERVAS…
+                  <td colSpan={5} className={`${TD_CLASS} text-sm text-slate-500`}>
+                    Cargando reservas…
                   </td>
                 </tr>
               )}
 
               {!cargando && visitasFiltradas.length === 0 && (
                 <tr>
-                  <td colSpan={5} className={`${TD_CLASS} font-mono text-[11px] text-zinc-500`}>
+                  <td colSpan={5} className={`${TD_CLASS} text-sm text-slate-500`}>
                     {visitas.length === 0
-                      ? 'NO HAY RESERVAS REGISTRADAS.'
-                      : 'NO HAY RESERVAS QUE COINCIDAN CON EL FILTRO O BÚSQUEDA.'}
+                      ? 'No hay reservas registradas.'
+                      : 'No hay reservas que coincidan con la búsqueda.'}
                   </td>
                 </tr>
               )}
@@ -515,11 +511,11 @@ export default function TablaVisitasAdmin({
                 const estadoActualValido = esEstadoVisita(visita.estado_visita);
 
                 return (
-                  <tr key={visita.id} className="transition-colors hover:bg-zinc-900">
+                  <tr key={visita.id} className="transition-colors hover:bg-slate-50">
                     <td className={`${TD_CLASS} whitespace-nowrap`}>
-                      <p className="font-mono text-[13px] font-semibold text-zinc-100">
+                      <p className="font-semibold text-slate-900 tabular-nums">
                         {visita.codigo_reserva}
-                        <span className="px-1.5 text-zinc-600">|</span>
+                        <span className="px-1.5 text-slate-300">|</span>
                         {visita.fecha_visita.split('T')[0]}
                       </p>
                       <div className="mt-1.5">
@@ -539,22 +535,22 @@ export default function TablaVisitasAdmin({
                               void cambiarEstadoRapido(visita, val);
                             }
                           }}
-                          className={`rounded-sm border px-2 py-1 font-mono text-[10.5px] font-semibold uppercase tracking-[0.08em] focus:outline-none disabled:cursor-not-allowed disabled:opacity-60 ${obtenerClaseEstadoSelect(
+                          className={`rounded-md border px-2.5 py-1 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-60 ${obtenerClaseEstadoSelect(
                             visita.estado_visita
                           )}`}
                         >
                           {!estadoActualValido && (
                             <option value={visita.estado_visita}>
-                              {visita.estado_visita.toUpperCase()}
+                              {visita.estado_visita}
                             </option>
                           )}
                           {ESTADOS_VISITA.map((estado) => (
                             <option
                               key={estado}
                               value={estado}
-                              className="bg-zinc-950 text-zinc-100"
+                              className="bg-white text-slate-900"
                             >
-                              {estado.toUpperCase()}
+                              {estado}
                             </option>
                           ))}
                         </select>
@@ -562,24 +558,24 @@ export default function TablaVisitasAdmin({
                     </td>
 
                     <td className={`${TD_CLASS} min-w-[14rem]`}>
-                      <p className="font-medium text-zinc-100">{institucion}</p>
+                      <p className="font-semibold text-slate-900">{institucion}</p>
                       <p className={`mt-0.5 ${MONO_SECUNDARIO}`}>
                         {visita.anio} · {visita.division?.trim() || 'S/D'} ·{' '}
-                        {visita.cant_alumnos} ALUMNOS
+                        {visita.cant_alumnos} alumnos
                       </p>
-                      <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.08em]">
+                      <p className="mt-1 text-xs font-medium">
                         {visita.requiere_tup ? (
-                          <span className="text-sky-400">
-                            TUP · {(visita.tup_estado_traslado ?? 'pendiente').replace(/_/g, ' ')}
+                          <span className="text-blue-700">
+                            Colectivo TUP · {(visita.tup_estado_traslado ?? 'pendiente').replace(/_/g, ' ')}
                           </span>
                         ) : (
-                          <span className="text-zinc-500">TRASLADO PROPIO</span>
+                          <span className="text-slate-500">Traslado propio</span>
                         )}
                       </p>
                     </td>
 
                     <td className={`${TD_CLASS} min-w-[12rem]`}>
-                      <p className="text-zinc-100">{visita.nombre_docente}</p>
+                      <p className="font-medium text-slate-900">{visita.nombre_docente}</p>
                       <p className={`mt-0.5 ${MONO_SECUNDARIO}`}>{visita.cel_docente}</p>
                       {whatsapp ? (
                         <a
@@ -588,11 +584,11 @@ export default function TablaVisitasAdmin({
                           rel="noopener noreferrer"
                           className={`${BTN_CLASS} mt-1.5`}
                         >
-                          <MessageCircle size={13} strokeWidth={1.75} />
-                          WHATSAPP DOCENTE
+                          <MessageCircle size={13} strokeWidth={1.75} className="text-emerald-600" />
+                          WhatsApp
                         </a>
                       ) : (
-                        <p className={`mt-1.5 ${MONO_SECUNDARIO}`}>CELULAR NO VÁLIDO</p>
+                        <p className={`mt-1.5 ${MONO_SECUNDARIO}`}>Celular no válido</p>
                       )}
                     </td>
 
@@ -611,16 +607,16 @@ export default function TablaVisitasAdmin({
                               aria-label={`${etiqueta} para ${visita.codigo_reserva}`}
                               disabled={ocupado}
                               onClick={() => void alternarCheck(visita, campo)}
-                              className={`inline-flex items-center gap-1.5 rounded-sm border px-2 py-1 font-mono text-[10.5px] font-semibold tracking-[0.08em] transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
+                              className={`inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
                                 activo
-                                  ? 'border-emerald-600/70 bg-emerald-950/50 text-emerald-300'
-                                  : 'border-zinc-800 bg-zinc-900 text-zinc-500 hover:border-zinc-600 hover:text-zinc-300'
+                                  ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                                  : 'border-slate-300 bg-white text-slate-600 hover:bg-slate-100 hover:text-slate-900'
                               }`}
                             >
                               <span
                                 aria-hidden
-                                className={`h-1.5 w-1.5 rounded-full ${
-                                  activo ? 'bg-emerald-400' : 'bg-zinc-600'
+                                className={`h-2 w-2 rounded-full ${
+                                  activo ? 'bg-emerald-500' : 'bg-slate-300'
                                 }`}
                               />
                               {etiqueta}
@@ -636,10 +632,10 @@ export default function TablaVisitasAdmin({
                           type="button"
                           onClick={() => setVisitaNomina(visita)}
                           className={BTN_CLASS}
-                          title="Ver nómina de asistentes"
+                          title="Ver lista de asistentes"
                         >
                           <Users size={13} strokeWidth={1.75} />
-                          NÓMINA
+                          Lista
                         </button>
                         <button
                           type="button"
@@ -648,17 +644,17 @@ export default function TablaVisitasAdmin({
                           title="Editar reserva"
                         >
                           <Pencil size={13} strokeWidth={1.75} />
-                          EDITAR
+                          Editar
                         </button>
                         <button
                           type="button"
                           onClick={() => void exportarExcel(visita)}
                           disabled={exportando}
                           className={BTN_CLASS}
-                          title="Descargar Excel para póliza de seguro"
+                          title="Descargar Excel para seguro"
                         >
                           <Download size={13} strokeWidth={1.75} />
-                          {exportando ? 'EXPORTANDO…' : 'EXCEL'}
+                          {exportando ? 'Exportando…' : 'Excel'}
                         </button>
                       </div>
                     </td>

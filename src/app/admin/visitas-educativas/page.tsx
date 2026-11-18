@@ -2,20 +2,17 @@ import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import { Bus, GraduationCap, PackageCheck, School } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
-import {
-  obtenerEstadisticasGlobalesCentro,
-  type EstadisticasGlobalesCentro,
-} from '@/services/estadisticas-centro';
+import { obtenerEstadisticasGlobalesCentro, type EstadisticasGlobalesCentro } from '@/services/estadisticas-centro';
+import NavegacionRapidaEscuelas from '@/components/admin/NavegacionRapidaEscuelas';
 import TablaVisitasAdmin from '@/components/admin/visitas/TablaVisitasAdmin';
-import BotonVolver from '@/components/ui/BotonVolver';
 import type { Escuela, VisitaEducativa } from '@/types/visitas';
 
 export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
-  title: 'Visitas Educativas (H4) · Hub Simuladores',
+  title: 'Escuelas y Visitas · Centro de Simuladores',
   description:
-    'Gestión operativa de las reservas de visitas educativas: seguros, transporte TUP, facturas, Drive, nóminas y estados.',
+    'Gestión de reservas escolares, seguros, colectivo TUP, nóminas de alumnos y estados.',
 };
 
 export default async function VisitasEducativasAdminPage() {
@@ -50,99 +47,91 @@ export default async function VisitasEducativasAdminPage() {
 
     estadisticas = resStats;
     if (resVisitas.error || resEscuelas.error) {
-      errorInicial = 'No se pudieron cargar las reservas educativas.';
-      console.error('[/admin/visitas-educativas] Error SSR al consultar datos:', {
-        visitas: resVisitas.error?.message,
-        escuelas: resEscuelas.error?.message,
-      });
+      errorInicial = 'No se pudieron cargar las reservas escolares.';
     } else {
       visitasIniciales = resVisitas.data ?? [];
       escuelasIniciales = resEscuelas.data ?? [];
     }
-  } catch (err) {
+  } catch {
     errorInicial = 'No fue posible establecer conexión con la base de datos.';
-    console.error('[/admin/visitas-educativas] Error inesperado SSR:', {
-      message: err instanceof Error ? err.message : 'Error desconocido',
-    });
   }
 
   const vh = estadisticas?.visitasHistoricas;
 
   return (
-    <section className="space-y-4">
-      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-zinc-800 pb-3">
+    <section className="space-y-5">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 pb-4">
         <div>
-          <h2 className="text-lg font-semibold tracking-tight text-zinc-100">
-            Gestión de Visitas Educativas (H4)
-          </h2>
-          <p className="mt-1 font-mono text-[11px] tracking-[0.1em] text-zinc-500">
-            /ADMIN/VISITAS-EDUCATIVAS · SEGUIMIENTO OPERATIVO, ESTADOS Y NÓMINAS
+          <h1 className="text-xl font-bold tracking-tight text-slate-900">
+            Escuelas y Visitas Educativas
+          </h1>
+          <p className="mt-0.5 text-sm text-slate-600">
+            Agenda escolar, confirmaciones, nómina de estudiantes y controles previos
           </p>
         </div>
-        <BotonVolver href="/admin" etiqueta="Volver al Panel" />
+        <NavegacionRapidaEscuelas />
       </div>
 
-      {/* ── Resumen histórico real de Visitas, TUP y Stock ─────── */}
       {vh && (
         <div
           aria-label="Resumen histórico de visitas escolares"
-          className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4"
+          className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4"
         >
-          <div className="rounded-sm border border-zinc-800 bg-zinc-950 p-3.5">
-            <p className="flex items-center gap-1.5 font-mono text-[10px] tracking-[0.14em] text-zinc-500">
-              <School size={12} className="text-sky-400" aria-hidden />
-              COLEGIOS RECIBIDOS
+          <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+            <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-slate-500">
+              <School size={14} className="text-blue-600" aria-hidden />
+              Escuelas recibidas
             </p>
-            <p className="mt-1.5 font-mono text-2xl font-bold text-white">
+            <p className="mt-2 text-2xl font-bold text-slate-900 tabular-nums">
               {vh.colegiosRecibidos}{' '}
-              <span className="text-xs font-normal text-zinc-500">
+              <span className="text-sm font-medium text-slate-500">
                 / {vh.colegiosTotalesNoCancelados} en agenda
               </span>
             </p>
-            <p className="mt-1 font-mono text-[10px] text-zinc-500">
-              {vh.visitasRealizadas} visitas finalizadas ({vh.visitasActivas} no canceladas)
+            <p className="mt-1 text-xs text-slate-600">
+              {vh.visitasRealizadas} visitas finalizadas ({vh.visitasActivas} activas)
             </p>
           </div>
 
-          <div className="rounded-sm border border-zinc-800 bg-zinc-950 p-3.5">
-            <p className="flex items-center gap-1.5 font-mono text-[10px] tracking-[0.14em] text-zinc-500">
-              <GraduationCap size={12} className="text-emerald-400" aria-hidden />
-              ALUMNOS ASISTIDOS
+          <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+            <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-slate-500">
+              <GraduationCap size={14} className="text-emerald-600" aria-hidden />
+              Alumnos recibidos
             </p>
-            <p className="mt-1.5 font-mono text-2xl font-bold text-white">
+            <p className="mt-2 text-2xl font-bold text-slate-900 tabular-nums">
               {vh.alumnosAsistidosRealizados.toLocaleString('es-AR')}{' '}
-              <span className="text-xs font-normal text-zinc-500">
+              <span className="text-sm font-medium text-slate-500">
                 / {vh.alumnosProgramadosActivos.toLocaleString('es-AR')} prog.
               </span>
             </p>
-            <p className="mt-1 font-mono text-[10px] text-zinc-500">
-              Según nómina o cupo confirmado
+            <p className="mt-1 text-xs text-slate-600">
+              Total según nómina o reserva
             </p>
           </div>
 
-          <div className="rounded-sm border border-zinc-800 bg-zinc-950 p-3.5">
-            <p className="flex items-center gap-1.5 font-mono text-[10px] tracking-[0.14em] text-zinc-500">
-              <Bus size={12} className="text-amber-400" aria-hidden />
-              TRASLADOS TUP COMPLETADOS
+          <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+            <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-slate-500">
+              <Bus size={14} className="text-amber-600" aria-hidden />
+              Traslados TUP realizados
             </p>
-            <p className="mt-1.5 font-mono text-2xl font-bold text-white">
+            <p className="mt-2 text-2xl font-bold text-slate-900 tabular-nums">
               {vh.trasladosTupCompletados}
             </p>
-            <p className="mt-1 font-mono text-[10px] text-zinc-500">
-              Servicios escolares con TUP finalizado
+            <p className="mt-1 text-xs text-slate-600">
+              Recorridos escolares completados
             </p>
           </div>
 
-          <div className="rounded-sm border border-zinc-800 bg-zinc-950 p-3.5">
-            <p className="flex items-center gap-1.5 font-mono text-[10px] tracking-[0.14em] text-zinc-500">
-              <PackageCheck size={12} className="text-cyan-400" aria-hidden />
-              KITS ENTREGADOS (PAÑOL)
+          <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+            <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-slate-500">
+              <PackageCheck size={14} className="text-blue-600" aria-hidden />
+              Refrigerios entregados
             </p>
-            <p className="mt-1.5 font-mono text-2xl font-bold text-white">
+            <p className="mt-2 text-2xl font-bold text-slate-900 tabular-nums">
               {vh.kitsCompletosEstimados.toLocaleString('es-AR')}
             </p>
-            <p className="mt-1 font-mono text-[10px] text-zinc-500">
-              {vh.unidadesStockDescontadas.toLocaleString('es-AR')} unidades egresadas totales
+            <p className="mt-1 text-xs text-slate-600">
+              {vh.unidadesStockDescontadas.toLocaleString('es-AR')} unidades egresadas
             </p>
           </div>
         </div>

@@ -65,10 +65,10 @@ export default function PanelDuplasYPostulantes({
   return (
     <>
       <section aria-label="Grilla de duplas de la cohorte" className="space-y-3">
-        <h2 className="font-mono text-[11px] tracking-[0.18em] text-zinc-400">
-          GRILLA DE DUPLAS · {totalPlazas} PLAZAS{' '}
-          <span className="text-zinc-600">
-            {'// ACCESO DIRECTO A FICHA, PROYECTO TITÁN .JSON Y ASISTENCIAS'}
+        <h2 className="text-sm font-bold text-slate-800">
+          Grilla de duplas · {totalPlazas} plazas{' '}
+          <span className="font-medium text-slate-500">
+            · Acceso directo a ficha, reportes del simulador y asistencias
           </span>
         </h2>
         <GrillaDuplas
@@ -83,10 +83,10 @@ export default function PanelDuplasYPostulantes({
       </section>
 
       <section aria-label="Ranking de postulantes" className="space-y-3">
-        <h2 className="font-mono text-[11px] tracking-[0.18em] text-zinc-400">
-          RANKING COMPLETO DE POSTULANTES{' '}
-          <span className="text-zinc-600">
-            {'// CLIC EN UNA FILA PARA VER LA FICHA TÉCNICA 360°'}
+        <h2 className="text-sm font-bold text-slate-800">
+          Listado de alumnos{' '}
+          <span className="font-medium text-slate-500">
+            · Hacé clic en una fila para ver la ficha 360°
           </span>
         </h2>
         <TablaPostulantes

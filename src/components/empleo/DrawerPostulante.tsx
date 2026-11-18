@@ -83,40 +83,43 @@ interface Props {
 
 const BADGE_ASISTENCIA: Record<string, { etiqueta: string; clase: string }> = {
   MINIMA_AUTONOMO: {
-    etiqueta: 'MÍNIMA · AUTÓNOMO',
-    clase: 'bg-emerald-500 text-emerald-950',
+    etiqueta: 'Mínima · Autónomo',
+    clase: 'border border-emerald-200 bg-emerald-50 text-emerald-700',
   },
-  MEDIA: { etiqueta: 'MEDIA · GUÍA VERBAL', clase: 'bg-amber-400 text-amber-950' },
+  MEDIA: {
+    etiqueta: 'Media · Guía verbal',
+    clase: 'border border-amber-200 bg-amber-50 text-amber-800',
+  },
   ALTA: {
-    etiqueta: 'ALTA · INTERVENCIÓN',
-    clase: 'bg-red-500 text-red-950',
+    etiqueta: 'Alta · Intervención',
+    clase: 'border border-rose-200 bg-rose-50 text-rose-700',
   },
 };
 
 const BADGE_NIVEL_ASISTENCIA: Record<string, { etiqueta: string; clase: string }> = {
   AUTONOMO: {
-    etiqueta: 'AUTÓNOMO',
-    clase: 'bg-emerald-500 text-emerald-950',
+    etiqueta: 'Autónomo',
+    clase: 'border border-emerald-200 bg-emerald-50 text-emerald-700',
   },
   AYUDA_VERBAL: {
-    etiqueta: 'AYUDA VERBAL',
-    clase: 'bg-amber-400 text-amber-950',
+    etiqueta: 'Ayuda verbal',
+    clase: 'border border-amber-200 bg-amber-50 text-amber-800',
   },
   INTERVENCION_CONSTANTE: {
-    etiqueta: 'INTERVENCIÓN CONSTANTE',
-    clase: 'bg-orange-500 text-orange-950',
+    etiqueta: 'Intervención constante',
+    clase: 'border border-orange-200 bg-orange-50 text-orange-800',
   },
   INTERVENCION_CRITICA: {
-    etiqueta: 'INTERVENCIÓN CRÍTICA',
-    clase: 'bg-red-500 text-red-950',
+    etiqueta: 'Intervención crítica',
+    clase: 'border border-rose-200 bg-rose-50 text-rose-700',
   },
 };
 
 const ETIQUETA_BLOQUE_SPLIT: Record<string, string> = {
-  PILOTO_A: 'BLOQUE 1 · PILOTO A',
-  COPILOTO_B: 'BLOQUE 1 · COPILOTO B',
-  PILOTO_B: 'BLOQUE 2 · PILOTO B',
-  COPILOTO_A: 'BLOQUE 2 · COPILOTO A',
+  PILOTO_A: 'Bloque 1 · Piloto A',
+  COPILOTO_B: 'Bloque 1 · Copiloto B',
+  PILOTO_B: 'Bloque 2 · Piloto B',
+  COPILOTO_A: 'Bloque 2 · Copiloto A',
 };
 
 const BADGE_DICTAMEN_IA: Record<
@@ -124,34 +127,34 @@ const BADGE_DICTAMEN_IA: Record<
   { etiqueta: string; clase: string }
 > = {
   APTO_DIRECTO: {
-    etiqueta: 'APTO DIRECTO',
-    clase: 'bg-emerald-500 text-emerald-950',
+    etiqueta: 'Apto directo',
+    clase: 'border border-emerald-200 bg-emerald-50 text-emerald-700',
   },
   APTO_OBSERVACION: {
-    etiqueta: 'APTO C/ OBSERVACIÓN',
-    clase: 'bg-cyan-400 text-cyan-950',
+    etiqueta: 'Apto c/ observación',
+    clase: 'border border-blue-200 bg-blue-50 text-blue-700',
   },
   CONDICIONAL: {
-    etiqueta: 'CONDICIONAL',
-    clase: 'bg-amber-400 text-amber-950',
+    etiqueta: 'Condicional',
+    clase: 'border border-amber-200 bg-amber-50 text-amber-800',
   },
   NO_APTO: {
-    etiqueta: 'NO APTO',
-    clase: 'bg-red-500 text-red-950',
+    etiqueta: 'No apto',
+    clase: 'border border-rose-200 bg-rose-50 text-rose-700',
   },
 };
 
 const CLASE_PUNTAJE: Record<number, string> = {
-  0: 'bg-red-500 text-red-950',
-  10: 'bg-amber-400 text-amber-950',
-  20: 'bg-emerald-500 text-emerald-950',
+  0: 'border border-rose-200 bg-rose-50 text-rose-700',
+  10: 'border border-amber-200 bg-amber-50 text-amber-800',
+  20: 'border border-emerald-200 bg-emerald-50 text-emerald-700',
 };
 
 const BADGE_RECEPTIVIDAD: Record<string, string> = {
-  'Alta Asimilación': 'bg-emerald-500 text-emerald-950',
-  'Estable': 'bg-amber-400 text-amber-950',
-  'Ansiedad Operativa': 'bg-red-500 text-red-950',
-  'Sin Datos': 'bg-zinc-700 text-zinc-200',
+  'Alta Asimilación': 'border border-emerald-200 bg-emerald-50 text-emerald-700',
+  'Estable': 'border border-amber-200 bg-amber-50 text-amber-800',
+  'Ansiedad Operativa': 'border border-rose-200 bg-rose-50 text-rose-700',
+  'Sin Datos': 'border border-slate-200 bg-slate-100 text-slate-600',
 };
 
 const BADGE_PERFIL_OPERADOR: Record<
@@ -159,36 +162,36 @@ const BADGE_PERFIL_OPERADOR: Record<
   { etiqueta: string; clase: string; borde: string }
 > = {
   EFICIENTE: {
-    etiqueta: 'EFICIENTE',
-    clase: 'bg-emerald-500 text-emerald-950',
-    borde: 'border-emerald-500/45 bg-emerald-950/25',
+    etiqueta: 'Eficiente',
+    clase: 'border border-emerald-200 bg-emerald-50 text-emerald-700',
+    borde: 'border-emerald-200 bg-emerald-50/50',
   },
   APURADO: {
-    etiqueta: 'APURADO',
-    clase: 'bg-amber-400 text-amber-950',
-    borde: 'border-amber-500/45 bg-amber-950/20',
+    etiqueta: 'Apurado',
+    clase: 'border border-amber-200 bg-amber-50 text-amber-800',
+    borde: 'border-amber-200 bg-amber-50/50',
   },
   INEFICIENTE: {
-    etiqueta: 'INEFICIENTE',
-    clase: 'bg-cyan-400 text-cyan-950',
-    borde: 'border-cyan-500/45 bg-cyan-950/20',
+    etiqueta: 'Ineficiente',
+    clase: 'border border-blue-200 bg-blue-50 text-blue-700',
+    borde: 'border-blue-200 bg-blue-50/50',
   },
   SIN_NOCION_ESPACIO: {
-    etiqueta: 'SIN NOCIÓN DEL ESPACIO',
-    clase: 'bg-orange-500 text-orange-950',
-    borde: 'border-orange-500/45 bg-orange-950/20',
+    etiqueta: 'Sin noción del espacio',
+    clase: 'border border-orange-200 bg-orange-50 text-orange-800',
+    borde: 'border-orange-200 bg-orange-50/50',
   },
   NOVATO: {
-    etiqueta: 'NOVATO',
-    clase: 'bg-red-500 text-red-950',
-    borde: 'border-red-500/45 bg-red-950/25',
+    etiqueta: 'Novato',
+    clase: 'border border-rose-200 bg-rose-50 text-rose-700',
+    borde: 'border-rose-200 bg-rose-50/50',
   },
 };
 
 const ETIQUETA_TURNO: Record<PostulanteFila['origen_turno'], string> = {
-  TM: 'TURNO MAÑANA',
-  TT: 'TURNO TARDE',
-  INDEFINIDO: 'INDEFINIDO',
+  TM: 'Turno Mañana',
+  TT: 'Turno Tarde',
+  INDEFINIDO: 'Sin turno',
 };
 
 const EJES: readonly {
@@ -196,13 +199,13 @@ const EJES: readonly {
   claveTexto: 'eje_lateralidad' | 'eje_tacto_mandos' | 'eje_mastil' | 'eje_control_receptividad';
   etiqueta: string;
 }[] = [
-  { clavePuntaje: 'puntaje_lateralidad', claveTexto: 'eje_lateralidad', etiqueta: 'LATERALIDAD' },
-  { clavePuntaje: 'puntaje_tacto_mandos', claveTexto: 'eje_tacto_mandos', etiqueta: 'MANDOS' },
-  { clavePuntaje: 'puntaje_mastil', claveTexto: 'eje_mastil', etiqueta: 'MÁSTIL' },
+  { clavePuntaje: 'puntaje_lateralidad', claveTexto: 'eje_lateralidad', etiqueta: 'Lateralidad' },
+  { clavePuntaje: 'puntaje_tacto_mandos', claveTexto: 'eje_tacto_mandos', etiqueta: 'Mandos' },
+  { clavePuntaje: 'puntaje_mastil', claveTexto: 'eje_mastil', etiqueta: 'Mástil' },
   {
     clavePuntaje: 'puntaje_control_receptividad',
     claveTexto: 'eje_control_receptividad',
-    etiqueta: 'CONTROL',
+    etiqueta: 'Control',
   },
 ];
 
@@ -248,16 +251,16 @@ function construirRadarDesdeTablet(
 
 function Metrica({ etiqueta, valor }: { etiqueta: string; valor: string }) {
   return (
-    <div className="rounded-sm border border-zinc-800 bg-zinc-900 px-3 py-2">
-      <p className="font-mono text-[9px] tracking-[0.14em] text-zinc-500">{etiqueta}</p>
-      <p className="mt-0.5 font-mono text-sm text-white">{valor}</p>
+    <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+      <p className="text-[11px] font-semibold text-slate-500">{etiqueta}</p>
+      <p className="mt-0.5 text-sm font-bold text-slate-900 tabular-nums">{valor}</p>
     </div>
   );
 }
 
 /**
  * Chip de delta entre intentos: protege null / undefined / NaN mostrando '—',
- * distingue 0 como 'SIN CAMBIO' y colorea según el sentido de mejora.
+ * distingue 0 como 'Sin cambio' y colorea según el sentido de mejora.
  */
 function DeltaChip({
   etiqueta,
@@ -272,9 +275,9 @@ function DeltaChip({
 }) {
   if (typeof valor !== 'number' || !Number.isFinite(valor)) {
     return (
-      <div className="rounded-sm border border-zinc-800 bg-zinc-950 px-2 py-1.5">
-        <p className="font-mono text-[8px] tracking-[0.12em] text-zinc-600">{etiqueta}</p>
-        <p className="mt-0.5 font-mono text-xs text-zinc-500">—</p>
+      <div className="rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-2">
+        <p className="text-[11px] font-semibold text-slate-500">{etiqueta}</p>
+        <p className="mt-0.5 text-xs font-semibold text-slate-400">—</p>
       </div>
     );
   }
@@ -282,14 +285,14 @@ function DeltaChip({
   const limpio = Number.isInteger(valor) ? valor : Math.round(valor * 100) / 100;
   const cero = limpio === 0;
   const mejora = sentido === 'menor_mejor' ? limpio < 0 : limpio > 0;
-  const clase = cero ? 'text-zinc-400' : mejora ? 'text-emerald-400' : 'text-red-400';
+  const clase = cero ? 'text-slate-600' : mejora ? 'text-emerald-700' : 'text-rose-700';
   const signo = limpio > 0 ? '+' : '';
 
   return (
-    <div className="rounded-sm border border-zinc-800 bg-zinc-950 px-2 py-1.5">
-      <p className="font-mono text-[8px] tracking-[0.12em] text-zinc-600">{etiqueta}</p>
-      <p className={`mt-0.5 font-mono text-xs ${clase}`}>
-        {cero ? `0${unidad} (SIN CAMBIO)` : `${signo}${limpio}${unidad}`}
+    <div className="rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-2">
+      <p className="text-[11px] font-semibold text-slate-500">{etiqueta}</p>
+      <p className={`mt-0.5 text-xs font-bold tabular-nums ${clase}`}>
+        {cero ? `0${unidad} (Sin cambio)` : `${signo}${limpio}${unidad}`}
       </p>
     </div>
   );
@@ -1014,21 +1017,21 @@ export default function DrawerPostulante({
     >
       <div className="space-y-5">
         {/* ── Acción directa: Exportar Legajo 360° (PDF) ───────── */}
-        <div className="flex flex-wrap items-center justify-between gap-2 rounded-sm border border-zinc-800 bg-zinc-900/70 px-3 py-2">
-          <span className="font-mono text-[10px] tracking-[0.12em] text-zinc-400">
-            LEGAJO 360° ·{' '}
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5">
+          <span className="text-xs font-semibold text-slate-600">
+            Legajo completo ·{' '}
             {cargandoLegajo
-              ? 'SINCRONIZANDO…'
+              ? 'Sincronizando…'
               : totalSesionesLegajo > 0
-                ? `${presentesSimulador}/${totalSesionesLegajo} SESIONES`
-                : 'SIN DUPLA SYNC'}
+                ? `${presentesSimulador}/${totalSesionesLegajo} sesiones`
+                : 'Sin dupla sincronizada'}
           </span>
           <button
             type="button"
             onClick={imprimirLegajo360}
-            className="inline-flex h-9 items-center gap-1.5 rounded-sm border border-white bg-white px-3 font-mono text-[10px] font-semibold tracking-[0.1em] text-zinc-950 transition-colors hover:bg-zinc-200"
+            className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-slate-900 px-3.5 text-xs font-semibold text-white transition-colors hover:bg-slate-800"
           >
-            <Printer size={12} aria-hidden />
+            <Printer size={14} aria-hidden />
             Imprimir / Exportar Legajo 360° (PDF)
           </button>
         </div>
@@ -1037,28 +1040,28 @@ export default function DrawerPostulante({
         <div className="flex flex-wrap gap-2">
           {asistencia ? (
             <span
-              className={`rounded-sm px-2.5 py-1 font-mono text-[10px] font-semibold tracking-[0.12em] ${asistencia.clase}`}
+              className={`rounded-md px-2.5 py-1 text-xs font-semibold ${asistencia.clase}`}
             >
-              ASISTENCIA: {asistencia.etiqueta}
+              Asistencia: {asistencia.etiqueta}
             </span>
           ) : (
-            <span className="rounded-sm bg-zinc-800 px-2.5 py-1 font-mono text-[10px] tracking-[0.12em] text-zinc-400">
-              SIN EVALUACIÓN DE ASISTENCIA
+            <span className="rounded-md border border-slate-200 bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600">
+              Sin evaluación de asistencia
             </span>
           )}
           {bloqueSplitEtiqueta && (
-            <span className="rounded-sm border border-cyan-500/40 bg-cyan-500/10 px-2.5 py-1 font-mono text-[10px] tracking-[0.12em] text-cyan-300">
+            <span className="rounded-md border border-blue-200 bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-700">
               {bloqueSplitEtiqueta}
             </span>
           )}
           {evaluacion?.dictamen && (
-            <span className="rounded-sm border border-zinc-700 px-2.5 py-1 font-mono text-[10px] tracking-[0.12em] text-zinc-300">
-              DICTAMEN: {evaluacion.dictamen.replaceAll('_', ' ')}
+            <span className="rounded-md border border-slate-200 bg-white px-2.5 py-1 text-xs font-semibold text-slate-700">
+              Dictamen: {evaluacion.dictamen.replaceAll('_', ' ')}
             </span>
           )}
           {evaluacion?.tiene_evaluacion_tablet && evaluacion.score_tablet !== null && (
-            <span className="rounded-sm border border-emerald-500/40 bg-emerald-500/10 px-2.5 py-1 font-mono text-[10px] tracking-[0.12em] text-emerald-300">
-              CABINA ({evaluacion.etapa_tablet ?? 'DIAG_INTENTO_1'}):{' '}
+            <span className="rounded-md border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">
+              Cabina ({evaluacion.etapa_tablet ?? 'DIAG_INTENTO_1'}):{' '}
               {formatoNumeroSeguro(evaluacion.score_tablet, '/90 pts', 0)}
             </span>
           )}
@@ -1067,74 +1070,74 @@ export default function DrawerPostulante({
         {evaluacion?.hard_fail && (
           <div
             role="alert"
-            className="rounded-sm border border-red-500/60 bg-red-950/40 px-3 py-2 font-mono text-[10px] tracking-[0.1em] text-red-300"
+            className="rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-2.5 text-xs text-rose-800"
           >
-            <p className="font-bold text-red-400">HARD-FAIL REGISTRADO EN CABINA</p>
+            <p className="font-bold text-rose-700">Falta grave registrada en cabina</p>
             {evaluacion.motivo_hard_fail && (
-              <p className="mt-0.5 text-red-200">{evaluacion.motivo_hard_fail}</p>
+              <p className="mt-0.5 text-rose-700">{evaluacion.motivo_hard_fail}</p>
             )}
           </div>
         )}
 
-        {/* ── PROYECTO TITÁN: Telemetría de Cabina (.pdf / .json) ── */}
+        {/* ── Reportes del Simulador (.pdf / .json) ── */}
         <section
           ref={titanSectionRef}
-          aria-label="PROYECTO TITÁN: Telemetría de Cabina (.pdf / .json)"
-          className={`space-y-3 rounded-sm border-2 bg-gradient-to-b from-emerald-950/30 via-zinc-950 to-zinc-950 p-3.5 shadow-[0_0_24px_rgba(16,185,129,0.08)] ${
+          aria-label="Reportes del Simulador (.pdf / .json)"
+          className={`space-y-3 rounded-xl border bg-white p-4 shadow-sm ${
             enfocarTitan
-              ? 'border-emerald-400 ring-1 ring-emerald-400/40'
-              : 'border-emerald-500/60'
+              ? 'border-blue-400 ring-2 ring-blue-100'
+              : 'border-slate-200'
           }`}
         >
           <div className="flex flex-wrap items-start justify-between gap-2">
             <div>
-              <p className="flex items-center gap-1.5 font-mono text-[11px] font-semibold tracking-[0.12em] text-emerald-300">
-                <Sparkles size={14} strokeWidth={2} className="shrink-0 text-emerald-400" aria-hidden />
-                <span>PROYECTO TITÁN: Telemetría de Cabina (.pdf / .json)</span>
+              <p className="flex items-center gap-1.5 text-sm font-bold text-slate-900">
+                <Sparkles size={15} strokeWidth={2} className="shrink-0 text-blue-600" aria-hidden />
+                <span>Reportes del Simulador (.pdf / .json)</span>
               </p>
-              <p className="mt-0.5 font-mono text-[9.5px] tracking-[0.06em] text-zinc-400">
-                Cargá reportes del simulador ETECH para depurar falsos positivos (-2) y emitir dictamen IA.
+              <p className="mt-0.5 text-xs text-slate-600">
+                Subí reportes del simulador ETECH para limpiar falsos positivos (-2) y generar el informe sugerido.
               </p>
             </div>
             <span
-              className={`rounded-sm border px-2 py-0.5 font-mono text-[9px] font-semibold tracking-[0.1em] ${
+              className={`rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${
                 analizandoIA || procesandoArchivo
-                  ? 'border-amber-500/60 bg-amber-950/40 text-amber-300'
+                  ? 'border-amber-200 bg-amber-50 text-amber-800'
                   : informeActivo
                     ? informeActivo.origen === 'GEMINI_2_5_FLASH'
-                      ? 'border-emerald-500/50 bg-emerald-500/15 text-emerald-300'
-                      : 'border-cyan-500/50 bg-cyan-950/40 text-cyan-300'
+                      ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                      : 'border-blue-200 bg-blue-50 text-blue-700'
                     : metricasActivas
-                      ? 'border-amber-500/50 bg-amber-950/35 text-amber-300'
-                      : 'border-zinc-700 bg-zinc-900 text-zinc-400'
+                      ? 'border-amber-200 bg-amber-50 text-amber-800'
+                      : 'border-slate-200 bg-slate-100 text-slate-600'
               }`}
             >
               {procesandoArchivo
-                ? 'EXTRAYENDO TELEMETRÍA…'
+                ? 'Leyendo reporte…'
                 : analizandoIA
-                  ? 'ANALIZANDO…'
+                  ? 'Analizando…'
                   : informeActivo
                     ? informeActivo.origen === 'GEMINI_2_5_FLASH'
-                      ? 'IA · GEMINI 2.5 FLASH'
-                      : 'IA · FALLBACK HEURÍSTICO'
+                      ? 'Informe IA listo'
+                      : 'Informe automático'
                     : metricasActivas
-                      ? 'REPORTE CARGADO · SIN INFORME'
-                      : 'PENDIENTE (.PDF / .JSON)'}
+                      ? 'Reporte cargado · Sin informe'
+                      : 'Pendiente (.pdf / .json)'}
             </span>
           </div>
 
           {archivoActivoNombre && (
-            <div className="flex flex-wrap items-center justify-between gap-2 rounded-sm border border-zinc-800 bg-zinc-900/70 px-2.5 py-1.5">
-              <span className="inline-flex min-w-0 items-center gap-1.5 truncate font-mono text-[10px] text-zinc-200">
+            <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+              <span className="inline-flex min-w-0 items-center gap-1.5 truncate text-xs font-medium text-slate-800">
                 {archivoActivoNombre.toLowerCase().endsWith('.pdf') ? (
-                  <FileText size={12} strokeWidth={1.75} className="shrink-0 text-emerald-400" aria-hidden />
+                  <FileText size={14} strokeWidth={1.85} className="shrink-0 text-blue-600" aria-hidden />
                 ) : (
-                  <FileJson size={12} strokeWidth={1.75} className="shrink-0 text-emerald-400" aria-hidden />
+                  <FileJson size={14} strokeWidth={1.85} className="shrink-0 text-blue-600" aria-hidden />
                 )}
                 <span className="truncate">{archivoActivoNombre}</span>
               </span>
-              <span className="font-mono text-[9px] tracking-[0.1em] text-zinc-500">
-                REPORTE ACTIVO
+              <span className="text-[11px] font-semibold text-slate-500">
+                Reporte activo
               </span>
             </div>
           )}
@@ -1158,41 +1161,41 @@ export default function DrawerPostulante({
             }}
             onDragLeave={() => setArrastrandoJson(false)}
             onDrop={manejarDropJson}
-            className={`block w-full cursor-pointer rounded-sm border-2 border-dashed px-3 py-4 text-center transition-colors disabled:cursor-wait disabled:opacity-75 focus-visible:outline-1 focus-visible:outline-white ${
+            className={`block w-full cursor-pointer rounded-xl border-2 border-dashed px-4 py-5 text-center transition-colors disabled:cursor-wait disabled:opacity-75 ${
               arrastrandoJson
-                ? 'border-emerald-400 bg-emerald-950/40'
-                : 'border-emerald-500/45 bg-zinc-900/60 hover:border-emerald-400 hover:bg-zinc-900'
+                ? 'border-blue-500 bg-blue-50'
+                : 'border-slate-300 bg-slate-50 hover:border-blue-400 hover:bg-blue-50/40'
             }`}
           >
             {procesandoArchivo ? (
               <Loader2
-                size={20}
-                strokeWidth={1.75}
-                className="mx-auto animate-spin text-emerald-400"
+                size={22}
+                strokeWidth={1.85}
+                className="mx-auto animate-spin text-blue-600"
                 aria-hidden
               />
             ) : (
               <Upload
-                size={20}
-                strokeWidth={1.75}
-                className="mx-auto text-emerald-400"
+                size={22}
+                strokeWidth={1.85}
+                className="mx-auto text-blue-600"
                 aria-hidden
               />
             )}
-            <span className="mt-2 block font-mono text-[11px] font-semibold tracking-[0.08em] text-zinc-100">
+            <span className="mt-2 block text-xs font-semibold text-slate-900">
               {procesandoArchivo ? (
-                'Digitalizando curvas y eventos del PDF…'
+                'Leyendo curvas y eventos del PDF…'
               ) : (
                 <>
                   Hacé clic o arrastrá aquí el reporte{' '}
-                  <span className="text-emerald-400">.pdf</span> o{' '}
-                  <span className="text-emerald-400">.json</span>
+                  <span className="text-blue-700">.pdf</span> o{' '}
+                  <span className="text-blue-700">.json</span>
                 </>
               )}
             </span>
-            <span className="mt-1 block font-mono text-[9.5px] tracking-[0.06em] text-zinc-400">
-              Ej: <code className="text-emerald-300">21.pdf</code> o{' '}
-              <code className="text-emerald-300">Medium Load Operation_*.json</code> · Hasta 20 MB (.pdf) / 2 MB (.json)
+            <span className="mt-1 block text-xs text-slate-500">
+              Ej: <code className="font-mono text-slate-700">21.pdf</code> o{' '}
+              <code className="font-mono text-slate-700">Medium Load Operation_*.json</code> · Hasta 20 MB (.pdf) / 2 MB (.json)
             </span>
           </button>
 
@@ -1201,17 +1204,17 @@ export default function DrawerPostulante({
               type="button"
               disabled={procesandoArchivo}
               onClick={() => inputArchivoRef.current?.click()}
-              className="inline-flex min-h-[40px] flex-1 items-center justify-center gap-1.5 rounded-sm border border-zinc-600 bg-zinc-900 px-3 font-mono text-[10px] font-semibold tracking-[0.1em] text-zinc-100 transition-colors hover:border-white hover:text-white disabled:cursor-wait disabled:opacity-70 focus-visible:outline-1 focus-visible:outline-white"
+              className="inline-flex h-10 flex-1 items-center justify-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-100 hover:text-slate-900 disabled:cursor-wait disabled:opacity-70"
             >
               {procesandoArchivo ? (
                 <>
-                  <Loader2 size={13} strokeWidth={2} className="animate-spin" aria-hidden />
-                  PROCESANDO REPORTE…
+                  <Loader2 size={14} strokeWidth={2} className="animate-spin" aria-hidden />
+                  Procesando reporte…
                 </>
               ) : (
                 <>
-                  <FileText size={13} strokeWidth={1.75} aria-hidden />
-                  {metricasActivas ? 'SUBIR NUEVO .PDF / .JSON' : 'SELECCIONAR .PDF / .JSON'}
+                  <FileText size={14} strokeWidth={1.85} aria-hidden />
+                  {metricasActivas ? 'Subir Reporte del Simulador' : 'Seleccionar .pdf / .json'}
                 </>
               )}
             </button>
@@ -1220,17 +1223,17 @@ export default function DrawerPostulante({
                 type="button"
                 disabled={analizandoIA}
                 onClick={() => void ejecutarAnalisisIA()}
-                className="inline-flex min-h-[40px] flex-1 items-center justify-center gap-1.5 rounded-sm border border-emerald-500 bg-emerald-500 px-3 font-mono text-[10px] font-semibold tracking-[0.1em] text-emerald-950 transition-colors hover:bg-emerald-400 disabled:cursor-not-allowed disabled:border-zinc-700 disabled:bg-zinc-800 disabled:text-zinc-500 focus-visible:outline-1 focus-visible:outline-white"
+                className="inline-flex h-10 flex-1 items-center justify-center gap-1.5 rounded-lg bg-blue-600 px-3 text-xs font-semibold text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500"
               >
                 {analizandoIA ? (
                   <>
-                    <Loader2 size={13} strokeWidth={2} className="animate-spin" aria-hidden />
-                    ANALIZANDO CON IA…
+                    <Loader2 size={14} strokeWidth={2} className="animate-spin" aria-hidden />
+                    Analizando…
                   </>
                 ) : (
                   <>
-                    <Sparkles size={13} strokeWidth={2} aria-hidden />
-                    {informeActivo ? 'RECALCULAR INFORME IA' : 'GENERAR INFORME IA'}
+                    <Sparkles size={14} strokeWidth={2} aria-hidden />
+                    {informeActivo ? 'Recalcular informe IA' : 'Generar informe IA'}
                   </>
                 )}
               </button>
@@ -1240,7 +1243,7 @@ export default function DrawerPostulante({
           {errorJson && (
             <p
               role="alert"
-              className="rounded-sm border border-red-500/50 bg-red-950/35 px-2.5 py-2 font-mono text-[10px] text-red-300"
+              className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700"
             >
               {errorJson}
             </p>
@@ -1249,63 +1252,63 @@ export default function DrawerPostulante({
           {errorIA && (
             <p
               role="alert"
-              className="rounded-sm border border-red-500/50 bg-red-950/35 px-2.5 py-2 font-mono text-[10px] text-red-300"
+              className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700"
             >
               {errorIA}
             </p>
           )}
 
           {metricasActivas ? (
-            <div className="space-y-2 rounded-sm border border-zinc-800 bg-zinc-900/60 p-2.5">
+            <div className="space-y-2.5 rounded-lg border border-slate-200 bg-slate-50/70 p-3">
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <p className="font-mono text-[9.5px] tracking-[0.12em] text-zinc-400">
-                  MÉTRICAS PARSEADAS{metricasActivas.exerciseName ? ` · ${metricasActivas.exerciseName}` : ''}
+                <p className="text-xs font-bold text-slate-700">
+                  Resultados leídos{metricasActivas.exerciseName ? ` · ${metricasActivas.exerciseName}` : ''}
                 </p>
                 {metricasActivas.alertaFalsoPositivoSuelo && (
-                  <span className="inline-flex items-center gap-1 rounded-sm border border-amber-500/50 bg-amber-950/40 px-2 py-0.5 font-mono text-[9px] font-semibold text-amber-300">
-                    <CheckCircle2 size={11} strokeWidth={2} aria-hidden />
-                    {metricasActivas.colisionesDescartadas} ARTEFACTO(S) SUELO -2 DEPURADOS
+                  <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-0.5 text-[11px] font-semibold text-amber-800">
+                    <CheckCircle2 size={12} strokeWidth={2} aria-hidden />
+                    {metricasActivas.colisionesDescartadas} alerta(s) de piso (-2) limpiadas
                   </span>
                 )}
               </div>
 
-              <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-4">
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                 <Metrica
-                  etiqueta="SCORE"
+                  etiqueta="Puntaje"
                   valor={formatoNumeroSeguro(metricasActivas.scorePuntos, ' pts')}
                 />
                 <Metrica
-                  etiqueta="TIEMPO"
+                  etiqueta="Duración"
                   valor={formatoSegundos(metricasActivas.tiempoDuracionSeg)}
                 />
                 <Metrica
-                  etiqueta="COLISIONES"
+                  etiqueta="Colisiones"
                   valor={String(metricasActivas.colisionesReales)}
                 />
                 <Metrica
-                  etiqueta="SERRUCHO"
+                  etiqueta="Oscilación dirección"
                   valor={formatoNumeroSeguro(metricasActivas.indiceSerrucho, '', 3)}
                 />
                 <Metrica
-                  etiqueta="VOLANTAZOS"
+                  etiqueta="Volantazos"
                   valor={formatoNumeroSeguro(metricasActivas.volantazosExtremos, '', 0)}
                 />
                 <Metrica
-                  etiqueta="FRENADAS PÁNICO"
+                  etiqueta="Frenadas bruscas"
                   valor={formatoNumeroSeguro(metricasActivas.frenadasPanico, '', 0)}
                 />
                 <Metrica
-                  etiqueta="VEL. MÁXIMA"
+                  etiqueta="Vel. máxima"
                   valor={formatoNumeroSeguro(metricasActivas.velocidadMaxKmh, ' km/h', 1)}
                 />
                 <Metrica
-                  etiqueta="DESCARTADAS -2"
+                  etiqueta="Descartadas (-2)"
                   valor={String(metricasActivas.colisionesDescartadas)}
                 />
                 {(metricasActivas.picosAceleracion !== null ||
                   metricasActivas.porcentajeAceleradorFondo !== null) && (
                   <Metrica
-                    etiqueta="ACELERADOR PICOS"
+                    etiqueta="Acelerador picos"
                     valor={
                       metricasActivas.picosAceleracion !== null
                         ? `${metricasActivas.picosAceleracion}${
@@ -1324,7 +1327,7 @@ export default function DrawerPostulante({
                 {(metricasActivas.porcentajeCirculacionHorquillaAlta !== null ||
                   metricasActivas.alturaMaximaHorquillaM !== null) && (
                   <Metrica
-                    etiqueta="HORQUILLA ALTA"
+                    etiqueta="Horquilla alta"
                     valor={
                       metricasActivas.porcentajeCirculacionHorquillaAlta !== null
                         ? `${metricasActivas.porcentajeCirculacionHorquillaAlta}%`
@@ -1339,7 +1342,7 @@ export default function DrawerPostulante({
                 {(metricasActivas.oscilacionesMastil !== null ||
                   metricasActivas.indiceInestabilidadTilt !== null) && (
                   <Metrica
-                    etiqueta="OSCIL. MÁSTIL"
+                    etiqueta="Oscil. mástil"
                     valor={formatoNumeroSeguro(
                       metricasActivas.oscilacionesMastil,
                       '',
@@ -1350,25 +1353,25 @@ export default function DrawerPostulante({
               </div>
             </div>
           ) : evaluacion?.telemetria.tiene_datos ? (
-            <div className="space-y-2 rounded-sm border border-zinc-800 bg-zinc-900/50 p-2.5">
-              <p className="font-mono text-[9.5px] tracking-[0.12em] text-zinc-400">
-                RESUMEN HISTÓRICO TITAN SINCRONIZADO (SUBÍ UN .JSON PARA INFORME IA)
+            <div className="space-y-2.5 rounded-lg border border-slate-200 bg-slate-50/70 p-3">
+              <p className="text-xs font-bold text-slate-700">
+                Resumen guardado del simulador (subí un reporte nuevo para recalcular informe)
               </p>
-              <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-4">
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                 <Metrica
-                  etiqueta="SCORE"
+                  etiqueta="Puntaje"
                   valor={formatoNumeroSeguro(evaluacion.telemetria.score_puntos, ' pts')}
                 />
                 <Metrica
-                  etiqueta="TIEMPO"
+                  etiqueta="Duración"
                   valor={formatoSegundos(evaluacion.telemetria.tiempo_vuelta_seg)}
                 />
                 <Metrica
-                  etiqueta="COLISIONES"
+                  etiqueta="Colisiones"
                   valor={formatoNumeroSeguro(evaluacion.telemetria.colisiones, '', 0)}
                 />
                 <Metrica
-                  etiqueta="SERRUCHO"
+                  etiqueta="Oscilación dirección"
                   valor={formatoNumeroSeguro(evaluacion.telemetria.indice_serrucho, '', 3)}
                 />
               </div>
@@ -1377,21 +1380,21 @@ export default function DrawerPostulante({
 
           {perfilOperadorActivo && (
             <div
-              className={`space-y-2 rounded-sm border p-2.5 ${BADGE_PERFIL_OPERADOR[perfilOperadorActivo].borde}`}
+              className={`space-y-2 rounded-lg border p-3 ${BADGE_PERFIL_OPERADOR[perfilOperadorActivo].borde}`}
             >
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <span className="font-mono text-[9.5px] tracking-[0.12em] text-zinc-300">
-                  PERFIL DE OPERADOR &amp; RECETA FORMATIVA
+                <span className="text-xs font-bold text-slate-800">
+                  Perfil de conducción y plan sugerido
                 </span>
                 <span
-                  className={`rounded-sm px-2 py-0.5 font-mono text-[9.5px] font-bold tracking-[0.1em] ${BADGE_PERFIL_OPERADOR[perfilOperadorActivo].clase}`}
+                  className={`rounded-md px-2.5 py-0.5 text-xs font-bold ${BADGE_PERFIL_OPERADOR[perfilOperadorActivo].clase}`}
                 >
                   {BADGE_PERFIL_OPERADOR[perfilOperadorActivo].etiqueta}
                 </span>
               </div>
               {rangoHorasActivo && (
-                <p className="flex items-center gap-1.5 font-mono text-[10.5px] text-zinc-100">
-                  <Clock size={12} strokeWidth={2} className="shrink-0 text-emerald-400" aria-hidden />
+                <p className="flex items-center gap-1.5 text-xs text-slate-800">
+                  <Clock size={14} strokeWidth={2} className="shrink-0 text-blue-600" aria-hidden />
                   <span>
                     Carga recomendada: <strong>{rangoHorasActivo}</strong>
                     {horasRecomendadasActivas !== null
@@ -1401,11 +1404,11 @@ export default function DrawerPostulante({
                 </p>
               )}
               {modulosRecomendadosActivos.length > 0 && (
-                <ul className="space-y-1 border-t border-zinc-800/80 pt-2">
+                <ul className="space-y-1 border-t border-slate-200 pt-2">
                   {modulosRecomendadosActivos.map((modulo) => (
                     <li
                       key={modulo}
-                      className="font-mono text-[9.5px] leading-relaxed text-zinc-300"
+                      className="text-xs leading-relaxed text-slate-700"
                     >
                       • {modulo}
                     </li>
@@ -1418,48 +1421,48 @@ export default function DrawerPostulante({
           {avisoPersistenciaIA && (
             <p
               role="status"
-              className="rounded-sm border border-zinc-800 bg-zinc-900 px-2.5 py-1.5 font-mono text-[9.5px] text-zinc-400"
+              className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-800"
             >
               {avisoPersistenciaIA}
             </p>
           )}
 
-          {/* ── Analítica Predictiva B2B (Cuidado Mecánico, Plasticidad y Percentiles) ── */}
+          {/* ── Indicadores de Cuidado y Evolución (Medium Load) ── */}
           {postulante.analitica && (postulante.analitica.cuidadoMecanico || postulante.analitica.plasticidad) && (
-            <div className="space-y-2 rounded-sm border border-cyan-500/35 bg-cyan-950/15 p-3 font-mono">
-              <p className="text-[9.5px] font-semibold tracking-[0.14em] text-cyan-300">
-                CIENCIA DE DATOS PREDICTIVA · BENCHMARKING B2B (COSTO $0)
+            <div className="space-y-2.5 rounded-lg border border-blue-200 bg-blue-50/40 p-3">
+              <p className="text-xs font-bold text-blue-800">
+                Indicadores comparativos del curso
               </p>
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-                <div className="rounded-sm border border-zinc-800 bg-zinc-950 p-2">
-                  <p className="text-[8.5px] text-zinc-500">CUIDADO MECÁNICO</p>
-                  <p className="mt-0.5 text-base font-bold text-white">
+                <div className="rounded-lg border border-slate-200 bg-white p-2.5">
+                  <p className="text-[11px] font-semibold text-slate-500">Cuidado de la Máquina</p>
+                  <p className="mt-0.5 text-base font-bold text-slate-900 tabular-nums">
                     {postulante.analitica.cuidadoMecanico
                       ? `${postulante.analitica.cuidadoMecanico.indiceCuidadoMecanico}%`
                       : '—'}
                   </p>
-                  <p className="text-[9px] text-emerald-300">
-                    {postulante.analitica.cuidadoMecanico?.categoria ?? 'SIN DATOS'}
+                  <p className="text-xs font-medium text-emerald-700">
+                    {postulante.analitica.cuidadoMecanico?.categoria ?? 'Sin datos'}
                   </p>
                 </div>
 
-                <div className="rounded-sm border border-zinc-800 bg-zinc-950 p-2">
-                  <p className="text-[8.5px] text-zinc-500">PLASTICIDAD (V1→V2)</p>
-                  <p className="mt-0.5 text-base font-bold text-white">
+                <div className="rounded-lg border border-slate-200 bg-white p-2.5">
+                  <p className="text-[11px] font-semibold text-slate-500">Velocidad de Aprendizaje</p>
+                  <p className="mt-0.5 text-base font-bold text-slate-900 tabular-nums">
                     {postulante.analitica.plasticidad
                       ? `${postulante.analitica.plasticidad.indicePlasticidad}/100`
-                      : '1 INTENTO'}
+                      : '1 intento'}
                   </p>
-                  <p className="truncate text-[8.5px] text-sky-300">
-                    {postulante.analitica.plasticidad?.categoria ?? 'PENDIENTE V2/T1'}
+                  <p className="truncate text-xs font-medium text-blue-700">
+                    {postulante.analitica.plasticidad?.categoria ?? 'Pendiente evaluación final'}
                   </p>
                 </div>
 
-                <div className="rounded-sm border border-zinc-800 bg-zinc-950 p-2">
-                  <p className="text-[8.5px] text-zinc-500">PERCENTILES COHORTE</p>
-                  <p className="mt-1 text-[10px] leading-snug text-zinc-200">
-                    Score: <strong>P{postulante.analitica.percentilScore ?? '—'}</strong> · Vel:{' '}
-                    <strong>P{postulante.analitica.percentilVelocidad ?? '—'}</strong> · Cuid:{' '}
+                <div className="rounded-lg border border-slate-200 bg-white p-2.5">
+                  <p className="text-[11px] font-semibold text-slate-500">Posición en el curso</p>
+                  <p className="mt-1 text-xs leading-snug text-slate-700">
+                    Puntaje: <strong>P{postulante.analitica.percentilScore ?? '—'}</strong> · Aprend.:{' '}
+                    <strong>P{postulante.analitica.percentilVelocidad ?? '—'}</strong> · Cuidado:{' '}
                     <strong>P{postulante.analitica.percentilCuidadoMecanico ?? '—'}</strong>
                   </p>
                 </div>
@@ -1468,15 +1471,15 @@ export default function DrawerPostulante({
           )}
 
           {informeActivo ? (
-            <div className="space-y-2.5 rounded-sm border border-emerald-500/35 bg-zinc-900/80 p-3">
-              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-zinc-800 pb-2">
-                <span className="font-mono text-[9.5px] tracking-[0.12em] text-zinc-300">
+            <div className="space-y-3 rounded-lg border border-slate-200 bg-slate-50/70 p-3.5">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 pb-2">
+                <span className="text-xs font-semibold text-slate-700">
                   {informeActivo.origen === 'GEMINI_2_5_FLASH'
-                    ? 'MOTOR ACTIVO: GEMINI 2.5 FLASH'
-                    : 'MOTOR ACTIVO: FALLBACK HEURÍSTICO'}
+                    ? 'Informe generado con IA'
+                    : 'Informe automático de desempeño'}
                 </span>
                 <span
-                  className={`rounded-sm px-2 py-0.5 font-mono text-[9.5px] font-bold tracking-[0.1em] ${
+                  className={`rounded-md px-2.5 py-0.5 text-xs font-bold ${
                     BADGE_DICTAMEN_IA[informeActivo.dictamenSugerido].clase
                   }`}
                 >
@@ -1488,15 +1491,15 @@ export default function DrawerPostulante({
                 informeActivo.banderaFalsoNegativoRiesgoOculto) && (
                 <div className="flex flex-wrap gap-1.5">
                   {informeActivo.banderaFalsoPositivoSuelo && (
-                    <span className="inline-flex items-center gap-1 rounded-sm border border-emerald-500/40 bg-emerald-950/35 px-2 py-0.5 font-mono text-[9px] text-emerald-300">
-                      <CheckCircle2 size={11} strokeWidth={2} aria-hidden />
-                      ANTIFALSO POSITIVO · SUELO -2 IGNORADO
+                    <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-700">
+                      <CheckCircle2 size={12} strokeWidth={2} aria-hidden />
+                      Falso positivo de piso (-2) descartado
                     </span>
                   )}
                   {informeActivo.banderaFalsoNegativoRiesgoOculto && (
-                    <span className="inline-flex items-center gap-1 rounded-sm border border-amber-500/50 bg-amber-950/40 px-2 py-0.5 font-mono text-[9px] text-amber-300">
-                      <ShieldAlert size={11} strokeWidth={2} aria-hidden />
-                      ALERTA ANTIFALSO NEGATIVO · RIESGO EN TELEMETRÍA
+                    <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-0.5 text-[11px] font-semibold text-amber-800">
+                      <ShieldAlert size={12} strokeWidth={2} aria-hidden />
+                      Alerta de conducción brusca en controles
                     </span>
                   )}
                 </div>
@@ -1506,12 +1509,12 @@ export default function DrawerPostulante({
                 {informeActivo.puntos.map((punto) => (
                   <li
                     key={punto.titulo}
-                    className="rounded-sm border border-zinc-800 bg-zinc-950 px-2.5 py-2"
+                    className="rounded-lg border border-slate-200 bg-white px-3 py-2.5"
                   >
-                    <p className="font-mono text-[9.5px] font-semibold tracking-[0.12em] text-emerald-300">
+                    <p className="text-xs font-bold text-blue-700">
                       {punto.titulo}
                     </p>
-                    <p className="mt-1 font-mono text-[10.5px] leading-relaxed text-zinc-200">
+                    <p className="mt-1 text-xs leading-relaxed text-slate-700">
                       {punto.detalle}
                     </p>
                   </li>
@@ -1519,25 +1522,25 @@ export default function DrawerPostulante({
               </ol>
 
               {informeActivo.evaluacionLongitudinal && (
-                <div className="space-y-1.5 border-t border-zinc-800 pt-2.5 font-mono">
-                  <p className="text-[9.5px] font-semibold tracking-[0.12em] text-cyan-300">
-                    EVALUACIÓN LONGITUDINAL INTEGRADA (4 ETAPAS)
+                <div className="space-y-1.5 border-t border-slate-200 pt-2.5">
+                  <p className="text-xs font-bold text-slate-800">
+                    Seguimiento completo del alumno (4 etapas)
                   </p>
-                  <div className="grid gap-1.5 text-[10px] text-zinc-300">
+                  <div className="grid gap-1.5 text-xs text-slate-700">
                     <p>
-                      <strong className="text-white">Etapa 1 (Diag. T0):</strong>{' '}
+                      <strong className="text-slate-900">Etapa 1 (Diagnóstico inicial):</strong>{' '}
                       {informeActivo.evaluacionLongitudinal.etapa1DiagnosticoT0}
                     </p>
                     <p>
-                      <strong className="text-white">Etapa 2 (Capacitación):</strong>{' '}
+                      <strong className="text-slate-900">Etapa 2 (Capacitación):</strong>{' '}
                       {informeActivo.evaluacionLongitudinal.etapa2CapacitacionSimulador}
                     </p>
                     <p>
-                      <strong className="text-white">Etapa 3 (Prueba Final T1):</strong>{' '}
+                      <strong className="text-slate-900">Etapa 3 (Prueba final):</strong>{' '}
                       {informeActivo.evaluacionLongitudinal.etapa3PruebaFinalT1}
                     </p>
                     <p>
-                      <strong className="text-white">Etapa 4 (Práctica Terreno):</strong>{' '}
+                      <strong className="text-slate-900">Etapa 4 (Práctica en patio):</strong>{' '}
                       {informeActivo.evaluacionLongitudinal.etapa4PracticaTerreno}
                     </p>
                   </div>
@@ -1545,7 +1548,7 @@ export default function DrawerPostulante({
               )}
 
               <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
-                <span className="font-mono text-[9px] text-zinc-500">
+                <span className="text-xs text-slate-500">
                   {informeActivo.modelo} ·{' '}
                   {Number.isFinite(Date.parse(informeActivo.generadoEn))
                     ? new Date(informeActivo.generadoEn).toLocaleString('es-AR', {
@@ -1557,76 +1560,120 @@ export default function DrawerPostulante({
                 <button
                   type="button"
                   onClick={volcarRecomendacionANotas}
-                  className="inline-flex h-8 items-center gap-1.5 rounded-sm border border-zinc-700 px-2.5 font-mono text-[9.5px] tracking-[0.1em] text-zinc-300 transition-colors hover:border-white hover:text-white focus-visible:outline-1 focus-visible:outline-white"
+                  className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-2.5 text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-100 hover:text-slate-900"
                 >
-                  <ClipboardCopy size={11} strokeWidth={1.75} aria-hidden />
-                  COPIAR PUNTO 3 A NOTAS
+                  <ClipboardCopy size={12} strokeWidth={1.85} aria-hidden />
+                  Copiar recomendación a notas
                 </button>
               </div>
             </div>
           ) : metricasActivas ? (
-            <div className="flex items-center gap-2 rounded-sm border border-zinc-800 bg-zinc-900/50 px-3 py-2 font-mono text-[10px] text-amber-300">
-              <AlertTriangle size={13} strokeWidth={1.75} className="shrink-0" aria-hidden />
+            <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+              <AlertTriangle size={14} strokeWidth={1.85} className="shrink-0" aria-hidden />
               <span>
-                Reporte cargado. Pulsá &quot;GENERAR INFORME IA&quot; para emitir la síntesis de 3 puntos.
+                Reporte cargado. Pulsá &quot;Generar informe IA&quot; para ver el análisis completo.
               </span>
             </div>
           ) : null}
+
+          {(evaluacion?.practicas_intermedias?.length ?? 0) > 0 && (
+            <div className="space-y-2 rounded-lg border border-slate-200 bg-slate-50 p-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="text-xs font-bold text-slate-800">
+                  Prácticas intermedias en simulador ({evaluacion?.practicas_intermedias?.length})
+                </p>
+                <span className="text-[11px] font-medium text-slate-500">
+                  No afectan el promedio del examen Medium Load
+                </span>
+              </div>
+              <ul className="space-y-1.5">
+                {evaluacion?.practicas_intermedias?.map((prac) => (
+                  <li
+                    key={prac.id}
+                    className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs"
+                  >
+                    <div className="min-w-0">
+                      <p className="font-semibold text-slate-900">{prac.exercise_name}</p>
+                      <p className="text-[11px] text-slate-500">
+                        {prac.fecha ? prac.fecha.slice(0, 10) : 'Fecha s/d'}
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="rounded-md bg-slate-100 px-2 py-0.5 font-semibold text-slate-700 tabular-nums">
+                        {prac.score_puntos !== null ? `${prac.score_puntos} pts` : '—'}
+                      </span>
+                      <span className="rounded-md bg-slate-100 px-2 py-0.5 font-semibold text-slate-700 tabular-nums">
+                        Colis.: {prac.colisiones ?? 0}
+                      </span>
+                      {typeof prac.indice_cuidado_mecanico === 'number' && (
+                        <span className="rounded-md border border-blue-200 bg-blue-50 px-2 py-0.5 font-semibold text-blue-700 tabular-nums">
+                          Cuidado: {prac.indice_cuidado_mecanico}%
+                        </span>
+                      )}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </section>
 
         {/* ── 4 Ejes Pedagógicos + Radar ─────────────────────── */}
-        <section aria-label="Ejes pedagógicos y radar" className="space-y-3">
+        <section
+          aria-label="Evaluación práctica y radar"
+          className="space-y-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
+        >
           <div className="flex items-center justify-between gap-2">
-            <p className="font-mono text-[10px] tracking-[0.18em] text-zinc-500">
-              4 EJES PEDAGÓGICOS Y RADAR
+            <p className="text-xs font-bold uppercase tracking-wider text-slate-500">
+              4 ejes evaluados y radar
             </p>
             {evaluacion?.tiene_evaluacion_tablet && (
-              <span className="font-mono text-[9px] tracking-[0.12em] text-emerald-400">
-                CABINA TABLET ACTIVA
+              <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-700">
+                Evaluación en cabina activa
               </span>
             )}
           </div>
 
           {ejesRadar ? (
-            <div className="rounded-sm border border-zinc-800 bg-zinc-900/60 px-3 py-3">
+            <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-3">
               <RadarCuatroEjes
                 ejes={ejesRadar}
                 mostrarFinal={comparativa?.tieneComparativaFinalRadar ?? false}
               />
             </div>
           ) : !cargandoComp ? (
-            <p className="rounded-sm border border-dashed border-zinc-800 bg-zinc-950 px-3 py-2.5 font-mono text-[10px] tracking-[0.08em] text-zinc-500">
-              Sin evaluación de cabina ni datos suficientes para proyectar el radar.
+            <p className="rounded-lg border border-dashed border-slate-300 bg-slate-50 px-3 py-3 text-xs text-slate-500">
+              Todavía no hay evaluación de cabina suficiente para dibujar el gráfico.
             </p>
           ) : null}
 
-          <ul className="space-y-1.5">
+          <ul className="space-y-2">
             {EJES.map((eje) => {
               const puntaje = evaluacion?.[eje.clavePuntaje] ?? null;
               const texto = evaluacion?.[eje.claveTexto] ?? null;
               return (
                 <li
                   key={eje.etiqueta}
-                  className="flex items-start justify-between gap-3 rounded-sm border border-zinc-800 bg-zinc-900 px-3 py-2"
+                  className="flex items-start justify-between gap-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5"
                 >
                   <div className="min-w-0">
-                    <p className="font-mono text-[11px] tracking-[0.12em] text-white">
+                    <p className="text-xs font-bold text-slate-900">
                       {eje.etiqueta}
                     </p>
                     {texto && (
-                      <p className="mt-0.5 font-mono text-[10px] leading-relaxed text-zinc-500 break-words">
+                      <p className="mt-0.5 text-xs leading-relaxed text-slate-600 break-words">
                         {texto}
                       </p>
                     )}
                   </div>
                   {puntaje !== null ? (
                     <span
-                      className={`shrink-0 rounded-sm px-2 py-1 font-mono text-xs font-semibold ${CLASE_PUNTAJE[puntaje] ?? 'bg-zinc-800 text-zinc-300'}`}
+                      className={`shrink-0 rounded-md px-2.5 py-1 text-xs font-bold tabular-nums ${CLASE_PUNTAJE[puntaje] ?? 'border border-slate-200 bg-white text-slate-700'}`}
                     >
                       {puntaje}/20
                     </span>
                   ) : (
-                    <span className="shrink-0 rounded-sm bg-zinc-800 px-2 py-1 font-mono text-[10px] text-zinc-500">
+                    <span className="shrink-0 rounded-md border border-slate-200 bg-white px-2.5 py-1 text-xs font-medium text-slate-500">
                       S/P
                     </span>
                   )}
@@ -1639,19 +1686,19 @@ export default function DrawerPostulante({
             (evaluacion?.observaciones_rapidas &&
               evaluacion.observaciones_rapidas.length > 0) ||
             evaluacion?.observaciones_detalle) && (
-            <div className="rounded-sm border border-zinc-800 bg-zinc-900 px-3 py-2 font-mono text-[10px] text-zinc-300">
+            <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-xs text-slate-700">
               {evaluacion.instructor_evaluador && (
-                <p className="text-[9px] tracking-[0.12em] text-zinc-500">
-                  INSTRUCTOR: {evaluacion.instructor_evaluador}
+                <p className="font-semibold text-slate-600">
+                  Instructor: {evaluacion.instructor_evaluador}
                 </p>
               )}
               {evaluacion.observaciones_rapidas &&
                 evaluacion.observaciones_rapidas.length > 0 && (
-                  <div className="mt-1.5 flex flex-wrap gap-1">
+                  <div className="mt-1.5 flex flex-wrap gap-1.5">
                     {evaluacion.observaciones_rapidas.map((obs) => (
                       <span
                         key={obs}
-                        className="rounded-sm border border-zinc-700 bg-zinc-950 px-1.5 py-0.5 text-[9px] text-zinc-300"
+                        className="rounded-md border border-slate-200 bg-white px-2 py-0.5 text-xs text-slate-700"
                       >
                         {obs}
                       </span>
@@ -1659,7 +1706,7 @@ export default function DrawerPostulante({
                   </div>
                 )}
               {evaluacion.observaciones_detalle && (
-                <p className="mt-1.5 leading-relaxed text-zinc-400">
+                <p className="mt-1.5 leading-relaxed text-slate-600">
                   {evaluacion.observaciones_detalle}
                 </p>
               )}
@@ -1667,31 +1714,33 @@ export default function DrawerPostulante({
           )}
         </section>
 
-        {/* ── Tarjeta de Telemetría Física TITAN ─────────────── */}
-        <section aria-label="Telemetría Física TITAN" className="space-y-3">
-          <p className="font-mono text-[10px] tracking-[0.18em] text-zinc-500">
-            TELEMETRÍA FÍSICA TITAN · V1 / V2
+        {/* ── Evolución Diagnóstico → Final (Medium Load) ──────── */}
+        <section
+          aria-label="Evolución Diagnóstico a Final"
+          className="space-y-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
+        >
+          <p className="text-xs font-bold uppercase tracking-wider text-slate-500">
+            Evolución Diagnóstico → Final (Medium Load)
           </p>
 
           {cargandoComp && !evaluacion?.telemetria.tiene_datos ? (
-            <p className="font-mono text-[10px] tracking-[0.1em] text-zinc-600">
-              CARGANDO TELEMETRÍA TITAN…
+            <p className="text-xs text-slate-500">
+              Cargando historial del simulador…
             </p>
           ) : !tieneTelemetriaTitan ? (
-            <div className="rounded-sm border border-dashed border-zinc-800 bg-zinc-900/40 px-3 py-3">
-              <p className="font-mono text-[11px] font-semibold tracking-[0.08em] text-zinc-300">
-                Sin telemetría de simulador procesada
+            <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 px-3.5 py-3">
+              <p className="text-xs font-semibold text-slate-800">
+                Sin reportes del simulador cargados
               </p>
-              <p className="mt-1 font-mono text-[10px] leading-relaxed tracking-[0.06em] text-zinc-500">
-                Aún no ingresaron reportes PDF de TITAN para este postulante. El
-                radar pedagógico de cabina permanece operativo de forma independiente.
+              <p className="mt-1 text-xs leading-relaxed text-slate-600">
+                Todavía no se subieron reportes PDF o JSON del simulador para este alumno. Las observaciones del instructor en cabina funcionan de manera independiente.
               </p>
             </div>
           ) : (
             <>
               {/* Pestañas V1 / V2 con badge ★ Mejor Diagnóstico */}
               {comparativa && (comparativa.v1 || comparativa.v2) && (
-                <div className="flex gap-2" role="tablist" aria-label="Vueltas de diagnóstico">
+                <div className="flex gap-2" role="tablist" aria-label="Intentos de diagnóstico">
                   {(
                     [
                       ['V1', comparativa.v1],
@@ -1707,15 +1756,15 @@ export default function DrawerPostulante({
                         aria-selected={activo}
                         disabled={!m}
                         onClick={() => setVistaActiva(clave)}
-                        className={`h-9 flex-1 rounded-sm border px-2 font-mono text-[10px] tracking-[0.1em] transition-colors disabled:cursor-not-allowed disabled:border-zinc-800 disabled:text-zinc-700 ${
+                        className={`h-9 flex-1 rounded-lg border px-2 text-xs font-semibold transition-colors disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-50 disabled:text-slate-400 ${
                           activo
-                            ? 'border-emerald-500 bg-emerald-500/10 text-emerald-300'
-                            : 'border-zinc-700 text-zinc-400 hover:border-zinc-500 hover:text-white'
+                            ? 'border-blue-200 bg-blue-50 text-blue-700'
+                            : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50 hover:text-slate-900'
                         }`}
                       >
-                        {clave === 'V1' ? 'VUELTA 1' : 'VUELTA 2'}
+                        {clave === 'V1' ? 'Intento 1 (Diagnóstico)' : 'Intento 2 (Diagnóstico)'}
                         {m?.esMejorDiagnostico && (
-                          <span className="ml-1 text-amber-300">★ MEJOR</span>
+                          <span className="ml-1.5 text-amber-600">★ Mejor</span>
                         )}
                       </button>
                     );
@@ -1723,10 +1772,10 @@ export default function DrawerPostulante({
                 </div>
               )}
 
-              {/* Métricas físicas TITAN */}
-              <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3">
+              {/* Métricas físicas del intento */}
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
                 <Metrica
-                  etiqueta="SCORE TITAN"
+                  etiqueta="Puntaje"
                   valor={formatoNumeroSeguro(
                     intentoActivo?.scorePuntos ??
                       evaluacion?.telemetria.score_puntos ??
@@ -1735,7 +1784,7 @@ export default function DrawerPostulante({
                   )}
                 />
                 <Metrica
-                  etiqueta="TIEMPO VUELTA"
+                  etiqueta="Duración"
                   valor={formatoSegundos(
                     intentoActivo?.tiempoVueltaSeg ??
                       evaluacion?.telemetria.tiempo_vuelta_seg ??
@@ -1743,7 +1792,7 @@ export default function DrawerPostulante({
                   )}
                 />
                 <Metrica
-                  etiqueta="COLISIONES REALES"
+                  etiqueta="Colisiones reales"
                   valor={formatoNumeroSeguro(
                     intentoActivo?.colisiones ??
                       evaluacion?.telemetria.colisiones ??
@@ -1753,7 +1802,7 @@ export default function DrawerPostulante({
                   )}
                 />
                 <Metrica
-                  etiqueta="DESCARTADAS (PISO)"
+                  etiqueta="Descartadas (piso)"
                   valor={formatoNumeroSeguro(
                     intentoActivo?.colisionesDescartadas ??
                       evaluacion?.telemetria.colisiones_descartadas ??
@@ -1763,7 +1812,7 @@ export default function DrawerPostulante({
                   )}
                 />
                 <Metrica
-                  etiqueta="SERRUCHO"
+                  etiqueta="Oscilación dirección"
                   valor={formatoNumeroSeguro(
                     intentoActivo?.indiceSerrucho ??
                       evaluacion?.telemetria.indice_serrucho ??
@@ -1773,7 +1822,7 @@ export default function DrawerPostulante({
                   )}
                 />
                 <Metrica
-                  etiqueta="VOLANTAZOS"
+                  etiqueta="Volantazos"
                   valor={formatoNumeroSeguro(
                     intentoActivo?.volantazosExtremos ??
                       evaluacion?.telemetria.volantazos_extremos ??
@@ -1784,38 +1833,38 @@ export default function DrawerPostulante({
                 />
               </div>
 
-              {/* Deltas de mejora V1 → V2 */}
+              {/* Mejora entre intento 1 e intento 2 */}
               {comparativa?.deltaDiagnostico && (
-                <div className="rounded-sm border border-zinc-800 bg-zinc-900 px-3 py-2">
+                <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5">
                   <div className="flex items-center justify-between gap-2">
-                    <p className="font-mono text-[9px] tracking-[0.14em] text-zinc-500">
-                      DELTAS DE MEJORA · V1 → V2
+                    <p className="text-xs font-bold text-slate-600">
+                      Evolución Intento 1 → Intento 2
                     </p>
                     <span
-                      className={`rounded-sm px-2 py-0.5 font-mono text-[9px] font-semibold tracking-[0.1em] ${
+                      className={`rounded-md px-2 py-0.5 text-xs font-semibold ${
                         BADGE_RECEPTIVIDAD[
                           comparativa.deltaDiagnostico.evaluacionReceptividad
-                        ] ?? 'bg-zinc-700 text-zinc-200'
+                        ] ?? 'border border-slate-200 bg-white text-slate-700'
                       }`}
                     >
-                      {comparativa.deltaDiagnostico.evaluacionReceptividad.toUpperCase()}
+                      {comparativa.deltaDiagnostico.evaluacionReceptividad}
                     </span>
                   </div>
-                  <div className="mt-2 grid grid-cols-3 gap-1.5">
+                  <div className="mt-2 grid grid-cols-3 gap-2">
                     <DeltaChip
-                      etiqueta="Δ SCORE"
+                      etiqueta="Dif. puntaje"
                       valor={comparativa.deltaDiagnostico.deltaScore}
                       unidad=" pts"
                       sentido="mayor_mejor"
                     />
                     <DeltaChip
-                      etiqueta="Δ TIEMPO"
+                      etiqueta="Dif. tiempo"
                       valor={comparativa.deltaDiagnostico.deltaTiempoSeg}
                       unidad=" s"
                       sentido="menor_mejor"
                     />
                     <DeltaChip
-                      etiqueta="Δ COLISIONES"
+                      etiqueta="Dif. colisiones"
                       valor={comparativa.deltaDiagnostico.deltaColisiones}
                       sentido="menor_mejor"
                     />
@@ -1823,26 +1872,26 @@ export default function DrawerPostulante({
                 </div>
               )}
 
-              {/* Slot de Prueba Final TITAN */}
+              {/* Slot de Prueba Final */}
               {comparativa?.pruebaFinal ? (
-                <div className="rounded-sm border border-cyan-500/40 bg-cyan-500/5 px-3 py-2">
-                  <p className="font-mono text-[10px] tracking-[0.14em] text-cyan-300">
-                    EVALUACIÓN FINAL TITAN · REALIZADA
+                <div className="rounded-lg border border-emerald-200 bg-emerald-50/50 px-3.5 py-3">
+                  <p className="text-xs font-bold text-emerald-800">
+                    Evaluación Final (Medium Load) · Realizada
                   </p>
-                  <div className="mt-2 grid grid-cols-2 gap-1.5 sm:grid-cols-4">
+                  <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
                     <Metrica
-                      etiqueta="SCORE FINAL"
+                      etiqueta="Puntaje final"
                       valor={formatoNumeroSeguro(
                         comparativa.pruebaFinal.scorePuntos,
                         ' pts'
                       )}
                     />
                     <Metrica
-                      etiqueta="TIEMPO"
+                      etiqueta="Tiempo"
                       valor={formatoSegundos(comparativa.pruebaFinal.tiempoVueltaSeg)}
                     />
                     <Metrica
-                      etiqueta="COLISIONES"
+                      etiqueta="Colisiones"
                       valor={formatoNumeroSeguro(
                         comparativa.pruebaFinal.colisiones,
                         '',
@@ -1850,7 +1899,7 @@ export default function DrawerPostulante({
                       )}
                     />
                     <Metrica
-                      etiqueta="DESCARTADAS"
+                      etiqueta="Descartadas"
                       valor={formatoNumeroSeguro(
                         comparativa.pruebaFinal.colisionesDescartadas,
                         '',
@@ -1859,29 +1908,29 @@ export default function DrawerPostulante({
                     />
                   </div>
                   {comparativa.deltaFinal && (
-                    <div className="mt-2 space-y-2">
-                      <div className="grid grid-cols-3 gap-1.5">
+                    <div className="mt-2.5 space-y-2">
+                      <div className="grid grid-cols-3 gap-2">
                         <DeltaChip
-                          etiqueta="Δ SCORE FINAL"
+                          etiqueta="Dif. puntaje final"
                           valor={comparativa.deltaFinal.deltaScore}
                           unidad=" pts"
                           sentido="mayor_mejor"
                         />
                         <DeltaChip
-                          etiqueta="Δ TIEMPO FINAL"
+                          etiqueta="Dif. tiempo final"
                           valor={comparativa.deltaFinal.deltaTiempoSeg}
                           unidad=" s"
                           sentido="menor_mejor"
                         />
                         <DeltaChip
-                          etiqueta="Δ COLIS. FINAL"
+                          etiqueta="Dif. colis. final"
                           valor={comparativa.deltaFinal.deltaColisiones}
                           sentido="menor_mejor"
                         />
                       </div>
                       <div className="flex flex-wrap items-center gap-2">
-                        <span className="rounded-sm bg-zinc-800 px-2 py-0.5 font-mono text-[9px] tracking-[0.1em] text-zinc-300">
-                          MEJORA TOTAL:{' '}
+                        <span className="rounded-md border border-slate-200 bg-white px-2.5 py-1 text-xs font-semibold text-slate-700">
+                          Mejora total:{' '}
                           {Number.isFinite(comparativa.deltaFinal.mejoraTotalPorcentaje)
                             ? `${
                                 comparativa.deltaFinal.mejoraTotalPorcentaje > 0 ? '+' : ''
@@ -1889,25 +1938,24 @@ export default function DrawerPostulante({
                             : '—'}
                         </span>
                         <span
-                          className={`rounded-sm px-2 py-0.5 font-mono text-[9px] font-semibold tracking-[0.1em] ${
+                          className={`rounded-md px-2.5 py-1 text-xs font-semibold ${
                             comparativa.deltaFinal.aptoParaPlanta
-                              ? 'bg-emerald-500 text-emerald-950'
-                              : 'bg-zinc-700 text-zinc-200'
+                              ? 'border border-emerald-200 bg-emerald-50 text-emerald-700'
+                              : 'border border-slate-200 bg-slate-100 text-slate-700'
                           }`}
                         >
                           {comparativa.deltaFinal.aptoParaPlanta
-                            ? 'APTO PARA PLANTA'
-                            : 'NO HABILITADO A PLANTA'}
+                            ? 'Apto para práctica en planta'
+                            : 'No habilitado aún a planta'}
                         </span>
                       </div>
                     </div>
                   )}
                 </div>
               ) : (
-                <div className="rounded-sm border border-dashed border-zinc-700 bg-zinc-900/40 px-3 py-3">
-                  <p className="font-mono text-[10px] leading-relaxed tracking-[0.1em] text-zinc-500">
-                    EVALUACIÓN FINAL TITAN: PENDIENTE DE REALIZACIÓN AL COMPLETAR LAS 6
-                    HS DE SIMULADOR
+                <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 px-3 py-2.5">
+                  <p className="text-xs text-slate-600">
+                    Evaluación final en simulador: pendiente al completar las horas de práctica.
                   </p>
                 </div>
               )}
@@ -1919,88 +1967,88 @@ export default function DrawerPostulante({
         {cohorteId && (
           <section
             aria-label="Carga Horaria y Decisión Manual del Instructor"
-            className="space-y-3 rounded-sm border border-emerald-500/35 bg-zinc-950 p-3.5"
+            className="space-y-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
           >
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <h3 className="flex items-center gap-1.5 font-mono text-[10px] tracking-[0.16em] text-emerald-300">
-                <Clock size={13} aria-hidden />
-                CARGA HORARIA TOTAL DE CAPACITACIÓN (REGLA DUPLA 1.0H C/U)
+              <h3 className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-800">
+                <Clock size={14} className="text-blue-600" aria-hidden />
+                Carga horaria de capacitación (regla duplas 1.0h c/u)
               </h3>
               <span
-                className={`rounded-sm border px-2 py-0.5 font-mono text-[10px] font-semibold ${
+                className={`rounded-full border px-2.5 py-0.5 text-xs font-semibold ${
                   cargaHoraria.cumpleRecomendacionTitan === true
-                    ? 'border-emerald-500/60 bg-emerald-950/50 text-emerald-300'
+                    ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
                     : cargaHoraria.cumpleRecomendacionTitan === false
-                      ? 'border-amber-500/60 bg-amber-950/40 text-amber-300'
-                      : 'border-zinc-700 bg-zinc-900 text-zinc-200'
+                      ? 'border-amber-200 bg-amber-50 text-amber-800'
+                      : 'border-slate-200 bg-slate-100 text-slate-700'
                 }`}
               >
-                TOTAL: {cargaHoraria.totalCertificadas} HS
+                Total: {cargaHoraria.totalCertificadas} hs
                 {cargaHoraria.horasRecomendadasTitan !== null
-                  ? ` / REC. TITÁN ${cargaHoraria.horasRecomendadasTitan} HS`
+                  ? ` / Rec. ${cargaHoraria.horasRecomendadasTitan} hs`
                   : ''}
               </span>
             </div>
 
-            <div className="grid grid-cols-1 gap-2 sm:grid-cols-3 font-mono text-[10px]">
-              <div className="rounded-sm border border-zinc-800 bg-zinc-900/70 p-2.5">
-                <p className="text-[9px] text-zinc-500">TEORÍA Y SEGURIDAD</p>
-                <p className="mt-0.5 text-sm font-semibold text-white">
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+              <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+                <p className="text-[11px] font-semibold text-slate-500">Teoría y seguridad</p>
+                <p className="mt-0.5 text-sm font-bold text-slate-900">
                   {cargaHoraria.horasTeoria} hs
                 </p>
-                <label className="mt-1.5 inline-flex items-center gap-1.5 text-[9.5px] text-zinc-300 cursor-pointer">
+                <label className="mt-1.5 inline-flex items-center gap-1.5 text-xs text-slate-700 cursor-pointer">
                   <input
                     type="checkbox"
                     checked={asistioTeoria}
                     onChange={(e) => setAsistioTeoria(e.target.checked)}
-                    className="accent-emerald-500"
+                    className="accent-blue-600"
                   />
-                  Asistió a jornada teórica
+                  Asistió a teoría
                 </label>
               </div>
 
-              <div className="rounded-sm border border-zinc-800 bg-zinc-900/70 p-2.5">
-                <p className="text-[9px] text-zinc-500">ENTRENAMIENTO SIMULADOR</p>
-                <p className="mt-0.5 text-sm font-semibold text-white">
+              <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+                <p className="text-[11px] font-semibold text-slate-500">Simulador</p>
+                <p className="mt-0.5 text-sm font-bold text-slate-900">
                   {cargaHoraria.horasSimuladorTotal} hs
                 </p>
-                <p className="mt-0.5 text-[9px] text-zinc-400">
+                <p className="mt-0.5 text-[11px] text-slate-500">
                   {presentesSimulador} ses. ({cargaHoraria.horasSesionesDupla}h) + Diag/Fin ({cargaHoraria.horasDiagnosticoYFinal}h) + Ref. ({cargaHoraria.horasRefuerzoSimulador}h)
                 </p>
               </div>
 
-              <div className="rounded-sm border border-zinc-800 bg-zinc-900/70 p-2.5">
-                <p className="text-[9px] text-zinc-500">PRÁCTICA REAL TERRENO</p>
-                <p className="mt-0.5 text-sm font-semibold text-white">
+              <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+                <p className="text-[11px] font-semibold text-slate-500">Práctica en patio</p>
+                <p className="mt-0.5 text-sm font-bold text-slate-900">
                   {cargaHoraria.horasTerrenoTotal} hs
                 </p>
-                <p className="mt-0.5 text-[9px] text-zinc-400">
+                <p className="mt-0.5 text-[11px] text-slate-500">
                   Base {cargaHoraria.horasTerrenoBase}h + Extra {cargaHoraria.horasExtraTerreno}h
                 </p>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 gap-2.5 border-t border-zinc-800/80 pt-3 sm:grid-cols-3">
+            <div className="grid grid-cols-1 gap-2.5 border-t border-slate-200 pt-3 sm:grid-cols-3">
               <label className="space-y-1 sm:col-span-2">
-                <span className="font-mono text-[9.5px] text-zinc-400">
-                  DECISIÓN MANUAL INSTRUCTOR T0 (EL INSTRUCTOR MANDA)
+                <span className="block text-xs font-semibold text-slate-700">
+                  Decisión del instructor (diagnóstico)
                 </span>
                 <select
                   value={decisionT0}
                   onChange={(e) => setDecisionT0(e.target.value as DecisionInstructorT0)}
-                  className="h-9 w-full rounded-sm border border-zinc-700 bg-zinc-900 px-2 font-mono text-xs text-white"
+                  className="h-9 w-full rounded-lg border border-slate-300 bg-white px-2.5 text-xs text-slate-900"
                 >
                   <option value="APROBADO_A_CAPACITACION">
-                    APRUEBA DIAGNÓSTICO → PASA A CAPACITACIÓN
+                    Aprueba diagnóstico → Pasa a capacitación
                   </option>
-                  <option value="PENDIENTE">PENDIENTE DE REVISIÓN</option>
-                  <option value="RECHAZADO">NO APRUEBA / RECHAZADO EN T0</option>
+                  <option value="PENDIENTE">Pendiente de revisión</option>
+                  <option value="RECHAZADO">No aprueba en diagnóstico</option>
                 </select>
               </label>
 
               <label className="space-y-1">
-                <span className="font-mono text-[9.5px] text-zinc-400">
-                  REFUERZO SIMULADOR (HS)
+                <span className="block text-xs font-semibold text-slate-700">
+                  Refuerzo simulador (hs)
                 </span>
                 <input
                   type="number"
@@ -2012,13 +2060,13 @@ export default function DrawerPostulante({
                     const v = Number(e.target.value);
                     if (Number.isFinite(v)) setHorasRefuerzoSim(Math.max(0, v));
                   }}
-                  className="h-9 w-full rounded-sm border border-zinc-700 bg-zinc-900 px-2.5 font-mono text-xs text-white"
+                  className="h-9 w-full rounded-lg border border-slate-300 bg-white px-2.5 text-xs text-slate-900"
                 />
               </label>
 
               <label className="space-y-1 sm:col-span-2">
-                <span className="font-mono text-[9.5px] text-zinc-400">
-                  FUNDAMENTO / NOTA DECISIÓN T0
+                <span className="block text-xs font-semibold text-slate-700">
+                  Fundamento / Nota del instructor
                 </span>
                 <input
                   type="text"
@@ -2026,7 +2074,7 @@ export default function DrawerPostulante({
                   value={obsDecisionT0}
                   onChange={(e) => setObsDecisionT0(e.target.value)}
                   placeholder="Ej: Aprobado con énfasis en ángulo de mástil..."
-                  className="h-9 w-full rounded-sm border border-zinc-700 bg-zinc-900 px-2.5 font-mono text-xs text-white"
+                  className="h-9 w-full rounded-lg border border-slate-300 bg-white px-2.5 text-xs text-slate-900"
                 />
               </label>
 
@@ -2035,9 +2083,9 @@ export default function DrawerPostulante({
                   type="button"
                   disabled={guardandoDecision}
                   onClick={guardarDecisionSubmit}
-                  className="h-9 w-full rounded-sm border border-emerald-500/60 bg-emerald-500/15 px-3 font-mono text-[10px] font-semibold tracking-[0.1em] text-emerald-200 hover:bg-emerald-500/25 disabled:opacity-50"
+                  className="h-9 w-full rounded-lg border border-blue-200 bg-blue-50 px-3 text-xs font-semibold text-blue-700 transition-colors hover:bg-blue-100 disabled:opacity-50"
                 >
-                  {guardandoDecision ? 'GUARDANDO…' : 'GUARDAR DECISIÓN Y HORAS'}
+                  {guardandoDecision ? 'Guardando…' : 'Guardar decisión y horas'}
                 </button>
               </div>
             </div>
@@ -2048,23 +2096,23 @@ export default function DrawerPostulante({
         {cohorteId && (
           <section
             aria-label="Asistencias de Simulador"
-            className="space-y-3 rounded-sm border border-zinc-800 bg-zinc-950 p-3.5"
+            className="space-y-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
           >
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <h3 className="flex items-center gap-1.5 font-mono text-[10px] tracking-[0.16em] text-sky-300">
-                <CalendarCheck size={13} aria-hidden />
-                ASISTENCIAS DE SIMULADOR
+              <h3 className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-800">
+                <CalendarCheck size={14} className="text-blue-600" aria-hidden />
+                Asistencias en simulador
               </h3>
-              <span className="rounded-sm border border-zinc-700 bg-zinc-900 px-2 py-0.5 font-mono text-[10px] text-zinc-200">
-                {presentesSimulador} / {totalSesionesLegajo} PRESENTES
+              <span className="rounded-full border border-slate-200 bg-slate-100 px-2.5 py-0.5 text-xs font-semibold text-slate-700">
+                {presentesSimulador} / {totalSesionesLegajo} presentes
               </span>
             </div>
 
             {cargandoLegajo ? (
-              <p className="font-mono text-[10px] text-zinc-500">Cargando sesiones…</p>
+              <p className="text-xs text-slate-500">Cargando sesiones…</p>
             ) : (legajo360?.sesiones.length ?? 0) === 0 ? (
-              <p className="rounded-sm border border-dashed border-zinc-800 px-3 py-2 font-mono text-[10px] text-zinc-500">
-                Este postulante aún no tiene sesiones sincronizadas en `duplas_cabina`. Usá el botón &quot;Sincronizar Duplas y Sesiones&quot; en la grilla principal.
+              <p className="rounded-lg border border-dashed border-slate-300 bg-slate-50 px-3 py-2.5 text-xs text-slate-600">
+                Este alumno todavía no tiene sesiones sincronizadas. Usá &quot;Confirmar y guardar duplas&quot; en la pestaña Turnos y Duplas.
               </p>
             ) : (
               <div className="space-y-2">
@@ -2074,19 +2122,19 @@ export default function DrawerPostulante({
                   return (
                     <div
                       key={ses.id}
-                      className="flex flex-col gap-2 rounded-sm border border-zinc-800 bg-zinc-900/70 p-2.5 sm:flex-row sm:items-center sm:justify-between"
+                      className="flex flex-col gap-2 rounded-lg border border-slate-200 bg-slate-50 p-2.5 sm:flex-row sm:items-center sm:justify-between"
                     >
-                      <div className="min-w-0 font-mono text-[10px]">
-                        <p className="font-semibold text-zinc-100">
+                      <div className="min-w-0 text-xs">
+                        <p className="font-semibold text-slate-900">
                           Clase #{ses.numero_sesion} · {ses.fecha_programada}{' '}
-                          <span className="text-zinc-500">
+                          <span className="font-normal text-slate-500">
                             ({ses.rol_inicio === 'PILOTO_INICIAL' ? 'Piloto 1°' : 'Copiloto 1°'})
                           </span>
                         </p>
                         {ses.fecha_real && (
-                          <p className="text-[9.5px] text-cyan-300">
+                          <p className="text-[11px] font-medium text-blue-700">
                             Reprogramada: {ses.fecha_real}
-                            {ses.es_recuperatorio_viernes ? ' · Viernes Buffer' : ''}
+                            {ses.es_recuperatorio_viernes ? ' · Viernes recupero' : ''}
                           </p>
                         )}
                       </div>
@@ -2103,13 +2151,13 @@ export default function DrawerPostulante({
                               e.target.value === 'REPROGRAMADA' ? viernesSug : null
                             )
                           }
-                          className="h-8 rounded-sm border border-zinc-700 bg-zinc-950 px-2 font-mono text-[10px] text-zinc-100"
+                          className="h-8 rounded-lg border border-slate-300 bg-white px-2 text-xs text-slate-900"
                         >
-                          <option value="PENDIENTE">PENDIENTE</option>
-                          <option value="PRESENTE">PRESENTE</option>
-                          <option value="AUSENTE_JUSTIFICADO">AUSENTE JUSTIFICADO</option>
-                          <option value="AUSENTE_INJUSTIFICADO">AUSENTE INJUSTIFICADO</option>
-                          <option value="REPROGRAMADA">REPROGRAMADA</option>
+                          <option value="PENDIENTE">Pendiente</option>
+                          <option value="PRESENTE">Presente</option>
+                          <option value="AUSENTE_JUSTIFICADO">Ausente justificado</option>
+                          <option value="AUSENTE_INJUSTIFICADO">Ausente injustificado</option>
+                          <option value="REPROGRAMADA">Reprogramada</option>
                         </select>
                         <button
                           type="button"
@@ -2117,10 +2165,10 @@ export default function DrawerPostulante({
                           onClick={() =>
                             void cambiarAsistenciaLegajo(ses, 'REPROGRAMADA', viernesSug)
                           }
-                          className="inline-flex h-8 items-center gap-1 rounded-sm border border-cyan-500/50 bg-cyan-950/35 px-2 font-mono text-[9.5px] text-cyan-200 hover:bg-cyan-500/20 disabled:opacity-50"
+                          className="inline-flex h-8 items-center gap-1 rounded-lg border border-blue-200 bg-blue-50 px-2.5 text-xs font-medium text-blue-700 hover:bg-blue-100 disabled:opacity-50"
                         >
-                          <CalendarClock size={11} aria-hidden />
-                          Reprog. a Viernes Buffer
+                          <CalendarClock size={12} aria-hidden />
+                          Pasar a viernes
                         </button>
                       </div>
                     </div>
@@ -2131,51 +2179,51 @@ export default function DrawerPostulante({
           </section>
         )}
 
-        {/* ── Legajo 360° · Práctica Real en Terreno (CERO STORAGE) ── */}
+        {/* ── Legajo 360° · Práctica Real en Terreno ── */}
         {cohorteId && (
           <form
             onSubmit={guardarPracticaRealSubmit}
-            aria-label="Práctica Real en Terreno"
-            className="space-y-3 rounded-sm border border-zinc-800 bg-zinc-950 p-3.5"
+            aria-label="Práctica Real en Patio"
+            className="space-y-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
           >
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <h3 className="flex items-center gap-1.5 font-mono text-[10px] tracking-[0.16em] text-amber-300">
-                <FileText size={13} aria-hidden />
-                PRÁCTICA REAL EN TERRENO (PASAJE A PLANTA · SIN STORAGE)
+              <h3 className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-800">
+                <FileText size={14} className="text-amber-600" aria-hidden />
+                Práctica real en patio (autoelevador físico)
               </h3>
-              <span className="rounded-sm border border-emerald-500/40 bg-emerald-950/30 px-2 py-0.5 font-mono text-[9px] text-emerald-300">
-                0 BYTES STORAGE · SOLO SQL/PDF LOCAL
+              <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-700">
+                Registro directo sin adjuntos
               </span>
             </div>
 
             <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-3">
               <label className="space-y-1">
-                <span className="font-mono text-[9.5px] text-zinc-500">FECHA PRÁCTICA *</span>
+                <span className="block text-xs font-semibold text-slate-700">Fecha práctica *</span>
                 <input
                   type="date"
                   required
                   value={pracFecha}
                   onChange={(e) => setPracFecha(e.target.value)}
-                  className="h-9 w-full rounded-sm border border-zinc-700 bg-zinc-900 px-2.5 font-mono text-xs text-white [color-scheme:dark]"
+                  className="h-9 w-full rounded-lg border border-slate-300 bg-white px-2.5 text-xs text-slate-900"
                 />
               </label>
 
               <label className="space-y-1">
-                <span className="font-mono text-[9.5px] text-zinc-500">ASISTENCIA TERRENO *</span>
+                <span className="block text-xs font-semibold text-slate-700">Asistencia *</span>
                 <select
                   value={pracAsistencia}
                   onChange={(e) =>
                     setPracAsistencia(e.target.value as 'PRESENTE' | 'AUSENTE')
                   }
-                  className="h-9 w-full rounded-sm border border-zinc-700 bg-zinc-900 px-2 font-mono text-xs text-white"
+                  className="h-9 w-full rounded-lg border border-slate-300 bg-white px-2 text-xs text-slate-900"
                 >
-                  <option value="PRESENTE">PRESENTE</option>
-                  <option value="AUSENTE">AUSENTE</option>
+                  <option value="PRESENTE">Presente</option>
+                  <option value="AUSENTE">Ausente</option>
                 </select>
               </label>
 
               <label className="space-y-1">
-                <span className="font-mono text-[9.5px] text-zinc-500">HORAS PRÁCTICA REAL</span>
+                <span className="block text-xs font-semibold text-slate-700">Horas en patio</span>
                 <input
                   type="number"
                   min={0}
@@ -2186,13 +2234,13 @@ export default function DrawerPostulante({
                     const v = Number(e.target.value);
                     if (Number.isFinite(v)) setPracHorasBase(Math.max(0, v));
                   }}
-                  className="h-9 w-full rounded-sm border border-zinc-700 bg-zinc-900 px-2.5 font-mono text-xs text-white"
+                  className="h-9 w-full rounded-lg border border-slate-300 bg-white px-2.5 text-xs text-slate-900"
                 />
               </label>
 
               <label className="space-y-1 sm:col-span-2">
-                <span className="font-mono text-[9.5px] text-zinc-500">
-                  DECISIÓN MANUAL TERRENO (EL INSTRUCTOR MANDA) *
+                <span className="block text-xs font-semibold text-slate-700">
+                  Decisión del instructor en patio *
                 </span>
                 <select
                   value={pracDecision}
@@ -2207,33 +2255,33 @@ export default function DrawerPostulante({
                           : 'no_apto'
                     );
                   }}
-                  className="h-9 w-full rounded-sm border border-zinc-700 bg-zinc-900 px-2 font-mono text-xs text-white"
+                  className="h-9 w-full rounded-lg border border-slate-300 bg-white px-2 text-xs text-slate-900"
                 >
                   <option value="APROBADO_EMPRESAS">
-                    APRUEBA PRÁCTICA REAL (APTO PARA EMPRESAS)
+                    Aprueba práctica real (Apto para empresas)
                   </option>
                   <option value="REQUIERE_MAS_HORAS">
-                    REQUIERE MÁS HORAS DE REFUERZO
+                    Requiere más horas de refuerzo
                   </option>
-                  <option value="NO_APTO">NO APTO EN TERRENO</option>
+                  <option value="NO_APTO">No apto en patio</option>
                 </select>
               </label>
 
               <label className="space-y-1">
-                <span className="font-mono text-[9.5px] text-zinc-500">RESULTADO *</span>
+                <span className="block text-xs font-semibold text-slate-700">Resultado *</span>
                 <select
                   value={pracResultado}
                   onChange={(e) => setPracResultado(e.target.value as ResultadoPracticaReal)}
-                  className="h-9 w-full rounded-sm border border-zinc-700 bg-zinc-900 px-2 font-mono text-xs text-white"
+                  className="h-9 w-full rounded-lg border border-slate-300 bg-white px-2 text-xs text-slate-900"
                 >
-                  <option value="aprobado">APROBADO</option>
-                  <option value="requiere_refuerzo">REQUIERE REFUERZO</option>
-                  <option value="no_apto">NO APTO</option>
+                  <option value="aprobado">Aprobado</option>
+                  <option value="requiere_refuerzo">Requiere refuerzo</option>
+                  <option value="no_apto">No apto</option>
                 </select>
               </label>
 
               <label className="space-y-1 sm:col-span-2">
-                <span className="font-mono text-[9.5px] text-zinc-500">LUGAR / PREDIO *</span>
+                <span className="block text-xs font-semibold text-slate-700">Lugar / Predio *</span>
                 <input
                   type="text"
                   required
@@ -2241,12 +2289,12 @@ export default function DrawerPostulante({
                   value={pracLugar}
                   onChange={(e) => setPracLugar(e.target.value)}
                   placeholder="Ej: Galpón Municipal / Predio Parque Industrial"
-                  className="h-9 w-full rounded-sm border border-zinc-700 bg-zinc-900 px-2.5 font-mono text-xs text-white"
+                  className="h-9 w-full rounded-lg border border-slate-300 bg-white px-2.5 text-xs text-slate-900"
                 />
               </label>
 
               <label className="space-y-1">
-                <span className="font-mono text-[9.5px] text-zinc-500">MÁQUINA REAL *</span>
+                <span className="block text-xs font-semibold text-slate-700">Máquina real *</span>
                 <input
                   type="text"
                   required
@@ -2254,76 +2302,76 @@ export default function DrawerPostulante({
                   value={pracMaquina}
                   onChange={(e) => setPracMaquina(e.target.value)}
                   placeholder="Ej: Toyota 8FGCU25"
-                  className="h-9 w-full rounded-sm border border-zinc-700 bg-zinc-900 px-2.5 font-mono text-xs text-white"
+                  className="h-9 w-full rounded-lg border border-slate-300 bg-white px-2.5 text-xs text-slate-900"
                 />
               </label>
 
               <label className="space-y-1 sm:col-span-2">
-                <span className="font-mono text-[9.5px] text-zinc-500">INSTRUCTOR DE PATIO</span>
+                <span className="block text-xs font-semibold text-slate-700">Instructor de patio</span>
                 <input
                   type="text"
                   maxLength={120}
                   value={pracInstructor}
                   onChange={(e) => setPracInstructor(e.target.value)}
-                  placeholder="Nombre del instructor responsable en terreno"
-                  className="h-9 w-full rounded-sm border border-zinc-700 bg-zinc-900 px-2.5 font-mono text-xs text-white"
+                  placeholder="Nombre del instructor responsable en patio"
+                  className="h-9 w-full rounded-lg border border-slate-300 bg-white px-2.5 text-xs text-slate-900"
                 />
               </label>
 
               <label className="space-y-1">
-                <span className="font-mono text-[9.5px] text-zinc-500">ASISTENCIA EN MÁQUINA</span>
+                <span className="block text-xs font-semibold text-slate-700">Asistencia en máquina</span>
                 <select
                   value={pracNivelAsist}
                   onChange={(e) => setPracNivelAsist(e.target.value)}
-                  className="h-9 w-full rounded-sm border border-zinc-700 bg-zinc-900 px-2 font-mono text-xs text-white"
+                  className="h-9 w-full rounded-lg border border-slate-300 bg-white px-2 text-xs text-slate-900"
                 >
-                  <option value="AUTONOMO">AUTÓNOMO</option>
-                  <option value="AYUDA_VERBAL">AYUDA VERBAL</option>
-                  <option value="INTERVENCION_CONSTANTE">INT. CONSTANTE</option>
-                  <option value="INTERVENCION_CRITICA">INT. CRÍTICA</option>
+                  <option value="AUTONOMO">Autónomo</option>
+                  <option value="AYUDA_VERBAL">Ayuda verbal</option>
+                  <option value="INTERVENCION_CONSTANTE">Int. constante</option>
+                  <option value="INTERVENCION_CRITICA">Int. crítica</option>
                 </select>
               </label>
 
               {/* 4 ejes en máquina real (0 / 10 / 20) */}
-              <div className="sm:col-span-3 grid grid-cols-2 gap-2 sm:grid-cols-4 rounded-sm border border-zinc-800 bg-zinc-900/50 p-2.5">
+              <div className="sm:col-span-3 grid grid-cols-2 gap-2 sm:grid-cols-4 rounded-lg border border-slate-200 bg-slate-50 p-3">
                 {[
-                  { label: 'LATERALIDAD', val: pracLat, setter: setPracLat },
-                  { label: 'MANDOS', val: pracMan, setter: setPracMan },
-                  { label: 'MÁSTIL', val: pracMas, setter: setPracMas },
-                  { label: 'CONTROL', val: pracCon, setter: setPracCon },
+                  { label: 'Lateralidad', val: pracLat, setter: setPracLat },
+                  { label: 'Mandos', val: pracMan, setter: setPracMan },
+                  { label: 'Mástil', val: pracMas, setter: setPracMas },
+                  { label: 'Control', val: pracCon, setter: setPracCon },
                 ].map((eje) => (
                   <label key={eje.label} className="space-y-1">
-                    <span className="block font-mono text-[9px] text-zinc-400">
-                      {eje.label} (PATIO)
+                    <span className="block text-[11px] font-semibold text-slate-600">
+                      {eje.label} (Patio)
                     </span>
                     <select
                       value={eje.val}
                       onChange={(e) => eje.setter(e.target.value)}
-                      className="h-8 w-full rounded-sm border border-zinc-700 bg-zinc-950 px-1.5 font-mono text-[11px] text-white"
+                      className="h-8 w-full rounded-lg border border-slate-300 bg-white px-2 text-xs text-slate-900"
                     >
                       <option value="">—</option>
-                      <option value="0">0 · CRÍTICO</option>
-                      <option value="10">10 · REGULAR</option>
-                      <option value="20">20 · ÓPTIMO</option>
+                      <option value="0">0 · Crítico</option>
+                      <option value="10">10 · Regular</option>
+                      <option value="20">20 · Óptimo</option>
                     </select>
                   </label>
                 ))}
               </div>
 
               {/* Check ¿Requiere más horas de refuerzo? + Horas extra terreno */}
-              <div className="sm:col-span-3 flex flex-wrap items-center gap-3 rounded-sm border border-zinc-800 bg-zinc-900/50 p-2.5 font-mono text-[10px]">
-                <label className="inline-flex items-center gap-2 text-amber-200 cursor-pointer">
+              <div className="sm:col-span-3 flex flex-wrap items-center gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs">
+                <label className="inline-flex items-center gap-2 font-medium text-amber-800 cursor-pointer">
                   <input
                     type="checkbox"
                     checked={pracRequiereExtra}
                     onChange={(e) => setPracRequiereExtra(e.target.checked)}
-                    className="accent-amber-400"
+                    className="accent-amber-600"
                   />
                   ¿Requiere más horas de refuerzo?
                 </label>
 
                 {pracRequiereExtra && (
-                  <label className="inline-flex items-center gap-1.5 text-zinc-300">
+                  <label className="inline-flex items-center gap-1.5 text-slate-700">
                     <span>Sugeridas (hs):</span>
                     <input
                       type="number"
@@ -2335,12 +2383,12 @@ export default function DrawerPostulante({
                         const v = Number(e.target.value);
                         if (Number.isFinite(v)) setPracHorasSugeridas(Math.max(0, v));
                       }}
-                      className="h-8 w-16 rounded-sm border border-amber-500/50 bg-zinc-950 px-2 text-xs text-white"
+                      className="h-8 w-16 rounded-lg border border-amber-300 bg-white px-2 text-xs text-slate-900"
                     />
                   </label>
                 )}
 
-                <label className="inline-flex items-center gap-1.5 text-zinc-300">
+                <label className="inline-flex items-center gap-1.5 text-slate-700">
                   <span>Horas extra cursadas (hs):</span>
                   <input
                     type="number"
@@ -2352,14 +2400,14 @@ export default function DrawerPostulante({
                       const v = Number(e.target.value);
                       if (Number.isFinite(v)) setPracHorasExtra(Math.max(0, v));
                     }}
-                    className="h-8 w-16 rounded-sm border border-zinc-700 bg-zinc-950 px-2 text-xs text-white"
+                    className="h-8 w-16 rounded-lg border border-slate-300 bg-white px-2 text-xs text-slate-900"
                   />
                 </label>
               </div>
 
               <label className="space-y-1 sm:col-span-3">
-                <span className="font-mono text-[9.5px] text-zinc-500">
-                  OBSERVACIONES DE TERRENO
+                <span className="block text-xs font-semibold text-slate-700">
+                  Observaciones de patio
                 </span>
                 <textarea
                   rows={2}
@@ -2367,7 +2415,7 @@ export default function DrawerPostulante({
                   value={pracObs}
                   onChange={(e) => setPracObs(e.target.value)}
                   placeholder="Desempeño con carga real, maniobra en espacio acotado, seguridad..."
-                  className="w-full rounded-sm border border-zinc-700 bg-zinc-900 px-2.5 py-2 font-mono text-xs text-white"
+                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs text-slate-900"
                 />
               </label>
             </div>
@@ -2375,9 +2423,9 @@ export default function DrawerPostulante({
             <button
               type="submit"
               disabled={guardandoPrac}
-              className="h-10 w-full rounded-sm border border-amber-500/60 bg-amber-500/15 px-4 font-mono text-[11px] font-semibold tracking-[0.12em] text-amber-200 transition-colors hover:bg-amber-500/25 disabled:opacity-50"
+              className="h-10 w-full rounded-lg border border-amber-300 bg-amber-50 px-4 text-xs font-semibold text-amber-900 transition-colors hover:bg-amber-100 disabled:opacity-50"
             >
-              {guardandoPrac ? 'GUARDANDO EVALUACIÓN EN TERRENO…' : 'GUARDAR PRÁCTICA REAL (0 BYTES STORAGE)'}
+              {guardandoPrac ? 'Guardando práctica en patio…' : 'Guardar práctica en patio'}
             </button>
           </form>
         )}
@@ -2386,59 +2434,59 @@ export default function DrawerPostulante({
         {cohorteId && (
           <section
             aria-label="Evaluación Final y Egreso"
-            className="space-y-3 rounded-sm border border-zinc-800 bg-zinc-950 p-3.5"
+            className="space-y-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
           >
-            <h3 className="flex items-center gap-1.5 font-mono text-[10px] tracking-[0.16em] text-emerald-300">
-              <Award size={13} aria-hidden />
-              FICHA FINAL DE EGRESO (COHORTE)
+            <h3 className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-800">
+              <Award size={14} className="text-emerald-600" aria-hidden />
+              Ficha final de egreso del curso
             </h3>
 
             <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-3">
               <label className="space-y-1">
-                <span className="font-mono text-[9.5px] text-zinc-500">ESTADO EGRESO</span>
+                <span className="block text-xs font-semibold text-slate-700">Estado egreso</span>
                 <select
                   value={egEstado}
                   onChange={(e) => setEgEstado(e.target.value as EstadoEgreso)}
-                  className="h-9 w-full rounded-sm border border-zinc-700 bg-zinc-900 px-2 font-mono text-xs text-white"
+                  className="h-9 w-full rounded-lg border border-slate-300 bg-white px-2 text-xs text-slate-900"
                 >
-                  <option value="INCOMPLETO">INCOMPLETO</option>
-                  <option value="CERTIFICADO">CERTIFICADO</option>
-                  <option value="ABANDONO">ABANDONO</option>
+                  <option value="INCOMPLETO">Incompleto</option>
+                  <option value="CERTIFICADO">Certificado</option>
+                  <option value="ABANDONO">Abandono</option>
                 </select>
               </label>
 
               <label className="space-y-1">
-                <span className="font-mono text-[9.5px] text-zinc-500">PASE A TERRENO</span>
+                <span className="block text-xs font-semibold text-slate-700">Pase a patio</span>
                 <select
                   value={egTerrenoAprobado}
                   onChange={(e) =>
                     setEgTerrenoAprobado(e.target.value as 'pendiente' | 'si' | 'no')
                   }
-                  className="h-9 w-full rounded-sm border border-zinc-700 bg-zinc-900 px-2 font-mono text-xs text-white"
+                  className="h-9 w-full rounded-lg border border-slate-300 bg-white px-2 text-xs text-slate-900"
                 >
-                  <option value="pendiente">PENDIENTE</option>
-                  <option value="si">APROBADO</option>
-                  <option value="no">NO APROBADO</option>
+                  <option value="pendiente">Pendiente</option>
+                  <option value="si">Aprobado</option>
+                  <option value="no">No aprobado</option>
                 </select>
               </label>
 
               <label className="space-y-1">
-                <span className="font-mono text-[9.5px] text-zinc-500">PERFIL LABORAL</span>
+                <span className="block text-xs font-semibold text-slate-700">Perfil laboral</span>
                 <select
                   value={egPerfil}
                   onChange={(e) => setEgPerfil(e.target.value as PerfilLaboral)}
-                  className="h-9 w-full rounded-sm border border-zinc-700 bg-zinc-900 px-2 font-mono text-xs text-white"
+                  className="h-9 w-full rounded-lg border border-slate-300 bg-white px-2 text-xs text-slate-900"
                 >
-                  <option value="DESTACADO">DESTACADO</option>
-                  <option value="ESTANDAR">ESTÁNDAR</option>
-                  <option value="CON_OBSERVACIONES">CON OBSERVACIONES</option>
-                  <option value="NO_RECOMENDADO">NO RECOMENDADO</option>
+                  <option value="DESTACADO">Destacado</option>
+                  <option value="ESTANDAR">Estándar</option>
+                  <option value="CON_OBSERVACIONES">Con observaciones</option>
+                  <option value="NO_RECOMENDADO">No recomendado</option>
                 </select>
               </label>
 
               <label className="space-y-1 sm:col-span-3">
-                <span className="font-mono text-[9.5px] text-zinc-500">
-                  DEVOLUCIÓN FINAL DE EMPLEO / RECOMENDACIÓN
+                <span className="block text-xs font-semibold text-slate-700">
+                  Devolución final de Empleo / Recomendación
                 </span>
                 <textarea
                   rows={2}
@@ -2446,7 +2494,7 @@ export default function DrawerPostulante({
                   value={egObs}
                   onChange={(e) => setEgObs(e.target.value)}
                   placeholder="Conclusión de cierre para derivación laboral…"
-                  className="w-full rounded-sm border border-zinc-700 bg-zinc-900 px-2.5 py-2 font-mono text-xs text-white"
+                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs text-slate-900"
                 />
               </label>
             </div>
@@ -2456,16 +2504,16 @@ export default function DrawerPostulante({
                 type="button"
                 disabled={guardandoEg}
                 onClick={guardarEgresoClick}
-                className="h-10 flex-1 rounded-sm border border-emerald-500 bg-emerald-500 px-4 font-mono text-[11px] font-semibold tracking-[0.12em] text-emerald-950 transition-colors hover:bg-emerald-400 disabled:opacity-50"
+                className="h-10 flex-1 rounded-lg bg-emerald-600 px-4 text-xs font-semibold text-white transition-colors hover:bg-emerald-700 disabled:opacity-50"
               >
-                {guardandoEg ? 'GUARDANDO EGRESO…' : 'GUARDAR DICTAMEN DE EGRESO'}
+                {guardandoEg ? 'Guardando egreso…' : 'Guardar dictamen de egreso'}
               </button>
               <button
                 type="button"
                 onClick={imprimirLegajo360}
-                className="inline-flex h-10 items-center gap-1.5 rounded-sm border border-white bg-white px-3.5 font-mono text-[10.5px] font-semibold tracking-[0.1em] text-zinc-950 hover:bg-zinc-200"
+                className="inline-flex h-10 items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3.5 text-xs font-semibold text-slate-700 hover:bg-slate-100"
               >
-                <Printer size={13} aria-hidden />
+                <Printer size={14} aria-hidden />
                 PDF 360°
               </button>
             </div>
@@ -2475,10 +2523,10 @@ export default function DrawerPostulante({
         {msgLegajo && (
           <p
             role={msgLegajo.tipo === 'error' ? 'alert' : 'status'}
-            className={`rounded-sm border px-3 py-2 font-mono text-[10.5px] ${
+            className={`rounded-lg border px-3 py-2 text-xs font-medium ${
               msgLegajo.tipo === 'ok'
-                ? 'border-emerald-500/40 bg-emerald-950/30 text-emerald-300'
-                : 'border-red-500/40 bg-red-950/30 text-red-300'
+                ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                : 'border-rose-200 bg-rose-50 text-rose-700'
             }`}
           >
             {msgLegajo.texto}
@@ -2486,12 +2534,15 @@ export default function DrawerPostulante({
         )}
 
         {/* ── Notas sociolaborales de Empleo ─────────────────── */}
-        <section aria-label="Notas sociolaborales">
+        <section
+          aria-label="Notas sociolaborales"
+          className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
+        >
           <label
             htmlFor="notas-empleo"
-            className="font-mono text-[10px] tracking-[0.18em] text-zinc-500"
+            className="block text-xs font-bold uppercase tracking-wider text-slate-600"
           >
-            NOTAS SOCIOLABORALES (EMPLEO)
+            Notas de Empleo
           </label>
           <textarea
             id="notas-empleo"
@@ -2500,7 +2551,7 @@ export default function DrawerPostulante({
             value={notas}
             onChange={(e) => setNotas(e.target.value)}
             placeholder="Observaciones del equipo de Empleo…"
-            className="mt-2 w-full rounded-sm border border-zinc-700 bg-zinc-900 px-3 py-2 font-mono text-xs leading-relaxed text-zinc-100 placeholder:text-zinc-600 focus-visible:outline-1 focus-visible:outline-white"
+            className="mt-2 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs leading-relaxed text-slate-900 placeholder:text-slate-400"
           />
           <button
             type="button"
@@ -2508,38 +2559,38 @@ export default function DrawerPostulante({
             onClick={() =>
               ejecutar(
                 guardarNotasEmpleo(postulante.inscripcion_id, notas),
-                'NOTAS GUARDADAS'
+                'Notas guardadas'
               )
             }
-            className="mt-1.5 h-10 rounded-sm border border-zinc-600 px-4 font-mono text-[11px] tracking-[0.14em] text-zinc-200 transition-colors hover:border-white hover:text-white disabled:cursor-not-allowed disabled:border-zinc-800 disabled:text-zinc-600 focus-visible:outline-1 focus-visible:outline-white"
+            className="mt-2 h-9 rounded-lg border border-slate-300 bg-white px-4 text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            GUARDAR NOTAS
+            Guardar notas
           </button>
         </section>
 
         {/* ── Asignación legacy y baja ─────────────────────────── */}
         <section aria-label="Asignación y baja" className="space-y-2.5">
           {franjas.length > 0 && (
-            <details className="rounded-sm border border-zinc-800 bg-zinc-950 p-2.5">
-              <summary className="cursor-pointer font-mono text-[10px] tracking-[0.14em] text-zinc-500 hover:text-zinc-300">
-                ASIGNACIÓN LEGACY A FRANJA (TERNAS 3 POR HORA)
+            <details className="rounded-xl border border-slate-200 bg-white p-3">
+              <summary className="cursor-pointer text-xs font-semibold text-slate-600 hover:text-slate-900">
+                Asignación manual a franja (modelo anterior 3 por hora)
               </summary>
-              <div className="mt-2 flex gap-2">
+              <div className="mt-2.5 flex gap-2">
                 <select
                   value={franjaSeleccionada}
                   onChange={(e) => setFranjaSeleccionada(e.target.value)}
                   aria-label="Franja de cabina disponible"
                   disabled={postulante.estado === 'DESCARTADO'}
-                  className="h-11 min-w-0 flex-1 rounded-sm border border-zinc-700 bg-zinc-900 px-2 font-mono text-xs text-white focus-visible:outline-1 focus-visible:outline-white disabled:cursor-not-allowed disabled:text-zinc-600"
+                  className="h-10 min-w-0 flex-1 rounded-lg border border-slate-300 bg-white px-2.5 text-xs text-slate-900 disabled:cursor-not-allowed disabled:text-slate-400"
                 >
                   <option value="">
                     {franjasLibres.length === 0
-                      ? 'SIN FRANJAS LIBRES'
-                      : 'ELEGIR FRANJA…'}
+                      ? 'Sin franjas libres'
+                      : 'Elegir franja…'}
                   </option>
                   {franjasLibres.map((f) => (
                     <option key={f.id} value={f.id}>
-                      {f.turno.toUpperCase()} · {f.horario_label} ({f.ocupantes.length}/
+                      {f.turno} · {f.horario_label} ({f.ocupantes.length}/
                       {f.cupo_maximo})
                     </option>
                   ))}
@@ -2548,9 +2599,9 @@ export default function DrawerPostulante({
                   type="button"
                   onClick={asignar}
                   disabled={isPending || !franjaSeleccionada}
-                  className="h-11 shrink-0 rounded-sm border border-emerald-500 bg-emerald-500 px-4 font-mono text-xs font-semibold tracking-[0.12em] text-emerald-950 transition-colors hover:bg-emerald-400 disabled:cursor-not-allowed disabled:border-zinc-700 disabled:bg-zinc-800 disabled:text-zinc-500 focus-visible:outline-1 focus-visible:outline-white"
+                  className="h-10 shrink-0 rounded-lg bg-blue-600 px-4 text-xs font-semibold text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500"
                 >
-                  ASIGNAR
+                  Asignar
                 </button>
               </div>
             </details>
@@ -2561,13 +2612,13 @@ export default function DrawerPostulante({
               type="button"
               onClick={darBaja}
               disabled={isPending}
-              className="h-11 w-full rounded-sm border border-red-500/60 px-4 font-mono text-xs tracking-[0.14em] text-red-400 transition-colors hover:border-red-500 hover:bg-red-500/10 hover:text-red-300 disabled:cursor-not-allowed disabled:border-zinc-800 disabled:text-zinc-600 focus-visible:outline-1 focus-visible:outline-white"
+              className="h-10 w-full rounded-lg border border-rose-200 bg-rose-50 px-4 text-xs font-semibold text-rose-700 transition-colors hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              DAR DE BAJA DEL PROGRAMA
+              Dar de baja del curso
             </button>
           ) : (
-            <p className="rounded-sm border border-red-500/40 bg-red-500/10 px-3 py-2 font-mono text-[10px] leading-relaxed tracking-[0.1em] text-red-400">
-              DESCARTADO · {postulante.motivo_baja ?? 'SIN MOTIVO REGISTRADO'}
+            <p className="rounded-lg border border-rose-200 bg-rose-50 px-3.5 py-2.5 text-xs font-medium text-rose-700">
+              Dado de baja · {postulante.motivo_baja ?? 'Sin motivo registrado'}
             </p>
           )}
         </section>
@@ -2575,8 +2626,8 @@ export default function DrawerPostulante({
         {mensaje && (
           <p
             role={mensaje.tipo === 'error' ? 'alert' : 'status'}
-            className={`font-mono text-[10px] tracking-[0.12em] ${
-              mensaje.tipo === 'ok' ? 'text-emerald-400' : 'text-red-400'
+            className={`text-xs font-medium ${
+              mensaje.tipo === 'ok' ? 'text-emerald-700' : 'text-rose-700'
             }`}
           >
             {mensaje.texto}

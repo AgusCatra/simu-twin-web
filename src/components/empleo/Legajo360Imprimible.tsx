@@ -227,15 +227,15 @@ export default function Legajo360Imprimible({
         </section>
       </div>
 
-      {/* ── Proyecto Titán (6 curvas + Perfil + IA) ──────────────── */}
+      {/* ── Reportes del Simulador (6 curvas + Perfil + IA) ──────── */}
       <section className="l360-box">
         <h2 className="l360-box-title">
-          4. Proyecto Titán · Telemetría del Simulador (6 Curvas) e Informe IA
+          4. Reportes del Simulador (6 Controles) e Informe de Desempeño
         </h2>
         <p style={{ margin: '0 0 4px' }}>
-          <strong>Perfil Operador:</strong> {perfil} ·{' '}
+          <strong>Perfil de Conducción:</strong> {perfil} ·{' '}
           <strong>Horas Recomendadas:</strong> {fNum(horasRec, ' h')} ·{' '}
-          <strong>Score Simulador:</strong>{' '}
+          <strong>Puntaje Simulador:</strong>{' '}
           {fNum(metricas?.scorePuntos ?? ev?.telemetria.score_puntos, ' pts')} ·{' '}
           <strong>Duración:</strong>{' '}
           {fNum(metricas?.tiempoDuracionSeg ?? ev?.telemetria.tiempo_vuelta_seg, ' s')} ·{' '}
@@ -247,9 +247,9 @@ export default function Legajo360Imprimible({
           <table className="l360-table" style={{ marginBottom: '5px' }}>
             <thead>
               <tr>
-                <th>Curva Telemetría (6 Canales)</th>
+                <th>Control del Simulador (6 Canales)</th>
                 <th>Indicador Principal</th>
-                <th>Observación Analítica</th>
+                <th>Observación</th>
               </tr>
             </thead>
             <tbody>
@@ -273,7 +273,7 @@ export default function Legajo360Imprimible({
         {informe && (
           <>
             <p style={{ margin: '0 0 2px' }}>
-              <strong>Dictamen Sugerido IA ({informe.origen}):</strong>{' '}
+              <strong>Dictamen Sugerido ({informe.origen}):</strong>{' '}
               {informe.dictamenSugerido}
             </p>
             <ul style={{ margin: '2px 0 0', paddingLeft: '16px' }}>
@@ -285,24 +285,43 @@ export default function Legajo360Imprimible({
             </ul>
           </>
         )}
+
+        {(ev?.practicas_intermedias?.length ?? 0) > 0 && (
+          <div style={{ marginTop: '5px', paddingTop: '4px', borderTop: '1px solid #d4d4d8' }}>
+            <p style={{ margin: '0 0 2px', fontWeight: 700 }}>
+              Prácticas Intermedias en Simulador ({ev?.practicas_intermedias?.length}):
+            </p>
+            <ul style={{ margin: 0, paddingLeft: '16px' }}>
+              {ev?.practicas_intermedias?.map((p) => (
+                <li key={p.id}>
+                  <strong>{p.exercise_name}</strong> ({p.fecha ? p.fecha.slice(0, 10) : 's/f'}) · Puntaje:{' '}
+                  {fNum(p.score_puntos, ' pts')} · Colisiones: {fNum(p.colisiones)} · Cuidado de la Máquina:{' '}
+                  {typeof p.indice_cuidado_mecanico === 'number'
+                    ? `${p.indice_cuidado_mecanico}%`
+                    : '—'}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
       </section>
 
-      {/* ── Analítica Predictiva + Evaluación Longitudinal 4 Etapas ─ */}
+      {/* ── Cuidado de la Máquina y Evolución 4 Etapas ─ */}
       <section className="l360-box">
         <h2 className="l360-box-title">
-          4B. Analítica Predictiva B2B e Integración Longitudinal (4 Etapas)
+          4B. Indicadores de Cuidado y Evolución Longitudinal (4 Etapas)
         </h2>
         <p style={{ margin: '0 0 4px' }}>
-          <strong>Cuidado Mecánico del Activo:</strong>{' '}
+          <strong>Cuidado de la Máquina:</strong>{' '}
           {postulante.analitica?.cuidadoMecanico
             ? `${postulante.analitica.cuidadoMecanico.indiceCuidadoMecanico}% (${postulante.analitica.cuidadoMecanico.categoria})`
             : '—'}{' '}
-          · <strong>Plasticidad Predictiva (V1→V2):</strong>{' '}
+          · <strong>Velocidad de Aprendizaje (Diagnóstico → Final):</strong>{' '}
           {postulante.analitica?.plasticidad
             ? `${postulante.analitica.plasticidad.indicePlasticidad}/100 (${postulante.analitica.plasticidad.categoria})`
             : 'Instancia única'}{' '}
-          · <strong>Percentiles Cohorte:</strong> Score P
-          {postulante.analitica?.percentilScore ?? '—'} · Vel P
+          · <strong>Posición en el Curso:</strong> Puntaje P
+          {postulante.analitica?.percentilScore ?? '—'} · Aprendizaje P
           {postulante.analitica?.percentilVelocidad ?? '—'} · Cuidado P
           {postulante.analitica?.percentilCuidadoMecanico ?? '—'}
         </p>

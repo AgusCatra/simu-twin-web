@@ -25,6 +25,7 @@ import {
 import {
   analizarCohortePredictiva,
   calcularCuidadoDesdeMetricas,
+  esMediumLoadOperation,
   type RegistroEvaluacionAnalitica,
 } from '@/lib/telemetria/analitica-predictiva';
 import {
@@ -75,6 +76,7 @@ import type {
   MetricasIntento,
   OcupanteFranja,
   PostulanteFila,
+  PracticaIntermediaItem,
   PracticaRealItem,
   PuntoRadar,
   ResultadoAccion,
@@ -322,6 +324,18 @@ function prioridadEtapa(etapa: string | null): number {
   return 0;
 }
 
+function esFilaMediumLoad(f: {
+  etapa?: string | null;
+  telemetria_metricas?: unknown;
+}): boolean {
+  if (f.etapa === 'PRACTICA_INTERMEDIA') return false;
+  const m = normalizarMetricasGuardadas(f.telemetria_metricas);
+  if (m?.exerciseName && m.exerciseName.trim().length > 0) {
+    return esMediumLoadOperation(m.exerciseName);
+  }
+  return true;
+}
+
 /**
  * Extrae el índice de serrucho y los volantazos extremos del texto legacy
  * "serrucho=X; volantazos_extremos=Y" escrito por scripts/sync_supabase.py.
@@ -396,7 +410,7 @@ function mapearEvaluacion(filas: FilaEvaluacion[] | null): FichaEvaluacion | nul
     });
 
   const filasTitan = ordenadasReciente
-    .filter((f) => esArchivoTitan(f.archivo_fuente))
+    .filter((f) => esArchivoTitan(f.archivo_fuente) && esFilaMediumLoad(f))
     .sort((a, b) => {
       if (a.es_mejor_diagnostico !== b.es_mejor_diagnostico) {
         return a.es_mejor_diagnostico ? -1 : 1;
@@ -407,6 +421,32 @@ function mapearEvaluacion(filas: FilaEvaluacion[] | null): FichaEvaluacion | nul
         : (b.created_at ?? '').localeCompare(a.created_at ?? '');
     });
 
+  const practicasIntermedias: PracticaIntermediaItem[] = ordenadasReciente
+    .filter((f) => esArchivoTitan(f.archivo_fuente) && !esFilaMediumLoad(f))
+    .map((f) => {
+      const m = normalizarMetricasGuardadas(f.telemetria_metricas);
+      const lat = parsearTelemetriaLateralidad(f.eje_lateralidad);
+      const fren = parsearFrenadasLegacy(f.eje_tacto_mandos);
+      const satMatch = (f.eje_control_receptividad ?? '').match(/palancas_saturadas\s*=\s*(\d+)/i);
+      const cuidado = m
+        ? calcularCuidadoDesdeMetricas(m).indiceCuidadoMecanico
+        : null;
+      return {
+        id: f.id,
+        archivo_nombre: f.archivo_fuente ?? f.telemetria_archivo_nombre ?? null,
+        exercise_name: m?.exerciseName?.trim() || 'Práctica Intermedia',
+        fecha: m?.exerciseStartTime ?? f.created_at ?? null,
+        score_puntos: m?.scorePuntos ?? numeroOrNull(f.score_puntos),
+        tiempo_vuelta_seg: m?.tiempoDuracionSeg ?? numeroOrNull(f.tiempo_vuelta_seg),
+        colisiones: m?.colisionesReales ?? numeroOrNull(f.colisiones),
+        indice_cuidado_mecanico:
+          cuidado ??
+          (lat.indice_serrucho !== null || fren !== null || satMatch
+            ? null
+            : null),
+      };
+    });
+
   const filaTablet = filasTablet[0] ?? null;
   const filaTitan = filasTitan[0] ?? null;
   const filaBase = filaTablet ?? filaTitan ?? ordenadasReciente[0];
@@ -415,8 +455,14 @@ function mapearEvaluacion(filas: FilaEvaluacion[] | null): FichaEvaluacion | nul
     null;
   const filaConMetricasJson =
     ordenadasReciente.find(
+      (f) =>
+        esFilaMediumLoad(f) &&
+        normalizarMetricasGuardadas(f.telemetria_metricas) !== null
+    ) ??
+    ordenadasReciente.find(
       (f) => normalizarMetricasGuardadas(f.telemetria_metricas) !== null
-    ) ?? null;
+    ) ??
+    null;
 
   const telemetriaTexto = parsearTelemetriaLateralidad(
     filaTitan?.eje_lateralidad ?? null
@@ -493,6 +539,7 @@ function mapearEvaluacion(filas: FilaEvaluacion[] | null): FichaEvaluacion | nul
       normalizarModulosGuardados(filaConIA?.modulos_recomendados) ??
       normalizarModulosGuardados(informeGuardado?.modulosRecomendados) ??
       null,
+    practicas_intermedias: practicasIntermedias,
   };
 }
 
@@ -1343,7 +1390,14 @@ function parsearFrenadasLegacy(texto: string | null): number | null {
 }
 
 function normalizarEtapa(v: string | null): EtapaEvaluacion {
-  return v === 'DIAG_INTENTO_2' || v === 'FINAL' ? v : 'DIAG_INTENTO_1';
+  if (
+    v === 'DIAG_INTENTO_2' ||
+    v === 'FINAL' ||
+    v === 'PRACTICA_INTERMEDIA'
+  ) {
+    return v;
+  }
+  return 'DIAG_INTENTO_1';
 }
 
 function clamp01a100(n: number): number {
@@ -1530,7 +1584,7 @@ export async function obtenerComparativaProgreso(
        puntaje_tacto_mandos, puntaje_mastil, puntaje_control_receptividad,
        eje_lateralidad, eje_tacto_mandos, eje_mastil, eje_control_receptividad,
        tiempo_vuelta_seg, colisiones, score_puntos, etapa, es_mejor_diagnostico,
-       archivo_fuente, colisiones_descartadas, delta_tiempo_seg,
+       archivo_fuente, telemetria_metricas, colisiones_descartadas, delta_tiempo_seg,
        delta_colisiones, delta_score, delta_serrucho`
     )
     .eq('postulante_id', postulanteId)
@@ -1545,7 +1599,9 @@ export async function obtenerComparativaProgreso(
   }
 
   const todas = (filas ?? []) as unknown as FilaEvaluacion[];
-  const titan = todas.filter((f) => esArchivoTitan(f.archivo_fuente));
+  const titan = todas.filter(
+    (f) => esArchivoTitan(f.archivo_fuente) && esFilaMediumLoad(f)
+  );
   const tablet = todas.filter(
     (f) =>
       esArchivoTablet(f.archivo_fuente) ||
@@ -2232,10 +2288,16 @@ export async function analizarTelemetriaPostulanteAction(
   const filaCabina =
     filas.find((f) => esArchivoTablet(f.archivo_fuente)) ?? filas[0] ?? null;
   const filaV2 = filas.find(
-    (f) => esArchivoTitan(f.archivo_fuente) && f.etapa === 'DIAG_INTENTO_2'
+    (f) =>
+      esArchivoTitan(f.archivo_fuente) &&
+      f.etapa === 'DIAG_INTENTO_2' &&
+      esFilaMediumLoad(f)
   );
   const filaFinalT1 = filas.find(
-    (f) => esArchivoTitan(f.archivo_fuente) && f.etapa === 'FINAL'
+    (f) =>
+      esArchivoTitan(f.archivo_fuente) &&
+      f.etapa === 'FINAL' &&
+      esFilaMediumLoad(f)
   );
   const filaTerreno = filas.find((f) => f.archivo_fuente === ARCHIVO_FUENTE_TERRENO) ?? null;
   const filaDecision = filas.find((f) => f.archivo_fuente === ARCHIVO_FUENTE_DECISION) ?? null;
@@ -2402,10 +2464,12 @@ export async function analizarTelemetriaPostulanteAction(
         ? Math.max(0, Math.round(metricas.tiempoDuracionSeg))
         : null;
 
+    const esMedium =
+      !metricas.exerciseName || esMediumLoadOperation(metricas.exerciseName);
     const payloadInsertBase = {
       postulante_id: postulanteId,
-      etapa: 'DIAG_INTENTO_1',
-      es_mejor_diagnostico: true,
+      etapa: esMedium ? 'DIAG_INTENTO_1' : 'PRACTICA_INTERMEDIA',
+      es_mejor_diagnostico: esMedium,
       asistencia_cabina: 'MINIMA_AUTONOMO',
       dictamen: informe.dictamenSugerido,
       tiempo_vuelta_seg: tiempoSegRedondeado,
@@ -4180,12 +4244,13 @@ export async function importarLoteTelemetriaCohorteAction(
     const { data: existentesRaw } = await db
       .from('evaluacion_diagnostico')
       .select(
-        'id, archivo_fuente, created_at, tiempo_vuelta_seg, colisiones, score_puntos, eje_lateralidad, telemetria_metricas'
+        'id, etapa, archivo_fuente, created_at, tiempo_vuelta_seg, colisiones, score_puntos, eje_lateralidad, telemetria_metricas'
       )
       .eq('postulante_id', pid)
       .returns<
         Array<{
           id: string;
+          etapa: string | null;
           archivo_fuente: string | null;
           created_at: string | null;
           tiempo_vuelta_seg: number | null;
@@ -4199,6 +4264,87 @@ export async function importarLoteTelemetriaCohorteAction(
     const existentesTitan = (existentesRaw ?? []).filter((f) =>
       esArchivoTitan(f.archivo_fuente)
     );
+
+    // 1) Discriminar y guardar Prácticas Intermedias (Exercise Name != Medium Load Operation):
+    //    Se guardan en el historial del alumno con su nombre e índice de cuidado mecánico,
+    //    pero se EXCLUYEN por completo del cálculo T0/FINAL, deltas T0->T1 y percentiles.
+    const intermediasNuevas = nuevosItems.filter(
+      (nv) => !esMediumLoadOperation(nv.metricas.exerciseName)
+    );
+    for (const nv of intermediasNuevas) {
+      const m = nv.metricas;
+      const clasif = clasificarPerfilOperador(m);
+      const cuidado = calcularCuidadoDesdeMetricas(m).indiceCuidadoMecanico;
+      const tiempoInt =
+        typeof m.tiempoDuracionSeg === 'number' && Number.isFinite(m.tiempoDuracionSeg)
+          ? Math.max(0, Math.round(m.tiempoDuracionSeg))
+          : null;
+
+      const { error: errInter } = await db
+        .from('evaluacion_diagnostico')
+        .upsert(
+          {
+            postulante_id: pid,
+            archivo_fuente: nv.archivo_nombre,
+            telemetria_archivo_nombre: nv.archivo_nombre,
+            telemetria_metricas: m,
+            etapa: 'PRACTICA_INTERMEDIA',
+            es_mejor_diagnostico: false,
+            asistencia_cabina: mapearRiesgoTitanADB(m.clasificacionRiesgo),
+            dictamen: mapearAptitudTitanADB(m.clasificacionAptitud),
+            eje_lateralidad: `serrucho=${m.indiceSerrucho}; volantazos_extremos=${m.volantazosExtremos}`,
+            eje_tacto_mandos: `frenadas_panico=${m.frenadasPanico}; speed_max_estimada_kmh=${m.velocidadMaxKmh}`,
+            eje_mastil: m.hallazgosMastil.slice(0, 5).join('; ') || null,
+            tiempo_vuelta_seg: tiempoInt,
+            colisiones: m.colisionesReales,
+            colisiones_descartadas: m.colisionesDescartadas,
+            score_puntos: m.scorePuntos,
+            delta_tiempo_seg: null,
+            delta_colisiones: null,
+            delta_score: null,
+            delta_serrucho: null,
+            perfil_operador: clasif.perfilOperador,
+            horas_recomendadas: clasif.horasRecomendadas,
+            modulos_recomendados: clasif.modulosRecomendados,
+          },
+          { onConflict: 'postulante_id,archivo_fuente' }
+        );
+
+      if (errInter) {
+        errores++;
+        detalles.push({
+          archivo_nombre: nv.archivo_nombre,
+          postulante_id: pid,
+          etapa: 'PRACTICA_INTERMEDIA',
+          perfil_operador: clasif.perfilOperador,
+          es_mejor_diagnostico: false,
+          delta_score: null,
+          exercise_name: m.exerciseName,
+          indice_cuidado_mecanico: cuidado,
+          ok: false,
+          error: errInter.message,
+        });
+      } else {
+        guardados++;
+        detalles.push({
+          archivo_nombre: nv.archivo_nombre,
+          postulante_id: pid,
+          etapa: 'PRACTICA_INTERMEDIA',
+          perfil_operador: clasif.perfilOperador,
+          es_mejor_diagnostico: false,
+          delta_score: null,
+          exercise_name: m.exerciseName,
+          indice_cuidado_mecanico: cuidado,
+          ok: true,
+        });
+      }
+    }
+
+    // 2) Pipeline estricto "Medium Load Operation" (T0 DIAG_INTENTO_1/2 vs T1 FINAL)
+    const mediumNuevos = nuevosItems.filter((nv) =>
+      esMediumLoadOperation(nv.metricas.exerciseName)
+    );
+    if (mediumNuevos.length === 0) continue;
 
     interface CandidatoOrdenado {
       archivo_fuente: string;
@@ -4215,6 +4361,7 @@ export async function importarLoteTelemetriaCohorteAction(
     const mapaUnificado = new Map<string, CandidatoOrdenado>();
 
     for (const ex of existentesTitan) {
+      if (!esFilaMediumLoad(ex)) continue;
       const af = ex.archivo_fuente ?? '';
       if (!af) continue;
       const mGuard = normalizarMetricasGuardadas(ex.telemetria_metricas);
@@ -4234,7 +4381,7 @@ export async function importarLoteTelemetriaCohorteAction(
       });
     }
 
-    for (const nv of nuevosItems) {
+    for (const nv of mediumNuevos) {
       const fechaCal = extraerFechaCalendarioDeMetricas(nv.metricas.exerciseStartTime);
       mapaUnificado.set(nv.archivo_nombre, {
         archivo_fuente: nv.archivo_nombre,

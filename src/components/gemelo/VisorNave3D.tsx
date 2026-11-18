@@ -29,16 +29,16 @@ import {
 const GemeloGalponCanvas = dynamic(() => import('./GemeloGalponCanvas'), {
   ssr: false,
   loading: () => (
-    <div className="flex h-full min-h-[480px] w-full flex-col items-center justify-center bg-zinc-950 text-emerald-400">
-      <div className="relative flex items-center justify-center mb-4">
-        <div className="h-16 w-16 animate-spin rounded-full border-4 border-emerald-400/20 border-t-emerald-400" />
-        <Radio className="absolute h-6 w-6 animate-pulse text-emerald-400" />
+    <div className="flex h-full min-h-[480px] w-full flex-col items-center justify-center bg-slate-900 text-emerald-400">
+      <div className="relative mb-4 flex items-center justify-center">
+        <div className="h-14 w-14 animate-spin rounded-full border-4 border-emerald-400/20 border-t-emerald-400" />
+        <Radio className="absolute h-5 w-5 animate-pulse text-emerald-400" />
       </div>
-      <div className="text-sm font-mono tracking-widest uppercase text-zinc-300">
-        Cargando Gemelo Digital SCADA...
+      <div className="text-sm font-semibold text-white">
+        Cargando vista 3D del galpón…
       </div>
-      <div className="text-xs text-zinc-500 mt-1">
-        Inicializando maqueta isométrica del galpón y telemetría 3D
+      <div className="mt-1 text-xs text-slate-400">
+        Inicializando los 7 puestos de simulación
       </div>
     </div>
   ),
@@ -67,12 +67,10 @@ export default function VisorNave3D({ simuladoresIniciales }: VisorNave3DProps) 
   const [estacionSeleccionadaId, setEstacionSeleccionadaId] =
     useState<SimuladorSlug | null>(null);
 
-  // Sincronización ante eventuales revalidaciones desde el Server Component
   useEffect(() => {
     setSimuladores(simuladoresIniciales);
   }, [simuladoresIniciales]);
 
-  // Suscripción en tiempo real a eventos UPDATE de `public.simuladores`
   useEffect(() => {
     const supabase = createClient();
 
@@ -131,7 +129,6 @@ export default function VisorNave3D({ simuladoresIniciales }: VisorNave3DProps) 
     };
   }, []);
 
-  // Simulador actualmente seleccionado para el Drawer (datos reales en vivo)
   const simuladorSeleccionado = useMemo(() => {
     if (!estacionSeleccionadaId) return null;
     return simuladores.find((s) => s.id === estacionSeleccionadaId) ?? null;
@@ -167,14 +164,14 @@ export default function VisorNave3D({ simuladoresIniciales }: VisorNave3DProps) 
 
   const textoEstadoNave =
     puestosActivosCount > 0
-      ? `Operación activa · ${puestosActivosCount} de ${simuladores.length} puestos en sesión`
+      ? `En uso: ${puestosActivosCount} de ${simuladores.length} simuladores`
       : puestosMantenimientoCount > 0
         ? `Flota en espera · ${puestosMantenimientoCount} en mantenimiento`
-        : `Flota disponible · ${simuladores.length} de ${simuladores.length} puestos libres`;
+        : `Todos disponibles · ${simuladores.length} simuladores libres`;
 
   return (
-    <div className="relative w-full h-full min-h-[480px] overflow-hidden bg-[#111216]">
-      {/* Canvas 3D de Three.js conectado a estado real */}
+    <div className="relative h-full min-h-[480px] w-full overflow-hidden rounded-lg bg-[#111216]">
+      {/* Canvas 3D de Three.js conserva su iluminación real */}
       <GemeloGalponCanvas
         simuladores={simuladores}
         estacionSeleccionada={estacionSeleccionadaId}
@@ -182,98 +179,88 @@ export default function VisorNave3D({ simuladoresIniciales }: VisorNave3DProps) 
         camaraSeguimiento={false}
       />
 
-      {/* ═══════════════════════════════════════════════════════════════════
-          HUD SUPERIOR — ESTADO EN VIVO SCADA
-      ═══════════════════════════════════════════════════════════════════ */}
-      <div className="absolute top-4 left-4 z-20 pointer-events-auto">
-        <div className="flex items-center gap-3 rounded-xl border border-zinc-800 bg-zinc-950/85 px-4 py-2.5 shadow-2xl backdrop-blur-md">
+      {/* Controles claros en overlay */}
+      <div className="pointer-events-auto absolute top-4 left-4 z-20">
+        <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white/95 px-4 py-2.5 shadow-md backdrop-blur-sm">
           <div className="flex h-2.5 w-2.5 items-center justify-center">
             <span className={`h-2.5 w-2.5 rounded-full ${indicadorColorClass}`} />
           </div>
           <div>
-            <div className="text-xs font-semibold text-zinc-200">
-              Centro de Monitoreo · Gemelo Digital
+            <div className="text-xs font-bold text-slate-900">
+              Galpón 3D en Vivo
             </div>
-            <div className="text-[11px] text-zinc-400">{textoEstadoNave}</div>
+            <div className="text-xs text-slate-600">{textoEstadoNave}</div>
           </div>
         </div>
       </div>
 
-      {/* Ayuda interactiva en esquina inferior izquierda */}
-      <div className="absolute bottom-4 left-4 z-20 pointer-events-none hidden md:flex items-center gap-2 rounded-lg border border-zinc-800/80 bg-zinc-950/75 px-3 py-1.5 text-[11px] text-zinc-400 backdrop-blur-sm">
-        <HelpCircle className="h-3.5 w-3.5 text-emerald-400" />
+      <div className="pointer-events-none absolute bottom-4 left-4 z-20 hidden items-center gap-2 rounded-lg border border-slate-200 bg-white/95 px-3 py-1.5 text-xs font-medium text-slate-700 shadow-sm backdrop-blur-sm md:flex">
+        <HelpCircle className="h-4 w-4 text-blue-600" />
         <span>
-          Hacé clic sobre cualquier máquina en la maqueta 3D para abrir su Ficha Técnica
+          Hacé clic en cualquier máquina para ver su ficha técnica
         </span>
       </div>
 
-      {/* ═══════════════════════════════════════════════════════════════════
-          DRAWER LATERAL FLOTANTE — FICHA TÉCNICA DE MÁQUINA (DATOS REALES)
-      ═══════════════════════════════════════════════════════════════════ */}
       {simuladorSeleccionado && (
         <aside
           role="dialog"
           aria-label={`Ficha Técnica ${simuladorSeleccionado.nombre}`}
-          className="absolute inset-x-3 top-3 sm:inset-x-auto sm:top-4 sm:right-4 z-30 w-auto sm:w-full sm:max-w-md max-h-[calc(100%-1.5rem)] sm:max-h-[calc(100%-2rem)] overflow-y-auto flex flex-col justify-between rounded-2xl border border-zinc-800/90 bg-zinc-950/95 p-4 sm:p-6 text-zinc-100 shadow-2xl backdrop-blur-xl animate-in slide-in-from-right-4 duration-200 space-y-4"
+          className="animate-in slide-in-from-right-4 duration-200 absolute inset-x-3 top-3 z-30 flex max-h-[calc(100%-1.5rem)] w-auto flex-col justify-between space-y-4 overflow-y-auto rounded-xl border border-slate-200 bg-white p-5 text-slate-900 shadow-xl sm:inset-x-auto sm:top-4 sm:right-4 sm:max-h-[calc(100%-2rem)] sm:w-full sm:max-w-md"
         >
-          {/* Cabecera del Drawer */}
           <div>
-            <div className="flex items-start justify-between gap-3 border-b border-zinc-800/80 pb-3.5">
+            <div className="flex items-start justify-between gap-3 border-b border-slate-200 pb-3.5">
               <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-center gap-2 mb-1.5">
-                  <span className="rounded bg-[#0091B3]/10 border border-[#0091B3]/30 px-2 py-0.5 font-mono text-[10px] font-bold text-[#6EC1E4]">
+                <div className="mb-1.5 flex flex-wrap items-center gap-2">
+                  <span className="rounded-md border border-blue-200 bg-blue-50 px-2 py-0.5 text-xs font-bold text-blue-700">
                     {simuladorSeleccionado.codigo}
                   </span>
-                  <span className="text-[10px] uppercase tracking-wider text-zinc-400 font-medium">
-                    Puesto {simuladorSeleccionado.numeroPuesto} · Bahía Técnica
+                  <span className="text-xs font-medium text-slate-500">
+                    Puesto {simuladorSeleccionado.numeroPuesto}
                   </span>
                 </div>
-                <h3 className="text-base sm:text-lg font-bold text-white tracking-tight leading-snug break-words">
+                <h3 className="break-words text-base font-bold leading-snug text-slate-900 sm:text-lg">
                   {simuladorSeleccionado.nombre}
                 </h3>
               </div>
 
               <button
                 onClick={handleCerrarDrawer}
-                className="rounded-lg p-1.5 text-zinc-400 hover:bg-zinc-800 hover:text-white transition shrink-0 cursor-pointer"
-                title="Cerrar Ficha Técnica"
+                className="shrink-0 cursor-pointer rounded-lg p-1.5 text-slate-500 transition hover:bg-slate-100 hover:text-slate-900"
+                title="Cerrar ficha"
               >
                 <X className="h-5 w-5" />
               </button>
             </div>
 
-            {/* Badge de Estado Operativo Real */}
             <div className="mt-3.5 space-y-2.5">
               {simuladorSeleccionado.estado === 'en_operacion' ? (
-                <div className="rounded-xl border border-amber-500/40 bg-amber-950/25 p-2.5">
+                <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="relative flex h-2.5 w-2.5 shrink-0">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75" />
-                      <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-500" />
+                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400 opacity-75" />
+                      <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-amber-500" />
                     </span>
-                    <span className="text-xs font-bold text-amber-400 break-words">
-                      EN OPERACIÓN FORMATIVA
+                    <span className="text-xs font-bold text-amber-800">
+                      EN USO ACTUALMENTE
                     </span>
                   </div>
                   {simuladorSeleccionado.instructor && (
-                    <div className="mt-2 flex items-center gap-1.5 text-[11px] text-amber-200/90 border-t border-amber-900/40 pt-1.5 break-words">
-                      <User className="h-3 w-3 text-amber-400 shrink-0" />
-                      <span className="break-words">
-                        {simuladorSeleccionado.instructor}
-                      </span>
+                    <div className="mt-2 flex items-center gap-1.5 border-t border-amber-200 pt-1.5 text-xs text-amber-900">
+                      <User className="h-3.5 w-3.5 text-amber-700 shrink-0" />
+                      <span>{simuladorSeleccionado.instructor}</span>
                     </div>
                   )}
                 </div>
               ) : simuladorSeleccionado.estado === 'mantenimiento' ? (
-                <div className="rounded-xl border border-rose-500/40 bg-rose-950/25 p-2.5">
+                <div className="rounded-lg border border-rose-200 bg-rose-50 p-3">
                   <div className="flex flex-wrap items-center gap-2">
-                    <Wrench className="h-3.5 w-3.5 text-rose-400 shrink-0" />
-                    <span className="text-xs font-bold text-rose-400 break-words">
-                      EN MANTENIMIENTO TÉCNICO
+                    <Wrench className="h-4 w-4 text-rose-700 shrink-0" />
+                    <span className="text-xs font-bold text-rose-800">
+                      EN MANTENIMIENTO
                     </span>
                   </div>
                   {simuladorSeleccionado.ultimoMantenimiento && (
-                    <div className="mt-1.5 text-[11px] text-rose-200/80 border-t border-rose-900/40 pt-1.5">
+                    <div className="mt-1.5 border-t border-rose-200 pt-1.5 text-xs text-rose-700">
                       Registro:{' '}
                       {formatearFechaHora(simuladorSeleccionado.ultimoMantenimiento) ??
                         simuladorSeleccionado.ultimoMantenimiento}
@@ -281,64 +268,62 @@ export default function VisorNave3D({ simuladoresIniciales }: VisorNave3DProps) 
                   )}
                 </div>
               ) : (
-                <div className="flex flex-wrap items-center gap-2 rounded-xl border border-emerald-500/30 bg-emerald-950/20 p-2.5">
-                  <span className="h-2.5 w-2.5 rounded-full bg-emerald-500 shrink-0" />
-                  <span className="text-xs font-semibold text-emerald-400 break-words">
-                    DISPONIBLE EN NAVE
+                <div className="flex flex-wrap items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 p-3">
+                  <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-emerald-500" />
+                  <span className="text-xs font-bold text-emerald-700">
+                    LIBRE Y DISPONIBLE
                   </span>
                 </div>
               )}
 
-              {/* Lectura de telemetría DB */}
-              <div className="flex items-center justify-between rounded-lg border border-zinc-800/80 bg-zinc-900/50 px-3 py-2 text-[11px] text-zinc-400">
-                <span className="inline-flex items-center gap-1.5">
-                  <Clock className="h-3.5 w-3.5 text-[#6EC1E4]" />
-                  <span>Horas acumuladas</span>
+              <div className="flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-700">
+                <span className="inline-flex items-center gap-1.5 font-medium">
+                  <Clock className="h-4 w-4 text-blue-600" />
+                  <span>Horas de uso acumuladas</span>
                 </span>
-                <span className="font-mono font-semibold text-zinc-200">
+                <span className="font-bold text-slate-900 tabular-nums">
                   {simuladorSeleccionado.horasUsoTotales.toFixed(1)} hs
                 </span>
               </div>
             </div>
 
-            {/* Bloque: Especificaciones de Hardware */}
             <div className="mt-4 space-y-2.5">
-              <div className="text-xs uppercase tracking-wider text-zinc-300 font-semibold">
+              <div className="text-xs font-bold uppercase tracking-wider text-slate-500">
                 Equipamiento de Cabina
               </div>
 
-              <div className="grid grid-cols-1 gap-2.5">
-                <div className="flex items-start gap-3 rounded-lg bg-zinc-900/60 border border-zinc-800/80 p-3.5">
-                  <Tv className="h-4 w-4 text-[#0091B3] mt-0.5 shrink-0" />
+              <div className="grid grid-cols-1 gap-2">
+                <div className="flex items-start gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
+                  <Tv className="mt-0.5 h-4 w-4 shrink-0 text-blue-600" />
                   <div className="min-w-0 flex-1">
-                    <div className="font-semibold text-zinc-200 text-xs break-words">
+                    <div className="text-xs font-bold text-slate-900">
                       Sistema Visual
                     </div>
-                    <div className="text-xs text-zinc-400 leading-relaxed break-words mt-0.5">
+                    <div className="mt-0.5 text-xs leading-relaxed text-slate-600">
                       {simuladorSeleccionado.especificacionesHardware.pantallas}
                     </div>
                   </div>
                 </div>
 
-                <div className="flex items-start gap-3 rounded-lg bg-zinc-900/60 border border-zinc-800/80 p-3.5">
-                  <Gamepad2 className="h-4 w-4 text-[#0091B3] mt-0.5 shrink-0" />
+                <div className="flex items-start gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
+                  <Gamepad2 className="mt-0.5 h-4 w-4 shrink-0 text-blue-600" />
                   <div className="min-w-0 flex-1">
-                    <div className="font-semibold text-zinc-200 text-xs break-words">
-                      Mandos & Controles
+                    <div className="text-xs font-bold text-slate-900">
+                      Mandos y Controles
                     </div>
-                    <div className="text-xs text-zinc-400 leading-relaxed break-words mt-0.5">
+                    <div className="mt-0.5 text-xs leading-relaxed text-slate-600">
                       {simuladorSeleccionado.especificacionesHardware.mandos}
                     </div>
                   </div>
                 </div>
 
-                <div className="flex items-start gap-3 rounded-lg bg-zinc-900/60 border border-zinc-800/80 p-3.5">
-                  <Layers className="h-4 w-4 text-[#0091B3] mt-0.5 shrink-0" />
+                <div className="flex items-start gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
+                  <Layers className="mt-0.5 h-4 w-4 shrink-0 text-blue-600" />
                   <div className="min-w-0 flex-1">
-                    <div className="font-semibold text-zinc-200 text-xs break-words">
-                      Plataforma Háptica
+                    <div className="text-xs font-bold text-slate-900">
+                      Plataforma
                     </div>
-                    <div className="text-xs text-zinc-400 leading-relaxed break-words mt-0.5">
+                    <div className="mt-0.5 text-xs leading-relaxed text-slate-600">
                       {simuladorSeleccionado.especificacionesHardware.plataforma}
                     </div>
                   </div>
@@ -346,33 +331,28 @@ export default function VisorNave3D({ simuladoresIniciales }: VisorNave3DProps) 
               </div>
             </div>
 
-            {/* Bloque: Módulos Pedagógicos */}
             <div className="mt-4">
-              <div className="flex items-center gap-1.5 text-xs uppercase tracking-wider text-zinc-300 font-semibold mb-2">
-                <GraduationCap className="h-3.5 w-3.5 text-[#0091B3]" />
+              <div className="mb-2 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-500">
+                <GraduationCap className="h-4 w-4 text-blue-600" />
                 <span>Competencias que Entrena</span>
               </div>
-              <ul className="space-y-2 text-xs text-zinc-300">
+              <ul className="space-y-1.5 text-xs text-slate-700">
                 {simuladorSeleccionado.modulosPedagogicos.map((modulo, i) => (
-                  <li
-                    key={i}
-                    className="flex items-start gap-2.5 leading-relaxed break-words"
-                  >
-                    <CheckCircle className="h-3.5 w-3.5 text-[#0091B3] shrink-0 mt-0.5" />
-                    <span className="break-words">{modulo}</span>
+                  <li key={i} className="flex items-start gap-2 leading-relaxed">
+                    <CheckCircle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-600" />
+                    <span>{modulo}</span>
                   </li>
                 ))}
               </ul>
             </div>
           </div>
 
-          {/* Botón de Cierre al pie del Drawer */}
-          <div className="mt-5 border-t border-zinc-800/80 pt-3">
+          <div className="mt-4 border-t border-slate-200 pt-3">
             <button
               onClick={handleCerrarDrawer}
-              className="w-full rounded-xl border border-zinc-700 bg-zinc-900 py-2.5 text-xs font-semibold text-zinc-200 transition hover:bg-zinc-800 hover:border-[#0091B3]/50 hover:text-white active:scale-98 cursor-pointer"
+              className="w-full cursor-pointer rounded-lg border border-slate-300 bg-white py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 hover:text-slate-900"
             >
-              Cerrar Ficha Técnica
+              Cerrar ficha
             </button>
           </div>
         </aside>

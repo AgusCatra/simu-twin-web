@@ -9,13 +9,13 @@ import { ArrowLeft } from 'lucide-react';
  */
 
 export interface BotonVolverProps {
-  href?: string; // Ruta de retorno por defecto (default: '/admin')
-  etiqueta?: string; // Texto a mostrar (default: 'Volver')
+  href?: string;
+  etiqueta?: string;
   className?: string;
 }
 
 const CLASES_BASE =
-  'inline-flex min-h-[44px] items-center gap-2 px-3.5 py-2.5 rounded-lg bg-zinc-800/80 hover:bg-zinc-700 text-zinc-200 text-sm font-medium border border-zinc-700/60 transition-colors shadow-sm focus-visible:outline-1 focus-visible:outline-white';
+  'inline-flex min-h-[44px] items-center gap-2 rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm font-medium text-slate-700 shadow-2xs transition-colors hover:bg-slate-100 hover:text-slate-900 focus-visible:outline-2 focus-visible:outline-blue-500';
 
 export default function BotonVolver({
   href = '/admin',

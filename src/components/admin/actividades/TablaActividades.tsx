@@ -30,21 +30,20 @@ interface TablaActividadesProps {
 
 /** Clase de la celda/encabezado (estética SCADA: zinc plano, bordes 1px). */
 const TH_CLASS =
-  'border-b border-zinc-800 bg-zinc-900 px-3 py-2 text-left font-mono text-[10px] font-medium uppercase tracking-[0.14em] text-zinc-400';
+  'border-b border-slate-200 bg-slate-50 px-3.5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600';
 const TD_CLASS =
-  'border-b border-zinc-800 px-3 py-2.5 align-top text-sm text-zinc-300';
+  'border-b border-slate-100 px-3.5 py-3 align-top text-sm text-slate-800';
 const BTN_SECUNDARIO =
-  'inline-flex items-center gap-1.5 rounded-sm border border-zinc-700 bg-zinc-900 px-2.5 py-1.5 font-mono text-[11px] tracking-[0.08em] text-zinc-300 transition-colors hover:border-zinc-500 hover:text-white disabled:cursor-not-allowed disabled:opacity-50';
+  'inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-100 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-50';
 
-/** Color del badge de estado según el ciclo de vida de la actividad. */
 function claseBadgeEstado(estado: EstadoActividad): string {
   if (estado === 'en_curso') {
-    return 'animate-pulse border-emerald-700 bg-emerald-950 text-emerald-200';
+    return 'animate-pulse border-emerald-200 bg-emerald-50 text-emerald-700';
   }
   if (estado === 'finalizada') {
-    return 'border-zinc-700 bg-zinc-900 text-zinc-300';
+    return 'border-slate-200 bg-slate-100 text-slate-700';
   }
-  return 'border-amber-700 bg-amber-950 text-amber-200';
+  return 'border-amber-200 bg-amber-50 text-amber-800';
 }
 
 /** Formatea una fecha ISO a AAAA-MM-DD (recorta la parte horaria si viene). */
@@ -133,103 +132,99 @@ export default function TablaActividades({
   }
 
   return (
-    <div className="space-y-3">
-      {/* ── Selector de modo (lista / tablet) ─────────────────── */}
-      <div className="flex items-center gap-2 rounded-sm border border-zinc-800 bg-zinc-950 p-1">
+    <div className="space-y-4">
+      <div className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white p-1.5 shadow-sm">
         <button
           type="button"
           onClick={() => setModoTablet(false)}
           aria-pressed={!modoTablet}
-          className={`flex min-h-[44px] flex-1 items-center justify-center gap-1.5 rounded-sm px-4 font-mono text-[11px] uppercase tracking-[0.1em] transition-colors ${
+          className={`flex min-h-[42px] flex-1 items-center justify-center gap-2 rounded-lg px-4 text-sm font-semibold transition-colors ${
             !modoTablet
-              ? 'bg-zinc-800 text-zinc-100'
-              : 'text-zinc-500 hover:text-zinc-300'
+              ? 'border border-blue-200 bg-blue-50 text-blue-700'
+              : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
           }`}
         >
-          <List size={13} strokeWidth={2} />
-          LISTA
+          <List size={15} strokeWidth={2} />
+          Lista de actividades
         </button>
         <button
           type="button"
           onClick={() => setModoTablet(true)}
           aria-pressed={modoTablet}
-          className={`flex min-h-[44px] flex-1 items-center justify-center gap-1.5 rounded-sm px-4 font-mono text-[11px] uppercase tracking-[0.1em] transition-colors ${
+          className={`flex min-h-[42px] flex-1 items-center justify-center gap-2 rounded-lg px-4 text-sm font-semibold transition-colors ${
             modoTablet
-              ? 'bg-zinc-800 text-zinc-100'
-              : 'text-zinc-500 hover:text-zinc-300'
+              ? 'border border-blue-200 bg-blue-50 text-blue-700'
+              : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
           }`}
         >
-          <Monitor size={13} strokeWidth={2} />
-          MODO TABLET
+          <Monitor size={15} strokeWidth={2} />
+          Modo Tablet (En vivo)
         </button>
       </div>
 
       {modoTablet ? (
-        /* ── Vista tablet: sesión en vivo ─────────────────────── */
-        <div className="space-y-3">
+        <div className="space-y-4">
           <button
             type="button"
             onClick={() => setPanelSesionAbierto(true)}
-            className="flex h-14 w-full items-center justify-center gap-2 rounded-sm border border-red-700 bg-red-950 font-mono text-sm tracking-[0.12em] text-red-100 transition-colors hover:bg-red-900"
+            className="flex h-14 w-full items-center justify-center gap-2.5 rounded-xl border border-rose-200 bg-rose-50 text-sm font-bold text-rose-800 shadow-sm transition-colors hover:bg-rose-100"
           >
-            <span className="inline-block h-2.5 w-2.5 animate-pulse rounded-full bg-red-500" />
+            <span className="inline-block h-2.5 w-2.5 animate-pulse rounded-full bg-rose-500" />
             {actividadEnCurso
-              ? '[ CONTINUAR SESIÓN EN VIVO ]'
-              : '[ INICIAR SESIÓN EN VIVO ]'}
+              ? 'Continuar sesión en vivo'
+              : 'Iniciar sesión en vivo'}
           </button>
 
           {actividadEnCurso ? (
-            <div className="rounded-sm border border-zinc-800 bg-zinc-950">
-              <div className="flex items-center justify-between gap-2 border-b border-zinc-800 px-3 py-2">
-                <h3 className="font-mono text-[10px] tracking-[0.16em] text-zinc-500">
-                  SESIÓN EN CURSO
+            <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
+              <div className="flex items-center justify-between gap-2 border-b border-slate-200 px-5 py-3">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-600">
+                  Sesión en curso
                 </h3>
-                <span className="flex items-center gap-1.5 rounded-sm border border-emerald-700 bg-emerald-950 px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.1em] text-emerald-300">
-                  <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-emerald-400" />
-                  EN CURSO
+                <span className="flex items-center gap-1.5 rounded-md border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-emerald-700">
+                  <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-emerald-500" />
+                  En curso
                 </span>
               </div>
-              <dl className="grid grid-cols-1 gap-3 p-3 sm:grid-cols-2">
+              <dl className="grid grid-cols-1 gap-4 p-5 sm:grid-cols-2">
                 <div>
-                  <dt className="font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-500">
-                    Entidad
+                  <dt className="text-xs font-semibold text-slate-500">
+                    Institución / Empresa
                   </dt>
-                  <dd className="mt-1 text-sm text-zinc-100">
+                  <dd className="mt-1 text-sm font-bold text-slate-900">
                     {actividadEnCurso.entidad_nombre}
                   </dd>
                 </div>
                 <div>
-                  <dt className="font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-500">
+                  <dt className="text-xs font-semibold text-slate-500">
                     Inicio
                   </dt>
-                  <dd className="mt-1 font-mono text-sm tabular-nums text-emerald-300">
+                  <dd className="mt-1 text-sm font-bold tabular-nums text-emerald-700">
                     {actividadEnCurso.hora_inicio ?? '—'}
                   </dd>
                 </div>
                 <div>
-                  <dt className="font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-500">
+                  <dt className="text-xs font-semibold text-slate-500">
                     Participantes
                   </dt>
-                  <dd className="mt-1 font-mono text-sm text-zinc-100">
+                  <dd className="mt-1 text-sm font-bold text-slate-900 tabular-nums">
                     {actividadEnCurso.participantes.length}
                   </dd>
                 </div>
                 <div>
-                  <dt className="font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-500">
+                  <dt className="text-xs font-semibold text-slate-500">
                     Simuladores
                   </dt>
-                  <dd className="mt-1 flex flex-wrap gap-1">
+                  <dd className="mt-1 flex flex-wrap gap-1.5">
                     {actividadEnCurso.simuladores.length === 0 ? (
-                      <span className="font-mono text-[11px] text-zinc-600">
-                        SIN EQUIPOS
-                      </span>
+                      <span className="text-xs text-slate-500">Sin equipos</span>
                     ) : (
                       actividadEnCurso.simuladores.map((registro) => (
                         <span
                           key={registro.id}
-                          className="inline-flex items-center gap-1 rounded-sm border border-emerald-800 bg-emerald-950 px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-[0.08em] text-emerald-200"
+                          className="inline-flex items-center gap-1 rounded-md border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-700"
                         >
-                          <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                          <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-500" />
                           {nombreSimulador(registro, simuladoresPorId)}
                         </span>
                       ))
@@ -239,174 +234,153 @@ export default function TablaActividades({
               </dl>
             </div>
           ) : (
-            <div className="rounded-sm border border-zinc-800 bg-zinc-950 px-3 py-8 text-center">
-              <p className="font-mono text-[11px] tracking-[0.14em] text-zinc-500">
-                NO HAY SESIONES EN CURSO
+            <div className="rounded-xl border border-dashed border-slate-300 bg-white px-4 py-10 text-center">
+              <p className="text-sm font-medium text-slate-600">
+                No hay sesiones activas en este momento
               </p>
             </div>
           )}
         </div>
       ) : (
         <>
-      {/* ── Barra de herramientas ─────────────────────────────── */}
-      <div className="flex flex-wrap items-center justify-between gap-2 rounded-sm border border-zinc-800 bg-zinc-950 px-3 py-2">
-        <p className="font-mono text-[11px] tracking-[0.1em] text-zinc-400">
-          HISTORIAL: <span className="text-zinc-100">{actividades.length}</span>{' '}
-          · ÚLTIMAS 50
-        </p>
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => router.refresh()}
-            className={BTN_SECUNDARIO}
-            title="Actualizar desde la base"
-          >
-            <RefreshCw size={12} strokeWidth={2} />
-            REFRESCAR
-          </button>
-          <button
-            type="button"
-            onClick={() => setModalAbierto(true)}
-            className="inline-flex items-center gap-1.5 rounded-sm border border-emerald-700 bg-emerald-900 px-3 py-1.5 font-mono text-[11px] tracking-[0.1em] text-emerald-50 transition-colors hover:border-emerald-500 hover:bg-emerald-800"
-          >
-            <ClipboardPlus size={13} strokeWidth={2} />
-            [ + NUEVA ACTIVIDAD ]
-          </button>
-        </div>
-      </div>
+          <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
+            <p className="text-sm font-medium text-slate-600">
+              Actividades registradas:{' '}
+              <span className="font-bold text-slate-900">{actividades.length}</span>
+            </p>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => router.refresh()}
+                className={BTN_SECUNDARIO}
+              >
+                <RefreshCw size={13} strokeWidth={2} />
+                Actualizar
+              </button>
+              <button
+                type="button"
+                onClick={() => setModalAbierto(true)}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3.5 py-2 text-xs font-semibold text-white transition-colors hover:bg-blue-700"
+              >
+                <ClipboardPlus size={14} strokeWidth={2} />
+                Nueva actividad
+              </button>
+            </div>
+          </div>
 
-      {/* ── Data Grid ─────────────────────────────────────────── */}
-      <div className="overflow-hidden rounded-sm border border-zinc-800 bg-zinc-900/40">
-        <div className="overflow-x-auto">
-          <table className="w-full border-collapse text-sm">
-            <thead>
-              <tr>
-                <th scope="col" className={TH_CLASS}>
-                  Fecha
-                </th>
-                <th scope="col" className={TH_CLASS}>
-                  Entidad / Empresa
-                </th>
-                <th scope="col" className={TH_CLASS}>
-                  Tipo
-                </th>
-                <th scope="col" className={TH_CLASS}>
-                  Simuladores
-                </th>
-                <th scope="col" className={TH_CLASS}>
-                  Personas
-                </th>
-                <th scope="col" className={TH_CLASS}>
-                  Duración
-                </th>
-                <th scope="col" className={TH_CLASS}>
-                  Estado
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {actividades.length === 0 && (
-                <tr>
-                  <td
-                    colSpan={7}
-                    className={`${TD_CLASS} font-mono text-[11px] tracking-[0.14em] text-zinc-500`}
-                  >
-                    SIN ACTIVIDADES REGISTRADAS.
-                  </td>
-                </tr>
-              )}
+          <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse text-sm">
+                <thead>
+                  <tr>
+                    <th scope="col" className={TH_CLASS}>Fecha</th>
+                    <th scope="col" className={TH_CLASS}>Institución / Empresa</th>
+                    <th scope="col" className={TH_CLASS}>Tipo</th>
+                    <th scope="col" className={TH_CLASS}>Simuladores</th>
+                    <th scope="col" className={TH_CLASS}>Personas</th>
+                    <th scope="col" className={TH_CLASS}>Duración</th>
+                    <th scope="col" className={TH_CLASS}>Estado</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {actividades.length === 0 && (
+                    <tr>
+                      <td colSpan={7} className={`${TD_CLASS} text-sm text-slate-500`}>
+                        No hay actividades registradas todavía.
+                      </td>
+                    </tr>
+                  )}
 
-              {actividades.map((actividad) => (
-                <tr
-                  key={actividad.id}
-                  className={`transition-colors hover:bg-zinc-900 ${
-                    actividad.estado === 'en_curso' ? 'bg-emerald-950/20' : ''
-                  }`}
-                >
-                  <td className={`${TD_CLASS} whitespace-nowrap`}>
-                    <p className="font-mono text-[13px] text-zinc-100">
-                      {formatearFecha(actividad.fecha_actividad)}
-                    </p>
-                    {(actividad.hora_inicio || actividad.hora_fin) && (
-                      <p className="mt-0.5 font-mono text-[10px] tracking-[0.1em] text-zinc-500">
-                        {actividad.hora_inicio ?? '--:--'} → {actividad.hora_fin ?? '--:--'}
-                      </p>
-                    )}
-                  </td>
-
-                  <td className={`${TD_CLASS} min-w-[14rem]`}>
-                    <p className="text-zinc-100">{actividad.entidad_nombre}</p>
-                    {actividad.contacto_nombre && (
-                      <p className="mt-0.5 font-mono text-[11px] text-zinc-500">
-                        {actividad.contacto_nombre}
-                        {actividad.contacto_telefono ? ` · ${actividad.contacto_telefono}` : ''}
-                      </p>
-                    )}
-                  </td>
-
-                  <td className={TD_CLASS}>
-                    <span className="inline-flex rounded-sm border border-zinc-700 bg-zinc-900 px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.12em] text-zinc-300">
-                      {ETIQUETAS_TIPO_ACTIVIDAD[actividad.tipo]}
-                    </span>
-                  </td>
-
-                  <td className={`${TD_CLASS} min-w-[12rem]`}>
-                    {actividad.simuladores.length === 0 ? (
-                      <span className="font-mono text-[11px] text-zinc-600">SIN EQUIPOS</span>
-                    ) : (
-                      <ul className="flex flex-wrap gap-1">
-                        {actividad.simuladores.map((registro) => (
-                          <li
-                            key={registro.id}
-                            className="inline-flex items-center gap-1 rounded-sm border border-zinc-800 bg-zinc-950 px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-[0.08em] text-zinc-300"
-                            title={
-                              registro.minutos_uso
-                                ? `${registro.minutos_uso} min de uso`
-                                : undefined
-                            }
-                          >
-                            {nombreSimulador(registro, simuladoresPorId)}
-                            {registro.minutos_uso ? (
-                              <span className="text-zinc-500">
-                                · {registro.minutos_uso}m
-                              </span>
-                            ) : null}
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                  </td>
-
-                  <td className={`${TD_CLASS} whitespace-nowrap`}>
-                    <p className="font-mono text-[13px] text-zinc-100">
-                      {resumenGeneros(actividad.participantes)}
-                    </p>
-                  </td>
-
-                  <td className={`${TD_CLASS} whitespace-nowrap`}>
-                    <p className="font-mono text-[13px] text-zinc-200">
-                      {formatearDuracion(actividad.duracion_minutos)}
-                    </p>
-                  </td>
-
-                  <td className={`${TD_CLASS} whitespace-nowrap`}>
-                    <span
-                      className={`inline-flex items-center gap-1.5 rounded-sm border px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.12em] ${claseBadgeEstado(
-                        actividad.estado
-                      )}`}
+                  {actividades.map((actividad) => (
+                    <tr
+                      key={actividad.id}
+                      className={`transition-colors hover:bg-slate-50 ${
+                        actividad.estado === 'en_curso' ? 'bg-emerald-50/40' : ''
+                      }`}
                     >
-                      {actividad.estado === 'en_curso' && (
-                        <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" />
-                      )}
-                      {ETIQUETAS_ESTADO_ACTIVIDAD[actividad.estado]}
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
+                      <td className={`${TD_CLASS} whitespace-nowrap`}>
+                        <p className="font-semibold text-slate-900 tabular-nums">
+                          {formatearFecha(actividad.fecha_actividad)}
+                        </p>
+                        {(actividad.hora_inicio || actividad.hora_fin) && (
+                          <p className="mt-0.5 text-xs text-slate-500 tabular-nums">
+                            {actividad.hora_inicio ?? '--:--'} → {actividad.hora_fin ?? '--:--'}
+                          </p>
+                        )}
+                      </td>
+
+                      <td className={`${TD_CLASS} min-w-[14rem]`}>
+                        <p className="font-semibold text-slate-900">
+                          {actividad.entidad_nombre}
+                        </p>
+                        {actividad.contacto_nombre && (
+                          <p className="mt-0.5 text-xs text-slate-600">
+                            {actividad.contacto_nombre}
+                            {actividad.contacto_telefono
+                              ? ` · ${actividad.contacto_telefono}`
+                              : ''}
+                          </p>
+                        )}
+                      </td>
+
+                      <td className={TD_CLASS}>
+                        <span className="inline-flex rounded-md border border-slate-200 bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-700">
+                          {ETIQUETAS_TIPO_ACTIVIDAD[actividad.tipo]}
+                        </span>
+                      </td>
+
+                      <td className={`${TD_CLASS} min-w-[12rem]`}>
+                        {actividad.simuladores.length === 0 ? (
+                          <span className="text-xs text-slate-500">Sin equipos</span>
+                        ) : (
+                          <ul className="flex flex-wrap gap-1.5">
+                            {actividad.simuladores.map((registro) => (
+                              <li
+                                key={registro.id}
+                                className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-slate-50 px-2 py-0.5 text-xs font-medium text-slate-800"
+                              >
+                                {nombreSimulador(registro, simuladoresPorId)}
+                                {registro.minutos_uso ? (
+                                  <span className="text-slate-500">
+                                    · {registro.minutos_uso}m
+                                  </span>
+                                ) : null}
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </td>
+
+                      <td className={`${TD_CLASS} whitespace-nowrap`}>
+                        <p className="font-medium text-slate-900 tabular-nums">
+                          {resumenGeneros(actividad.participantes)}
+                        </p>
+                      </td>
+
+                      <td className={`${TD_CLASS} whitespace-nowrap`}>
+                        <p className="font-medium text-slate-800 tabular-nums">
+                          {formatearDuracion(actividad.duracion_minutos)}
+                        </p>
+                      </td>
+
+                      <td className={`${TD_CLASS} whitespace-nowrap`}>
+                        <span
+                          className={`inline-flex items-center gap-1.5 rounded-md border px-2.5 py-0.5 text-xs font-semibold ${claseBadgeEstado(
+                            actividad.estado
+                          )}`}
+                        >
+                          {actividad.estado === 'en_curso' && (
+                            <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-emerald-500" />
+                          )}
+                          {ETIQUETAS_ESTADO_ACTIVIDAD[actividad.estado]}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
         </>
       )}
 
