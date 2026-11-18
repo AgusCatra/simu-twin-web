@@ -83,6 +83,9 @@ function obtenerClaseEstadoSelect(estado: string): string {
   if (norm === 'reprogramada') {
     return 'border-sky-700/60 bg-sky-950/35 text-sky-300';
   }
+  if (norm === 'finalizada') {
+    return 'border-cyan-700/60 bg-cyan-950/35 text-cyan-300';
+  }
   if (norm === 'cancelada') {
     return 'border-rose-800/70 bg-rose-950/35 text-rose-300';
   }
@@ -133,6 +136,7 @@ export default function TablaVisitasAdmin({
   const [escuelas, setEscuelas] = useState<Escuela[]>(escuelasIniciales);
   const [cargando, setCargando] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(errorInicial);
+  const [feedbackStock, setFeedbackStock] = useState<string | null>(null);
   const [guardandoChecks, setGuardandoChecks] = useState<Record<string, boolean>>({});
   const [guardandoEstado, setGuardandoEstado] = useState<Record<string, boolean>>({});
   const [exportandoId, setExportandoId] = useState<string | null>(null);
@@ -254,6 +258,7 @@ export default function TablaVisitasAdmin({
     );
     setGuardandoEstado((prev) => ({ ...prev, [visita.id]: true }));
     setError(null);
+    setFeedbackStock(null);
 
     const resultado = await cambiarEstadoVisitaAction(visita.id, nuevoEstado);
 
@@ -266,6 +271,25 @@ export default function TablaVisitasAdmin({
         )
       );
       setError(resultado.error);
+    } else if (resultado.resumen_stock) {
+      const rs = resultado.resumen_stock;
+      if (rs.omitido_idempotencia) {
+        setFeedbackStock(
+          `Visita ${visita.codigo_reserva} marcada como Finalizada · El descuento de pañol ya había sido registrado previamente.`
+        );
+      } else if (rs.ejecutado) {
+        const resumenItems = rs.items
+          .map((it) => `${it.codigo} -${it.descontado} (quedan ${it.saldo_restante})`)
+          .join(' · ');
+        setFeedbackStock(
+          `${rs.detalle ?? 'Stock descontado'}: ${resumenItems}${rs.advertencia ? ` · Aviso: ${rs.advertencia}` : ''}`
+        );
+      } else if (rs.advertencia) {
+        setFeedbackStock(
+          `Visita ${visita.codigo_reserva} Finalizada · Pañol: ${rs.advertencia}`
+        );
+      }
+      router.refresh();
     }
 
     setGuardandoEstado((prev) => ({ ...prev, [visita.id]: false }));
@@ -326,6 +350,23 @@ export default function TablaVisitasAdmin({
               REINTENTAR
             </button>
           </div>
+        </div>
+      )}
+
+      {feedbackStock && (
+        <div
+          role="status"
+          className="flex flex-wrap items-center justify-between gap-2 rounded-sm border border-emerald-700/60 bg-emerald-950/35 px-3 py-2 font-mono text-xs text-emerald-200"
+        >
+          <span>{feedbackStock}</span>
+          <button
+            type="button"
+            onClick={() => setFeedbackStock(null)}
+            aria-label="Cerrar aviso de stock"
+            className="text-emerald-400 hover:text-white"
+          >
+            <X size={14} />
+          </button>
         </div>
       )}
 

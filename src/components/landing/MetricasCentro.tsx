@@ -3,6 +3,7 @@
 import React from 'react';
 import Image from 'next/image';
 import { Monitor, Clock, School, ShieldCheck } from 'lucide-react';
+import type { MetricasLandingCentro } from '@/services/estadisticas-centro';
 
 interface MetricaItem {
   id: string;
@@ -16,55 +17,85 @@ interface MetricaItem {
   colorAcento: string;
 }
 
-const METRICAS: MetricaItem[] = [
-  {
-    id: 'puestos',
-    valor: '7',
-    titulo: 'Puestos de Simulación',
-    subtitulo: 'Tecnología Etech y SimSpray VR',
-    descripcion:
-      'Equipos de alta fidelidad física con pantallas envolventes de 135°, volante industrial y cascos VR de última generación.',
-    icono: <Monitor className="h-6 w-6 text-[#0091B3]" />,
-    badge: 'Hardware Industrial',
-    colorAcento: 'from-[#0091B3]/20 to-zinc-900',
-  },
-  {
-    id: 'horas',
-    valor: '+1.400',
-    unidad: 'hs',
-    titulo: 'Horas de Práctica',
-    subtitulo: 'Capacitación operativa certificada',
-    descripcion:
-      'Horas acumuladas de maniobra efectiva en retroexcavadoras, grúas, autoelevadores y maquinaria pesada.',
-    icono: <Clock className="h-6 w-6 text-[#0091B3]" />,
-    badge: 'Horas Certificadas',
-    colorAcento: 'from-[#3C8AC6]/20 to-zinc-900',
-  },
-  {
-    id: 'escuelas',
-    valor: '+40',
-    titulo: 'Escuelas Técnicas',
-    subtitulo: 'Visitas educativas y vocación',
-    descripcion:
-      'Instituciones educativas de nivel secundario y técnico que experimentan el circuito pedagógico de simulación.',
-    icono: <School className="h-6 w-6 text-[#0091B3]" />,
-    badge: 'Articulación Escolar',
-    colorAcento: 'from-[#0091B3]/20 to-zinc-900',
-  },
-  {
-    id: 'seguridad',
-    valor: '0',
-    titulo: 'Accidentes',
-    subtitulo: 'Entrenamiento previo seguro',
-    descripcion:
-      'Entorno de aprendizaje de riesgo cero: los operarios cometen errores en simulación antes de subir a máquinas reales.',
-    icono: <ShieldCheck className="h-6 w-6 text-[#0091B3]" />,
-    badge: 'Riesgo Cero',
-    colorAcento: 'from-amber-500/20 to-zinc-900',
-  },
-];
+interface Props {
+  metricasReales?: MetricasLandingCentro;
+}
 
-export default function MetricasCentro() {
+export default function MetricasCentro({ metricasReales }: Props) {
+  const puestos =
+    metricasReales && metricasReales.puestosActivos > 0
+      ? String(metricasReales.puestosActivos)
+      : '7';
+
+  const horasValor =
+    metricasReales && metricasReales.horasPracticaTotales > 0
+      ? metricasReales.horasPracticaTotales.toLocaleString('es-AR')
+      : '+1.400';
+
+  const escuelasValor =
+    metricasReales && metricasReales.escuelasRecibidas > 0
+      ? String(metricasReales.escuelasRecibidas)
+      : '+40';
+
+  const personasNota =
+    metricasReales && metricasReales.personasAlcanzadas > 0
+      ? `${metricasReales.personasAlcanzadas.toLocaleString('es-AR')} personas capacitadas en registro`
+      : 'Capacitación operativa certificada';
+
+  const METRICAS: MetricaItem[] = [
+    {
+      id: 'puestos',
+      valor: puestos,
+      titulo: 'Puestos de Simulación',
+      subtitulo: 'Tecnología Etech y SimSpray VR',
+      descripcion:
+        'Equipos de alta fidelidad física con pantallas envolventes de 135°, volante industrial y cascos VR de última generación.',
+      icono: <Monitor className="h-6 w-6 text-[#0091B3]" />,
+      badge: 'Hardware Industrial',
+      colorAcento: 'from-[#0091B3]/20 to-zinc-900',
+    },
+    {
+      id: 'horas',
+      valor: horasValor,
+      unidad: 'hs',
+      titulo: 'Horas de Práctica',
+      subtitulo: personasNota,
+      descripcion:
+        'Horas acumuladas de maniobra efectiva en retroexcavadoras, grúas, autoelevadores y maquinaria pesada.',
+      icono: <Clock className="h-6 w-6 text-[#0091B3]" />,
+      badge:
+        metricasReales && metricasReales.horasPracticaTotales > 0
+          ? 'Registro en Vivo'
+          : 'Horas Certificadas',
+      colorAcento: 'from-[#3C8AC6]/20 to-zinc-900',
+    },
+    {
+      id: 'escuelas',
+      valor: escuelasValor,
+      titulo: 'Escuelas Técnicas',
+      subtitulo: 'Visitas educativas y vocación',
+      descripcion:
+        'Instituciones educativas de nivel secundario y técnico que experimentan el circuito pedagógico de simulación.',
+      icono: <School className="h-6 w-6 text-[#0091B3]" />,
+      badge:
+        metricasReales && metricasReales.escuelasRecibidas > 0
+          ? 'Agenda Real'
+          : 'Articulación Escolar',
+      colorAcento: 'from-[#0091B3]/20 to-zinc-900',
+    },
+    {
+      id: 'seguridad',
+      valor: '0',
+      titulo: 'Accidentes',
+      subtitulo: 'Entrenamiento previo seguro',
+      descripcion:
+        'Entorno de aprendizaje de riesgo cero: los operarios cometen errores en simulación antes de subir a máquinas reales.',
+      icono: <ShieldCheck className="h-6 w-6 text-[#0091B3]" />,
+      badge: 'Riesgo Cero',
+      colorAcento: 'from-amber-500/20 to-zinc-900',
+    },
+  ];
+
   return (
     <section
       id="metricas"

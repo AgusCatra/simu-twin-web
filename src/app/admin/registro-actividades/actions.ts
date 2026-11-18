@@ -14,8 +14,90 @@ import type {
   TipoActividad,
 } from '@/types/actividades';
 
-/** Ruta que se revalida tras cada mutación del módulo. */
+/** Rutas que se revalidan tras cada mutación del módulo. */
 const RUTA_REGISTRO_ACTIVIDADES = '/admin/registro-actividades';
+const RUTA_ADMIN_HOME = '/admin';
+const RUTA_LANDING = '/';
+
+function revalidarRutasActividades(): void {
+  revalidatePath(RUTA_REGISTRO_ACTIVIDADES);
+  revalidatePath(RUTA_ADMIN_HOME);
+  revalidatePath(RUTA_LANDING);
+}
+
+/**
+ * Suma horas de uso (`minutosUso / 60`, 2 decimales) al odómetro acumulado de cada
+ * simulador indicado y, opcionalmente, libera su estado en el Rack.
+ */
+async function acumularHorasSimuladores(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  simuladorIds: string[],
+  minutosUso: number,
+  liberarRack: boolean
+): Promise<void> {
+  if (simuladorIds.length === 0) return;
+  const deltaHoras =
+    minutosUso > 0 ? Number((minutosUso / 60).toFixed(2)) : 0;
+  if (deltaHoras <= 0 && !liberarRack) return;
+
+  const { data: filasSim, error: errorLectura } = await supabase
+    .from('simuladores')
+    .select('id, horas_uso_totales')
+    .in('id', simuladorIds)
+    .returns<Array<{ id: string; horas_uso_totales: number | null }>>();
+
+  if (errorLectura) {
+    registrarErrorBd(
+      '[acumularHorasSimuladores] Error al leer horas actuales:',
+      errorLectura
+    );
+    if (liberarRack) {
+      await supabase
+        .from('simuladores')
+        .update({
+          estado: 'libre',
+          actividad_actual_id: null,
+          actualizado_el: new Date().toISOString(),
+        })
+        .in('id', simuladorIds);
+    }
+    return;
+  }
+
+  const ahoraIso = new Date().toISOString();
+  for (const sim of filasSim ?? []) {
+    const actual =
+      typeof sim.horas_uso_totales === 'number' &&
+      Number.isFinite(sim.horas_uso_totales)
+        ? sim.horas_uso_totales
+        : 0;
+    const nuevoTotal = Number((actual + deltaHoras).toFixed(2));
+
+    const payload = liberarRack
+      ? {
+          horas_uso_totales: nuevoTotal,
+          estado: 'libre' as const,
+          actividad_actual_id: null,
+          actualizado_el: ahoraIso,
+        }
+      : {
+          horas_uso_totales: nuevoTotal,
+          actualizado_el: ahoraIso,
+        };
+
+    const { error: errorUpd } = await supabase
+      .from('simuladores')
+      .update(payload)
+      .eq('id', sim.id);
+
+    if (errorUpd) {
+      registrarErrorBd(
+        '[acumularHorasSimuladores] Error al actualizar odómetro de simulador:',
+        errorUpd
+      );
+    }
+  }
+}
 
 /** Formato ISO de fecha (YYYY-MM-DD), el que exige Postgres en columnas `date`. */
 const FORMATO_FECHA_ISO = /^\d{4}-\d{2}-\d{2}$/;
@@ -130,7 +212,7 @@ export async function conmutarEstadoSimuladorAction(
     };
   }
 
-  revalidatePath(RUTA_REGISTRO_ACTIVIDADES);
+  revalidarRutasActividades();
   return { ok: true };
 }
 
@@ -336,10 +418,17 @@ export async function crearActividadAction(
         );
         // No aborta la creación: la actividad ya quedó persistida con su nómina.
       }
+    } else if (payload.estado === 'finalizada' && payload.duracion_minutos > 0) {
+      await acumularHorasSimuladores(
+        supabase,
+        idsSimuladores,
+        payload.duracion_minutos,
+        false
+      );
     }
   }
 
-  revalidatePath(RUTA_REGISTRO_ACTIVIDADES);
+  revalidarRutasActividades();
   return { ok: true, id: actividadId };
 }
 
@@ -572,7 +661,7 @@ export async function iniciarSesionEnVivoAction(
   }
 
   /* ---- 7) Revalidar ---- */
-  revalidatePath(RUTA_REGISTRO_ACTIVIDADES);
+  revalidarRutasActividades();
   return { ok: true, id: actividadId };
 }
 
@@ -887,26 +976,12 @@ export async function finalizarSesionEnVivoAction(
     );
   }
 
-  /* ---- 8) Liberar simuladores del rack ---- */
+  /* ---- 8) Acumular horas en odómetro y liberar simuladores del rack ---- */
   if (simuladorIds.length > 0) {
-    const { error: errorLiberar } = await supabase
-      .from('simuladores')
-      .update({
-        estado: 'libre',
-        actividad_actual_id: null,
-        actualizado_el: ahora.toISOString(),
-      })
-      .in('id', simuladorIds);
-
-    if (errorLiberar) {
-      registrarErrorBd(
-        '[finalizarSesionEnVivoAction] Error al liberar simuladores:',
-        errorLiberar
-      );
-    }
+    await acumularHorasSimuladores(supabase, simuladorIds, minutos, true);
   }
 
   /* ---- 9) Revalidar ---- */
-  revalidatePath(RUTA_REGISTRO_ACTIVIDADES);
+  revalidarRutasActividades();
   return { ok: true, id: actividadId };
 }

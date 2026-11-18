@@ -1,7 +1,9 @@
 import type { Metadata } from 'next';
 import { createClient } from '@/lib/supabase/server';
+import { obtenerEstadisticasGlobalesCentro } from '@/services/estadisticas-centro';
 import RackSimuladores from '@/components/admin/actividades/RackSimuladores';
 import TablaActividades from '@/components/admin/actividades/TablaActividades';
+import PanelEstadisticasCentro from '@/components/admin/actividades/PanelEstadisticasCentro';
 import BotonVolver from '@/components/ui/BotonVolver';
 import type {
   ActividadItem,
@@ -152,19 +154,21 @@ const SELECT_ACTIVIDADES =
 export default async function RegistroActividadesPage() {
   const supabase = await createClient();
 
-  const [respuestaSimuladores, respuestaActividades] = await Promise.all([
-    supabase
-      .from('simuladores')
-      .select('*')
-      .order('nombre', { ascending: true })
-      .returns<FilaSimulador[]>(),
-    supabase
-      .from('actividades')
-      .select(SELECT_ACTIVIDADES)
-      .order('fecha_actividad', { ascending: false })
-      .limit(50)
-      .returns<FilaActividad[]>(),
-  ]);
+  const [respuestaSimuladores, respuestaActividades, estadisticas] =
+    await Promise.all([
+      supabase
+        .from('simuladores')
+        .select('*')
+        .order('nombre', { ascending: true })
+        .returns<FilaSimulador[]>(),
+      supabase
+        .from('actividades')
+        .select(SELECT_ACTIVIDADES)
+        .order('fecha_actividad', { ascending: false })
+        .limit(50)
+        .returns<FilaActividad[]>(),
+      obtenerEstadisticasGlobalesCentro(),
+    ]);
 
   // Fallos de lectura no bloquean la página: se renderiza vacío y el operador
   // puede reintentar con el botón REFRESCAR del toolbar.
@@ -259,6 +263,10 @@ export default async function RegistroActividadesPage() {
           simuladores={simuladores}
         />
       </div>
+
+      {/* ── Estadísticas Globales y Demografía ────────────────── */}
+      <div aria-hidden className="border-t border-zinc-800" />
+      <PanelEstadisticasCentro estadisticas={estadisticas} />
     </section>
   );
 }

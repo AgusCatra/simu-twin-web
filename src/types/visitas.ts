@@ -144,9 +144,25 @@ export interface EditarVisitaInput {
   observaciones_docente?: string | null;
 }
 
+export interface ResumenDescuentoVisitaItem {
+  codigo: string;
+  nombre_insumo: string;
+  descontado: number;
+  saldo_restante: number;
+}
+
+export interface ResumenDescuentoVisita {
+  ejecutado: boolean;
+  omitido_idempotencia: boolean;
+  alumnos_contabilizados: number;
+  items: ResumenDescuentoVisitaItem[];
+  detalle?: string;
+  advertencia?: string;
+}
+
 /** Resultado tipado de la acción de actualización. */
 export type ResultadoEdicionVisita =
-  | { ok: true }
+  | { ok: true; resumen_stock?: ResumenDescuentoVisita }
   | { ok: false; error: string };
 
 export type ResultadoVisitasAdmin =
@@ -158,7 +174,7 @@ export type ResultadoAlternarCheck =
   | { ok: false; error: string };
 
 export type ResultadoCambiarEstadoVisita =
-  | { ok: true; estado_visita: EstadoVisita }
+  | { ok: true; estado_visita: EstadoVisita; resumen_stock?: ResumenDescuentoVisita }
   | { ok: false; error: string };
 
 export type ResultadoAsistentesVisita =

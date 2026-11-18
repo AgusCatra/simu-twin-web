@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import {
   CAMPOS_CHECK_OPERATIVO,
   ESTADOS_VISITA,
@@ -16,6 +17,8 @@ import {
   type ResultadoCambiarEstadoVisita,
   type ResultadoEdicionVisita,
   type ResultadoVisitasAdmin,
+  type ResumenDescuentoVisita,
+  type ResumenDescuentoVisitaItem,
   type VisitaEducativa,
 } from '@/types/visitas';
 
@@ -23,6 +26,11 @@ import {
 const RUTA_VISITAS_ADMIN = '/admin/visitas-educativas';
 const RUTA_ADMIN_HOME = '/admin';
 const RUTA_ADMIN_TUP = '/admin/tup';
+const RUTA_ADMIN_INSUMOS = '/admin/insumos';
+const RUTA_LANDING = '/';
+const MAX_INTENTOS_CAS_STOCK = 3;
+const RE_INSUMO_KIT_ESCOLAR =
+  /^(ALF|JUG|STICK|CUAD|KIT)|alfajor|jugo|sticker|cuadernillo|refrigerio|merienda/i;
 
 /**
  * Cupo máximo permitido en la EDICIÓN (45). Se declara local a propósito: la
@@ -125,6 +133,233 @@ function revalidarRutasVisitas(): void {
   revalidatePath(RUTA_VISITAS_ADMIN);
   revalidatePath(RUTA_ADMIN_HOME);
   revalidatePath(RUTA_ADMIN_TUP);
+  revalidatePath(RUTA_ADMIN_INSUMOS);
+  revalidatePath(RUTA_LANDING);
+}
+
+interface FilaVisitaStock {
+  id: string;
+  cant_alumnos: number | null;
+  asistencia_real_alumnos: number | null;
+  otra_institucion_nombre: string | null;
+  escuelas?:
+    | { nombre_corto?: string | null; nombre_institucion?: string | null }
+    | Array<{ nombre_corto?: string | null; nombre_institucion?: string | null }>
+    | null;
+}
+
+interface FilaInsumoStock {
+  id: string;
+  codigo: string | null;
+  nombre_insumo: string | null;
+  cantidad_disponible: number | null;
+}
+
+/**
+ * Descuenta automáticamente 1 unidad por alumno asistente de los insumos
+ * activos del kit escolar en `stock_insumos` e inserta los asientos en
+ * `stock_movimientos`, garantizando idempotencia por `visita_id`.
+ */
+async function descontarInsumosVisitaEscolarSiCorresponde(
+  supabaseAuth: Awaited<ReturnType<typeof createClient>>,
+  visitaId: string
+): Promise<ResumenDescuentoVisita> {
+  const db = createAdminClient() ?? supabaseAuth;
+
+  const [{ data: visita }, { count: countAsistentes }, { data: previos }] =
+    await Promise.all([
+      db
+        .from('visitas_educativas')
+        .select(
+          'id, cant_alumnos, asistencia_real_alumnos, otra_institucion_nombre, escuelas(nombre_corto, nombre_institucion)'
+        )
+        .eq('id', visitaId)
+        .maybeSingle<FilaVisitaStock>(),
+      db
+        .from('visita_asistentes')
+        .select('id', { count: 'exact', head: true })
+        .eq('id_visita', visitaId)
+        .eq('rol', 'Alumno'),
+      db
+        .from('stock_movimientos')
+        .select('id')
+        .eq('visita_id', visitaId)
+        .eq('tipo', 'visita_escolar')
+        .limit(1)
+        .returns<Array<{ id: string }>>(),
+    ]);
+
+  const alumnosFallback =
+    typeof visita?.asistencia_real_alumnos === 'number' &&
+    visita.asistencia_real_alumnos > 0
+      ? visita.asistencia_real_alumnos
+      : typeof visita?.cant_alumnos === 'number' && visita.cant_alumnos > 0
+        ? visita.cant_alumnos
+        : 0;
+  const alumnosContabilizados =
+    typeof countAsistentes === 'number' && countAsistentes > 0
+      ? countAsistentes
+      : alumnosFallback;
+
+  if ((previos?.length ?? 0) > 0) {
+    return {
+      ejecutado: false,
+      omitido_idempotencia: true,
+      alumnos_contabilizados: alumnosContabilizados,
+      items: [],
+      detalle: 'Stock ya descontado previamente para esta visita (idempotencia).',
+    };
+  }
+
+  if (alumnosContabilizados <= 0) {
+    return {
+      ejecutado: false,
+      omitido_idempotencia: false,
+      alumnos_contabilizados: 0,
+      items: [],
+      advertencia: 'La visita no registra alumnos para descontar insumos.',
+    };
+  }
+
+  const { data: todosInsumos, error: errInsumos } = await db
+    .from('stock_insumos')
+    .select('id, codigo, nombre_insumo, cantidad_disponible')
+    .order('codigo', { ascending: true })
+    .returns<FilaInsumoStock[]>();
+
+  if (errInsumos || !todosInsumos || todosInsumos.length === 0) {
+    if (errInsumos) {
+      registrarErrorBd('[descontarInsumosVisitaEscolar] Error al leer stock_insumos:', errInsumos);
+    }
+    return {
+      ejecutado: false,
+      omitido_idempotencia: false,
+      alumnos_contabilizados: alumnosContabilizados,
+      items: [],
+      advertencia: 'No hay insumos configurados en pañol para descontar.',
+    };
+  }
+
+  const kitFiltrado = todosInsumos.filter(
+    (ins) =>
+      RE_INSUMO_KIT_ESCOLAR.test(ins.codigo ?? '') ||
+      RE_INSUMO_KIT_ESCOLAR.test(ins.nombre_insumo ?? '')
+  );
+  const insumosObjetivo = kitFiltrado.length > 0 ? kitFiltrado : todosInsumos;
+
+  const relEsc = Array.isArray(visita?.escuelas)
+    ? visita?.escuelas[0]
+    : visita?.escuelas;
+  const nombreEscuela =
+    relEsc?.nombre_corto?.trim() ||
+    relEsc?.nombre_institucion?.trim() ||
+    visita?.otra_institucion_nombre?.trim() ||
+    'Institución Educativa';
+
+  const itemsDescontados: ResumenDescuentoVisitaItem[] = [];
+  const alertasParciales: string[] = [];
+
+  for (const objetivo of insumosObjetivo) {
+    let saldoAnterior = 0;
+    let nuevoSaldo = 0;
+    let descontado = 0;
+    let actualizado = false;
+
+    for (let intento = 0; intento < MAX_INTENTOS_CAS_STOCK; intento += 1) {
+      const { data: actual } = await db
+        .from('stock_insumos')
+        .select('id, codigo, nombre_insumo, cantidad_disponible')
+        .eq('id', objetivo.id)
+        .maybeSingle<FilaInsumoStock>();
+
+      const disponible =
+        typeof actual?.cantidad_disponible === 'number' &&
+        Number.isFinite(actual.cantidad_disponible)
+          ? Math.max(0, Math.trunc(actual.cantidad_disponible))
+          : 0;
+
+      if (disponible === 0) {
+        alertasParciales.push(`${actual?.codigo ?? objetivo.codigo ?? 'INS'}: sin stock (0)`);
+        break;
+      }
+
+      const cantidadADescontar = Math.min(alumnosContabilizados, disponible);
+      const calculado = Math.max(0, disponible - cantidadADescontar);
+      const ahoraIso = new Date().toISOString();
+
+      const { data: filaUpd, error: errUpd } = await db
+        .from('stock_insumos')
+        .update({
+          cantidad_disponible: calculado,
+          updated_at: ahoraIso,
+        })
+        .eq('id', objetivo.id)
+        .eq('cantidad_disponible', disponible)
+        .select('id, cantidad_disponible')
+        .maybeSingle<{ id: string; cantidad_disponible: number }>();
+
+      if (errUpd) {
+        registrarErrorBd('[descontarInsumosVisitaEscolar] Error CAS update:', errUpd);
+        break;
+      }
+
+      if (filaUpd?.id) {
+        saldoAnterior = disponible;
+        nuevoSaldo = filaUpd.cantidad_disponible;
+        descontado = cantidadADescontar;
+        actualizado = true;
+        if (cantidadADescontar < alumnosContabilizados) {
+          alertasParciales.push(
+            `${actual?.codigo ?? objetivo.codigo ?? 'INS'} parcial (${cantidadADescontar}/${alumnosContabilizados})`
+          );
+        }
+        break;
+      }
+    }
+
+    if (!actualizado || descontado <= 0) continue;
+
+    const { error: errMov } = await db.from('stock_movimientos').insert({
+      insumo_id: objetivo.id,
+      tipo: 'visita_escolar',
+      cantidad: descontado,
+      visita_id: visitaId,
+      fecha: new Date().toISOString(),
+    });
+
+    if (errMov) {
+      registrarErrorBd('[descontarInsumosVisitaEscolar] Error al insertar movimiento:', errMov);
+      // Rollback compensatorio para no perder consistencia saldo <-> historial.
+      await db
+        .from('stock_insumos')
+        .update({
+          cantidad_disponible: saldoAnterior,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', objetivo.id)
+        .eq('cantidad_disponible', nuevoSaldo);
+      alertasParciales.push(
+        `${objetivo.codigo ?? 'INS'}: error al registrar auditoría`
+      );
+      continue;
+    }
+
+    itemsDescontados.push({
+      codigo: objetivo.codigo?.trim() || 'INS',
+      nombre_insumo: objetivo.nombre_insumo?.trim() || 'Insumo',
+      descontado,
+      saldo_restante: nuevoSaldo,
+    });
+  }
+
+  return {
+    ejecutado: itemsDescontados.length > 0,
+    omitido_idempotencia: false,
+    alumnos_contabilizados: alumnosContabilizados,
+    items: itemsDescontados,
+    detalle: `Descuento automático Visita ${nombreEscuela} (${alumnosContabilizados} alumnos)`,
+    advertencia: alertasParciales.length > 0 ? alertasParciales.join(' · ') : undefined,
+  };
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
@@ -301,8 +536,17 @@ export async function cambiarEstadoVisitaAction(
     };
   }
 
+  let resumenStock: ResumenDescuentoVisita | undefined;
+  if (nuevoEstado === 'Finalizada') {
+    resumenStock = await descontarInsumosVisitaEscolarSiCorresponde(supabase, id);
+  }
+
   revalidarRutasVisitas();
-  return { ok: true, estado_visita: nuevoEstado };
+  return {
+    ok: true,
+    estado_visita: nuevoEstado,
+    resumen_stock: resumenStock,
+  };
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
@@ -628,7 +872,15 @@ export async function actualizarVisitaEducativaAction(
     return { ok: false, error: ERROR_GENERICO };
   }
 
+  let resumenStock: ResumenDescuentoVisita | undefined;
+  if (estadoFinal === 'Finalizada') {
+    resumenStock = await descontarInsumosVisitaEscolarSiCorresponde(
+      supabase,
+      idVisita
+    );
+  }
+
   /* ---- 7) Éxito ---- */
   revalidarRutasVisitas();
-  return { ok: true };
+  return { ok: true, resumen_stock: resumenStock };
 }

@@ -6,6 +6,7 @@ import CarruselExperiencias from '@/components/landing/CarruselExperiencias';
 import SeccionVisitas from '@/components/landing/SeccionVisitas';
 import Footer from '@/components/landing/Footer';
 import { createClient } from '@/lib/supabase/server';
+import { obtenerMetricasLandingCentro } from '@/services/estadisticas-centro';
 import {
   esSimuladorSlug,
   mapearSimuladorDesdeDB,
@@ -46,13 +47,16 @@ function construirRespaldoDesdeMetadata(): FichaTecnicaSimulador[] {
 export default async function Home() {
   const supabase = await createClient();
 
-  const { data: filasRaw, error } = await supabase
-    .from('simuladores')
-    .select(
-      'id, nombre, estado, horas_uso_totales, ultimo_mantenimiento, actualizado_el, actividad_actual_id'
-    )
-    .order('id', { ascending: true })
-    .returns<SimuladorRowDB[]>();
+  const [{ data: filasRaw, error }, metricasLanding] = await Promise.all([
+    supabase
+      .from('simuladores')
+      .select(
+        'id, nombre, estado, horas_uso_totales, ultimo_mantenimiento, actualizado_el, actividad_actual_id'
+      )
+      .order('id', { ascending: true })
+      .returns<SimuladorRowDB[]>(),
+    obtenerMetricasLandingCentro(),
+  ]);
 
   if (error) {
     console.error('[Home] Error al consultar tabla simuladores:', {
@@ -113,7 +117,7 @@ export default async function Home() {
       </section>
 
       {/* 3. Bloque de Métricas e Impacto */}
-      <MetricasCentro />
+      <MetricasCentro metricasReales={metricasLanding} />
 
       {/* 4. Carrusel de Experiencias Escolares */}
       <CarruselExperiencias />
