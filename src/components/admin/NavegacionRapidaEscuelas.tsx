@@ -7,7 +7,7 @@ import { BookOpen, Package, Truck } from 'lucide-react';
 const PESTAÑAS_OPERATIVAS = [
   { href: '/admin/visitas-educativas', label: 'Escuelas', icono: BookOpen },
   { href: '/admin/tup', label: 'Colectivo TUP', icono: Truck },
-  { href: '/admin/insumos', label: 'Stock', icono: Package },
+  { href: '/admin/insumos', label: 'Stock de Merienda', icono: Package },
 ] as const;
 
 /**

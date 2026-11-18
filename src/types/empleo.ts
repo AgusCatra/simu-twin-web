@@ -61,6 +61,10 @@ export interface CohorteResumen {
   tipo_maquinaria: string | null;
   fecha_teoria: string | null;
   fecha_inicio_sim: string | null;
+  fecha_fin_sim?: string | null;
+  cupo_alumnos?: number | null;
+  max_titulares?: number | null;
+  total_inscriptos?: number;
 }
 
 export interface CohorteActiva {
@@ -155,6 +159,13 @@ export interface FichaEvaluacion {
   practicas_intermedias?: PracticaIntermediaItem[];
 }
 
+export interface ResumenPasadaSimulador {
+  score_puntos: number | null;
+  tiempo_seg: number | null;
+  colisiones: number | null;
+  cuidado_mecanico?: number | null;
+}
+
 export interface PostulanteFila {
   inscripcion_id: string;
   postulante_id: string;
@@ -169,6 +180,13 @@ export interface PostulanteFila {
   franja_id: string | null;
   evaluacion: FichaEvaluacion | null;
   analitica?: AnaliticaOperadorCohorte | null;
+  v1_diagnostico?: ResumenPasadaSimulador | null;
+  v2_diagnostico?: ResumenPasadaSimulador | null;
+  prueba_final?: ResumenPasadaSimulador | null;
+  decision_instructor?: DecisionInstructorCohorteItem | null;
+  practica_real?: PracticaRealItem | null;
+  egreso?: EvaluacionFinalEgresoItem | null;
+  sesiones_presentes?: number;
 }
 
 export interface DuplaPersistidaItem {

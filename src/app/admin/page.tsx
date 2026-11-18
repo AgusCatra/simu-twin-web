@@ -3,8 +3,10 @@ import {
   Activity,
   AlertTriangle,
   CalendarCheck,
+  Clock,
   Cpu,
   Package,
+  Users,
   UsersRound,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
@@ -13,6 +15,7 @@ import {
   obtenerPerfilUsuarioActual,
   type PerfilUsuario,
 } from '@/lib/auth/permisos';
+import { obtenerEstadisticasGlobalesCentro } from '@/services/estadisticas-centro';
 import InicioCentroTabs, {
   type VisitaAgendaItem,
 } from '@/components/admin/InicioCentroTabs';
@@ -246,6 +249,9 @@ export default async function AdminDashboardPage() {
   let insumosEnAlerta = 0;
   let perfilActual: PerfilUsuario | null = null;
   let usuariosRoles: PerfilUsuario[] = [];
+  let estadisticas = null as Awaited<
+    ReturnType<typeof obtenerEstadisticasGlobalesCentro>
+  > | null;
 
   try {
     const supabase = await createClient();
@@ -257,6 +263,7 @@ export default async function AdminDashboardPage() {
       respStock,
       perfilRes,
       rolesRes,
+      statsRes,
     ] = await Promise.all([
       supabase
         .from('simuladores')
@@ -285,9 +292,11 @@ export default async function AdminDashboardPage() {
         .returns<FilaInsumoAlertaRaw[]>(),
       obtenerPerfilUsuarioActual(),
       listarUsuariosConRolesParaSuperadmin(),
+      obtenerEstadisticasGlobalesCentro(),
     ]);
     perfilActual = perfilRes;
     usuariosRoles = rolesRes;
+    estadisticas = statsRes;
 
     if (respSimuladores.error) {
       errorSimuladores = true;
@@ -350,10 +359,27 @@ export default async function AdminDashboardPage() {
   }
 
   const enOperacion = bahias.filter((b) => b.estado === 'en_operacion').length;
+  const enMantenimiento = bahias.filter((b) => b.estado === 'mantenimiento').length;
   const libres = bahias.filter((b) => b.estado === 'libre').length;
   const bahiasMostradas =
     bahias.length > 0 ? bahias : construirBahiasFallback();
   const sinTelemetriaReal = errorSimuladores || bahias.length === 0;
+
+  const personasLaboral = estadisticas?.alcance.postulantesEmpleo ?? alumnosEnCurso;
+  const personasEscuelas =
+    (estadisticas?.alcance.alumnosVisitas ?? 0) +
+    (estadisticas?.alcance.docentesVisitas ?? 0);
+  const personasActividades = estadisticas?.alcance.participantesActividades ?? 0;
+  const totalPersonasCentro =
+    estadisticas?.alcance.totalPersonas ??
+    personasLaboral + personasEscuelas + personasActividades;
+
+  const horasSimuladoresOdometro = Number(
+    bahiasMostradas.reduce((acc, b) => acc + b.horasUsoTotales, 0).toFixed(1)
+  );
+  const horasSimuladoresConsolidadas =
+    estadisticas?.horasTotalesFlota ?? horasSimuladoresOdometro;
+  const horasHombreFormacion = estadisticas?.horasHombreCapacitacion ?? 0;
 
   return (
     <div className="space-y-6">
@@ -367,10 +393,10 @@ export default async function AdminDashboardPage() {
           </span>
           <div>
             <h1 className="text-xl font-bold tracking-tight text-slate-900">
-              Inicio del Centro
+              Panel en Vivo (Inicio)
             </h1>
             <p className="text-sm text-slate-600">
-              Resumen diario de simuladores, cursos y escuelas
+              Centro de control en tiempo real: alcance total, simuladores, mantenimiento y actividad diaria
             </p>
           </div>
         </div>
@@ -379,9 +405,11 @@ export default async function AdminDashboardPage() {
           className={`inline-flex items-center gap-2 rounded-lg border px-3 py-1.5 text-xs font-semibold ${
             sinTelemetriaReal
               ? 'border-slate-200 bg-slate-100 text-slate-600'
-              : enOperacion > 0
-                ? 'border-amber-200 bg-amber-50 text-amber-800'
-                : 'border-emerald-200 bg-emerald-50 text-emerald-700'
+              : enMantenimiento > 0
+                ? 'border-orange-200 bg-orange-50 text-orange-800'
+                : enOperacion > 0
+                  ? 'border-blue-200 bg-blue-50 text-blue-800'
+                  : 'border-emerald-200 bg-emerald-50 text-emerald-700'
           }`}
         >
           <span
@@ -389,16 +417,20 @@ export default async function AdminDashboardPage() {
             className={`h-2 w-2 rounded-full ${
               sinTelemetriaReal
                 ? 'bg-slate-400'
-                : enOperacion > 0
-                  ? 'bg-amber-500 animate-pulse'
-                  : 'bg-emerald-500'
+                : enMantenimiento > 0
+                  ? 'bg-orange-500'
+                  : enOperacion > 0
+                    ? 'bg-blue-500 animate-pulse'
+                    : 'bg-emerald-500'
             }`}
           />
           {sinTelemetriaReal
             ? 'Sin conexión con puestos'
-            : enOperacion > 0
-              ? `${enOperacion} simuladores activos`
-              : 'Todos los simuladores disponibles'}
+            : enMantenimiento > 0
+              ? `${enMantenimiento} en mantenimiento · ${enOperacion} en uso`
+              : enOperacion > 0
+                ? `${enOperacion} simuladores en uso`
+                : 'Todos los simuladores libres'}
         </span>
       </header>
 
@@ -414,134 +446,186 @@ export default async function AdminDashboardPage() {
         </div>
       )}
 
-      {/* 4 Tarjetas KPI Blancas Limpias */}
-      <section aria-label="Indicadores principales">
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          {/* 1. Simuladores Activos */}
-          <article className="flex flex-col justify-between rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-            <div className="flex items-center justify-between">
-              <p className="text-sm font-medium text-slate-600">
-                Simuladores Activos
+      {/* Bloque Superior — El Gran Totalizador del Centro en Vivo */}
+      <section
+        aria-label="Gran Totalizador del Centro en Vivo"
+        className="grid grid-cols-1 gap-4 lg:grid-cols-2"
+      >
+        <article className="rounded-xl border border-blue-200 bg-gradient-to-br from-white via-blue-50/40 to-white p-5 shadow-sm">
+          <div className="flex items-center justify-between gap-2">
+            <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-blue-700">
+              <Users size={16} aria-hidden />
+              Total Personas en el Centro
+            </p>
+            <span className="rounded-full border border-blue-200 bg-white px-2.5 py-0.5 text-[11px] font-semibold text-blue-700">
+              Suma en vivo
+            </span>
+          </div>
+          <p className="mt-2 text-4xl font-extrabold tracking-tight text-slate-900 tabular-nums">
+            {totalPersonasCentro.toLocaleString('es-AR')}{' '}
+            <span className="text-base font-semibold text-slate-500">personas</span>
+          </p>
+          <p className="mt-2 text-xs leading-relaxed text-slate-700">
+            <strong>Capacitación Laboral ({personasLaboral} postulantes)</strong> +{' '}
+            <strong>Visitas Educativas ({personasEscuelas} de escuelas)</strong> +{' '}
+            <strong>Actividades/Prácticas ({personasActividades} participantes)</strong>
+          </p>
+        </article>
+
+        <article className="rounded-xl border border-emerald-200 bg-gradient-to-br from-white via-emerald-50/40 to-white p-5 shadow-sm">
+          <div className="flex items-center justify-between gap-2">
+            <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-emerald-700">
+              <Clock size={16} aria-hidden />
+              Total Horas de Simulación y Formación
+            </p>
+            <span className="rounded-full border border-emerald-200 bg-white px-2.5 py-0.5 text-[11px] font-semibold text-emerald-700">
+              Odómetros + Cursos
+            </span>
+          </div>
+          <div className="mt-2 flex flex-wrap items-baseline gap-6">
+            <div>
+              <p className="text-4xl font-extrabold tracking-tight text-slate-900 tabular-nums">
+                {horasSimuladoresConsolidadas.toLocaleString('es-AR')}{' '}
+                <span className="text-base font-semibold text-slate-500">hs máquina</span>
               </p>
-              <Cpu size={18} className="text-blue-600" aria-hidden />
+              <p className="text-xs text-slate-600">
+                Odómetro 7 simuladores: {horasSimuladoresOdometro.toLocaleString('es-AR')} hs
+              </p>
             </div>
-            <div className="mt-3">
-              <p className="text-3xl font-bold tracking-tight text-slate-900 tabular-nums">
-                {errorSimuladores ? '—' : enOperacion}{' '}
-                <span className="text-base font-medium text-slate-500">
-                  / {bahiasMostradas.length} en uso
-                </span>
+            <div className="border-l border-emerald-200 pl-5">
+              <p className="text-2xl font-bold text-emerald-800 tabular-nums">
+                +{horasHombreFormacion.toLocaleString('es-AR')} hs
               </p>
-              <p className="mt-1 text-xs text-slate-600">
-                {errorSimuladores
-                  ? 'Error de lectura'
-                  : `${libres} disponibles para prácticas`}
+              <p className="text-xs text-slate-600">
+                Horas-Hombre en formación ({estadisticas?.totalSesionesRegistradas ?? 0} registros)
+              </p>
+            </div>
+          </div>
+        </article>
+      </section>
+
+      {/* Indicadores Operativos Rápidos */}
+      <section aria-label="Indicadores operativos">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <article className="flex flex-col justify-between rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+            <div className="flex items-center justify-between">
+              <p className="text-xs font-semibold text-slate-600">
+                Flota de 7 Simuladores
+              </p>
+              <Cpu size={17} className="text-blue-600" aria-hidden />
+            </div>
+            <div className="mt-2">
+              <p className="text-2xl font-bold tracking-tight text-slate-900 tabular-nums">
+                {errorSimuladores ? '—' : libres}{' '}
+                <span className="text-sm font-medium text-slate-500">
+                  libres · {enOperacion} en uso · {enMantenimiento} mant.
+                </span>
               </p>
             </div>
           </article>
 
-          {/* 2. Alumnos en Curso */}
-          <article className="flex flex-col justify-between rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+          <article className="flex flex-col justify-between rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
             <div className="flex items-center justify-between">
-              <p className="text-sm font-medium text-slate-600">
-                Alumnos en Curso
+              <p className="text-xs font-semibold text-slate-600">
+                Cohorte Laboral Activa
               </p>
-              <UsersRound size={18} className="text-emerald-600" aria-hidden />
+              <UsersRound size={17} className="text-emerald-600" aria-hidden />
             </div>
-            <div className="mt-3">
+            <div className="mt-2">
               {errorCohortes ? (
                 <p className="text-sm font-semibold text-rose-700">
                   Error al consultar cursos
                 </p>
               ) : cohorteActiva ? (
                 <>
-                  <p className="text-3xl font-bold tracking-tight text-slate-900 tabular-nums">
+                  <p className="text-2xl font-bold tracking-tight text-slate-900 tabular-nums">
                     {alumnosEnCurso}{' '}
-                    <span className="text-base font-medium text-slate-500">
+                    <span className="text-sm font-medium text-slate-500">
                       inscriptos
                     </span>
                   </p>
-                  <p className="mt-1 truncate text-xs text-slate-600">
+                  <p className="mt-0.5 truncate text-xs text-slate-600">
                     {cohorteActiva.codigo} · {cohorteActiva.nombre}
                   </p>
                 </>
               ) : (
-                <>
-                  <p className="text-xl font-bold text-slate-900">Sin curso activo</p>
-                  <p className="mt-1 text-xs text-slate-600">
-                    Podés crear un curso en Cursos y Alumnos
-                  </p>
-                </>
+                <p className="text-base font-bold text-slate-900">Sin cohorte activa</p>
               )}
             </div>
           </article>
 
-          {/* 3. Próximas Escuelas */}
-          <article className="flex flex-col justify-between rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+          <article className="flex flex-col justify-between rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
             <div className="flex items-center justify-between">
-              <p className="text-sm font-medium text-slate-600">
+              <p className="text-xs font-semibold text-slate-600">
                 Próximas Escuelas
               </p>
-              <CalendarCheck size={18} className="text-blue-600" aria-hidden />
+              <CalendarCheck size={17} className="text-blue-600" aria-hidden />
             </div>
-            <div className="mt-3">
-              <p className="text-3xl font-bold tracking-tight text-slate-900 tabular-nums">
+            <div className="mt-2">
+              <p className="text-2xl font-bold tracking-tight text-slate-900 tabular-nums">
                 {errorVisitas ? '—' : totalVisitasAgenda}{' '}
-                <span className="text-base font-medium text-slate-500">
+                <span className="text-sm font-medium text-slate-500">
                   visitas
                 </span>
               </p>
-              <p className="mt-1 truncate text-xs text-slate-600">
+              <p className="mt-0.5 truncate text-xs text-slate-600">
                 {visitasProximas.length > 0
-                  ? `Siguiente: ${visitasProximas[0].institucion} (${visitasProximas[0].fechaVisitaCorta})`
+                  ? `Próxima: ${visitasProximas[0].institucion} (${visitasProximas[0].fechaVisitaCorta})`
                   : 'Sin visitas pendientes desde hoy'}
               </p>
             </div>
           </article>
 
-          {/* 4. Alertas de Stock */}
-          <article className="flex flex-col justify-between rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+          <article className="flex flex-col justify-between rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
             <div className="flex items-center justify-between">
-              <p className="text-sm font-medium text-slate-600">
-                Alertas de Stock
+              <p className="text-xs font-semibold text-slate-600">
+                Stock de Merienda
               </p>
               <Package
-                size={18}
+                size={17}
                 className={
                   insumosEnAlerta > 0 ? 'text-rose-600' : 'text-emerald-600'
                 }
                 aria-hidden
               />
             </div>
-            <div className="mt-3">
+            <div className="mt-2">
               <p
-                className={`text-3xl font-bold tracking-tight tabular-nums ${
+                className={`text-2xl font-bold tracking-tight tabular-nums ${
                   insumosEnAlerta > 0 ? 'text-rose-700' : 'text-slate-900'
                 }`}
               >
                 {insumosEnAlerta}{' '}
-                <span className="text-base font-medium text-slate-500">
-                  {insumosEnAlerta === 1 ? 'insumo' : 'insumos'}
+                <span className="text-sm font-medium text-slate-500">
+                  {insumosEnAlerta === 1 ? 'alerta' : 'alertas'}
                 </span>
               </p>
-              <p className="mt-1 text-xs text-slate-600">
+              <p className="mt-0.5 text-xs text-slate-600">
                 {insumosEnAlerta > 0
-                  ? 'Con stock por debajo del mínimo'
-                  : 'Todo el stock en nivel normal'}
+                  ? 'Por debajo del mínimo'
+                  : 'Stock en nivel normal'}
               </p>
             </div>
           </article>
         </div>
       </section>
 
-      {/* 3 Pestañas del Inicio */}
+      {/* Monitor de 7 Simuladores, Acciones de Hoy, Galpón 3D y Usuarios */}
       <InicioCentroTabs
         bahiasMostradas={bahiasMostradas}
         sinTelemetriaReal={sinTelemetriaReal}
         errorSimuladores={errorSimuladores}
         errorVisitas={errorVisitas}
         visitasProximas={visitasProximas}
-        insumosEnAlerta={insumosEnAlerta}
+        cohorteActiva={
+          cohorteActiva
+            ? {
+                id: cohorteActiva.id,
+                codigo: cohorteActiva.codigo,
+                nombre: cohorteActiva.nombre,
+              }
+            : null
+        }
         esSuperadmin={perfilActual?.rol === 'superadmin'}
         usuariosRoles={usuariosRoles}
         usuarioActualId={perfilActual?.id ?? ''}

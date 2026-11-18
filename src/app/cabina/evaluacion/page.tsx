@@ -2,11 +2,11 @@ import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { obtenerPerfilUsuarioActual, puedeAccederRuta } from '@/lib/auth/permisos';
-import { obtenerAlumnosTurno } from '@/services/cabina';
+import { obtenerDatosConsolaCabina } from '@/services/cabina';
 import ConsolaTactil from '@/components/cabina/ConsolaTactil';
 
 /**
- * /cabina/evaluacion — Evaluación en Cabina y Patio (tablet táctil del instructor).
+ * /cabina/evaluacion — Evaluación en Cabina y Patio (Modo Tablet en 3 Toques).
  * Envuelta por src/app/cabina/layout.tsx con Sidebar + Topbar institucionales.
  */
 
@@ -27,19 +27,19 @@ export default async function CabinaEvaluacionPage() {
     redirect('/login');
   }
 
-  const [alumnos, perfil] = await Promise.all([
-    obtenerAlumnosTurno(),
+  const [{ cohortes, alumnosPorCohorte }, perfil] = await Promise.all([
+    obtenerDatosConsolaCabina(),
     obtenerPerfilUsuarioActual(),
   ]);
   const rol = perfil?.rol ?? 'instructor';
   if (!puedeAccederRuta(rol, '/cabina/evaluacion')) {
     redirect('/admin');
   }
-  const instructorDefault = user.email ?? '';
+  const instructorDefault = perfil?.nombre_completo || user.email || '';
 
   return (
     <div className="flex flex-col">
-      {alumnos.length === 0 ? (
+      {cohortes.length === 0 ? (
         <div className="mx-auto my-8 flex w-full max-w-xl flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-slate-300 bg-white px-6 py-14 text-center shadow-sm">
           <span
             aria-hidden
@@ -49,15 +49,16 @@ export default async function CabinaEvaluacionPage() {
             Evaluar en Cabina / Patio
           </h1>
           <p className="max-w-sm text-sm font-medium text-slate-700">
-            Sin curso activo o sin alumnos habilitados en este turno.
+            Todavía no hay cohortes disponibles para evaluar.
           </p>
           <p className="max-w-sm text-xs leading-relaxed text-slate-500">
-            Verificá en Cursos y Alumnos que exista un curso en estado Activo con alumnos inscriptos y recargá esta pantalla.
+            Creá o activá una cohorte en Capacitación Laboral y cargá los alumnos para comenzar a evaluar desde la Tablet.
           </p>
         </div>
       ) : (
         <ConsolaTactil
-          alumnos={alumnos}
+          cohortes={cohortes}
+          alumnosPorCohorte={alumnosPorCohorte}
           instructorDefault={instructorDefault}
         />
       )}

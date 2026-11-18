@@ -200,6 +200,9 @@ interface FilaCohorteResumenDB {
   tipo_maquinaria: string | null;
   fecha_teoria: string | null;
   fecha_inicio_sim: string | null;
+  fecha_fin_sim: string | null;
+  cupo_alumnos: number | null;
+  max_titulares: number | null;
   created_at: string | null;
 }
 
@@ -637,14 +640,21 @@ export async function listarCohortesDisponibles(): Promise<CohorteResumen[]> {
   } = await supabase.auth.getUser();
   if (!user) return [];
 
-  const { data, error } = await supabase
-    .from('cohortes')
-    .select(
-      'id, codigo, nombre, estado, tipo_maquinaria, fecha_teoria, fecha_inicio_sim, created_at'
-    )
-    .order('fecha_inicio_sim', { ascending: false, nullsFirst: false })
-    .order('created_at', { ascending: false })
-    .returns<FilaCohorteResumenDB[]>();
+  const [{ data, error }, { data: inscRows }] = await Promise.all([
+    supabase
+      .from('cohortes')
+      .select(
+        'id, codigo, nombre, estado, tipo_maquinaria, fecha_teoria, fecha_inicio_sim, fecha_fin_sim, cupo_alumnos, max_titulares, created_at'
+      )
+      .order('fecha_inicio_sim', { ascending: false, nullsFirst: false })
+      .order('created_at', { ascending: false })
+      .returns<FilaCohorteResumenDB[]>(),
+    supabase
+      .from('cohorte_inscripciones')
+      .select('cohorte_id')
+      .neq('estado', 'DESCARTADO')
+      .returns<Array<{ cohorte_id: string }>>(),
+  ]);
 
   if (error) {
     console.error('[listarCohortesDisponibles] Error al listar cohortes:', {
@@ -652,6 +662,12 @@ export async function listarCohortesDisponibles(): Promise<CohorteResumen[]> {
       message: error.message,
     });
     return [];
+  }
+
+  const conteoPorCohorte = new Map<string, number>();
+  for (const r of inscRows ?? []) {
+    if (!r.cohorte_id) continue;
+    conteoPorCohorte.set(r.cohorte_id, (conteoPorCohorte.get(r.cohorte_id) ?? 0) + 1);
   }
 
   return (data ?? []).map((c) => ({
@@ -662,6 +678,10 @@ export async function listarCohortesDisponibles(): Promise<CohorteResumen[]> {
     tipo_maquinaria: c.tipo_maquinaria ?? null,
     fecha_teoria: c.fecha_teoria ?? null,
     fecha_inicio_sim: c.fecha_inicio_sim ?? null,
+    fecha_fin_sim: c.fecha_fin_sim ?? null,
+    cupo_alumnos: numeroOrNull(c.cupo_alumnos),
+    max_titulares: numeroOrNull(c.max_titulares),
+    total_inscriptos: conteoPorCohorte.get(c.id) ?? 0,
   }));
 }
 
@@ -795,14 +815,44 @@ export async function obtenerDatosCohorteActiva(
       .returns<FilaSesionPracticaDB[]>(),
     supabase
       .from('practica_real')
-      .select('postulante_id, resultado')
+      .select(
+        'id, postulante_id, fecha_practica, lugar_predio, maquina_utilizada, instructor_patio, resultado, observaciones_terreno, observaciones, created_at'
+      )
       .eq('cohorte_id', filaCohorte.id)
-      .returns<Array<{ postulante_id: string | null; resultado: string }>>(),
+      .order('created_at', { ascending: false })
+      .returns<
+        Array<{
+          id: string;
+          postulante_id: string | null;
+          fecha_practica: string;
+          lugar_predio: string | null;
+          maquina_utilizada: string | null;
+          instructor_patio: string | null;
+          resultado: string;
+          observaciones_terreno: string | null;
+          observaciones: string | null;
+        }>
+      >(),
     supabase
       .from('evaluacion_final_egreso')
-      .select('postulante_id, aprobado_practica_terreno')
+      .select(
+        'id, cohorte_id, postulante_id, estado_egreso, aprobado_practica_terreno, perfil_laboral, devolucion_empleo, sesiones_asistidas, horas_practica_completadas, fecha_evaluacion'
+      )
       .eq('cohorte_id', filaCohorte.id)
-      .returns<Array<{ postulante_id: string; aprobado_practica_terreno: boolean | null }>>(),
+      .returns<
+        Array<{
+          id: string;
+          cohorte_id: string;
+          postulante_id: string;
+          estado_egreso: string | null;
+          aprobado_practica_terreno: boolean | null;
+          perfil_laboral: string | null;
+          devolucion_empleo: string | null;
+          sesiones_asistidas: number | null;
+          horas_practica_completadas: number | null;
+          fecha_evaluacion: string | null;
+        }>
+      >(),
   ]);
 
   if (errDuplas) {
@@ -925,14 +975,35 @@ export async function obtenerDatosCohorteActiva(
       );
     }
   }
-  const practicaResultadoPorAlumno = new Map<string, string>();
+  const practicaPorAlumno = new Map<
+    string,
+    NonNullable<typeof filasPracticasReales>[number]
+  >();
   for (const pr of filasPracticasReales ?? []) {
-    if (pr.postulante_id) practicaResultadoPorAlumno.set(pr.postulante_id, pr.resultado);
+    if (pr.postulante_id && !practicaPorAlumno.has(pr.postulante_id)) {
+      practicaPorAlumno.set(pr.postulante_id, pr);
+    }
   }
-  const egresoTerrenoPorAlumno = new Map<string, boolean | null>();
+  const egresoRowPorAlumno = new Map<
+    string,
+    NonNullable<typeof filasEgresosCohorte>[number]
+  >();
   for (const eg of filasEgresosCohorte ?? []) {
-    egresoTerrenoPorAlumno.set(eg.postulante_id, eg.aprobado_practica_terreno);
+    if (!egresoRowPorAlumno.has(eg.postulante_id)) {
+      egresoRowPorAlumno.set(eg.postulante_id, eg);
+    }
   }
+
+  const resumenExtraPorPostulante = new Map<
+    string,
+    {
+      v1_diagnostico: PostulanteFila['v1_diagnostico'];
+      v2_diagnostico: PostulanteFila['v2_diagnostico'];
+      prueba_final: PostulanteFila['prueba_final'];
+      decision_instructor: PostulanteFila['decision_instructor'];
+      practica_real: PostulanteFila['practica_real'];
+    }
+  >();
 
   const fuentesImpacto = filasInscripcion.flatMap((f) => {
     const rel = Array.isArray(f.postulantes) ? f.postulantes[0] : f.postulantes;
@@ -987,7 +1058,8 @@ export async function obtenerDatosCohorteActiva(
       });
 
     const pRow = postulantes.find((p) => p.postulante_id === f.postulante_id);
-    const resPrac = practicaResultadoPorAlumno.get(f.postulante_id);
+    const prRow = practicaPorAlumno.get(f.postulante_id) ?? null;
+    const resPrac = prRow?.resultado;
     const resultadoPracTipado: ResultadoPracticaReal =
       resPrac === 'requiere_refuerzo'
         ? 'requiere_refuerzo'
@@ -1006,6 +1078,66 @@ export async function obtenerDatosCohorteActiva(
           }
         : null;
 
+    const practicaCompleta: PracticaRealItem | null = prRow
+      ? {
+          id: prRow.id,
+          fecha_practica: prRow.fecha_practica.split('T')[0],
+          lugar_predio: prRow.lugar_predio ?? null,
+          maquina_utilizada: prRow.maquina_utilizada ?? null,
+          instructor_patio: prRow.instructor_patio ?? null,
+          resultado: resultadoPracTipado,
+          observaciones_terreno:
+            prRow.observaciones_terreno ?? prRow.observaciones ?? null,
+          asistencia_terreno: metaTerreno?.asistencia_terreno ?? 'PRESENTE',
+          horas_practica_terreno: metaTerreno?.horas_practica_terreno ?? 1.5,
+          horas_extra_terreno: metaTerreno?.horas_extra_terreno ?? 0,
+          requiere_horas_extra: metaTerreno?.requiere_horas_extra ?? false,
+          horas_extra_sugeridas: metaTerreno?.horas_extra_sugeridas ?? 0,
+          puntaje_lateralidad: metaTerreno?.puntaje_lateralidad ?? null,
+          puntaje_tacto_mandos: metaTerreno?.puntaje_tacto_mandos ?? null,
+          puntaje_mastil: metaTerreno?.puntaje_mastil ?? null,
+          puntaje_control_receptividad:
+            metaTerreno?.puntaje_control_receptividad ?? null,
+          nivel_asistencia: metaTerreno?.nivel_asistencia ?? null,
+          decision_instructor_terreno:
+            metaTerreno?.decision_instructor_terreno ??
+            (resultadoPracTipado === 'aprobado'
+              ? 'APROBADO_EMPRESAS'
+              : resultadoPracTipado === 'requiere_refuerzo'
+                ? 'REQUIERE_MAS_HORAS'
+                : 'NO_APTO'),
+          pdf_reporte_path: null,
+          pdf_url_firmada: null,
+        }
+      : null;
+
+    const extractPasada = (etapaTarget: 'DIAG_INTENTO_1' | 'DIAG_INTENTO_2' | 'FINAL') => {
+      const reg = evalsTitan.find(
+        (e) =>
+          e.etapa === etapaTarget &&
+          (!e.metricas?.exerciseName || esMediumLoadOperation(e.metricas.exerciseName))
+      );
+      if (!reg) return null;
+      return {
+        score_puntos: reg.scorePuntos,
+        tiempo_seg: reg.tiempoVueltaSeg,
+        colisiones: reg.colisiones,
+        cuidado_mecanico: reg.metricas
+          ? calcularCuidadoDesdeMetricas(reg.metricas).indiceCuidadoMecanico
+          : null,
+      };
+    };
+
+    resumenExtraPorPostulante.set(f.postulante_id, {
+      v1_diagnostico: extractPasada('DIAG_INTENTO_1'),
+      v2_diagnostico: extractPasada('DIAG_INTENTO_2'),
+      prueba_final: extractPasada('FINAL'),
+      decision_instructor: decInst,
+      practica_real: practicaCompleta,
+    });
+
+    const egRow = egresoRowPorAlumno.get(f.postulante_id);
+
     return [
       {
         postulanteId: f.postulante_id,
@@ -1014,7 +1146,7 @@ export async function obtenerDatosCohorteActiva(
         tieneCabinaTablet: Boolean(pRow?.evaluacion?.tiene_evaluacion_tablet),
         decisionInstructor: decInst,
         practicaReal: pracLite,
-        aprobadoEgresoTerreno: egresoTerrenoPorAlumno.get(f.postulante_id) ?? null,
+        aprobadoEgresoTerreno: egRow?.aprobado_practica_terreno ?? null,
         horasRecomendadasTitan: pRow?.evaluacion?.horas_recomendadas ?? null,
         evaluacionesTitan: evalsTitan,
       },
@@ -1032,10 +1164,50 @@ export async function obtenerDatosCohorteActiva(
       horasMaquinaSimulador,
     });
 
-  const postulantesConAnalitica: PostulanteFila[] = postulantes.map((p) => ({
-    ...p,
-    analitica: analiticaPorPostulante[p.postulante_id] ?? null,
-  }));
+  const postulantesConAnalitica: PostulanteFila[] = postulantes.map((p) => {
+    const extra = resumenExtraPorPostulante.get(p.postulante_id);
+    const egRaw = egresoRowPorAlumno.get(p.postulante_id);
+    const egresoMap: EvaluacionFinalEgresoItem | null = egRaw
+      ? {
+          id: egRaw.id,
+          cohorte_id: egRaw.cohorte_id,
+          postulante_id: egRaw.postulante_id,
+          estado_egreso:
+            egRaw.estado_egreso === 'CERTIFICADO' || egRaw.estado_egreso === 'ABANDONO'
+              ? egRaw.estado_egreso
+              : 'INCOMPLETO',
+          paso_a_terreno_aprobado:
+            typeof egRaw.aprobado_practica_terreno === 'boolean'
+              ? egRaw.aprobado_practica_terreno
+              : null,
+          recomendacion_laboral:
+            egRaw.perfil_laboral === 'DESTACADO' ||
+            egRaw.perfil_laboral === 'CON_OBSERVACIONES' ||
+            egRaw.perfil_laboral === 'NO_RECOMENDADO'
+              ? egRaw.perfil_laboral
+              : 'ESTANDAR',
+          observaciones_egreso: egRaw.devolucion_empleo ?? null,
+          sesiones_asistidas: numeroOrNull(egRaw.sesiones_asistidas) ?? 0,
+          horas_practica_completadas:
+            numeroOrNull(egRaw.horas_practica_completadas) ?? 0,
+          fecha_evaluacion: egRaw.fecha_evaluacion
+            ? egRaw.fecha_evaluacion.split('T')[0]
+            : null,
+        }
+      : null;
+
+    return {
+      ...p,
+      analitica: analiticaPorPostulante[p.postulante_id] ?? null,
+      v1_diagnostico: extra?.v1_diagnostico ?? null,
+      v2_diagnostico: extra?.v2_diagnostico ?? null,
+      prueba_final: extra?.prueba_final ?? null,
+      decision_instructor: extra?.decision_instructor ?? null,
+      practica_real: extra?.practica_real ?? null,
+      egreso: egresoMap,
+      sesiones_presentes: sesionesPresentesPorAlumno.get(p.postulante_id) ?? 0,
+    };
+  });
 
   return {
     cohorte: {

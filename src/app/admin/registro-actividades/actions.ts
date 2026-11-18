@@ -159,12 +159,9 @@ function registrarErrorBd(
 }
 
 /**
- * Conmuta el estado operativo de un simulador desde el Rack en vivo.
- *
- * Blindaje: solo se aceptan los dos valores conmutables por el operador
- * (`libre` / `en_operacion`); `mantenimiento` se gestiona por otra vía.
- * Al liberar el equipo se limpia `actividad_actual_id` para no dejar
- * referencias colgando a una actividad ya cerrada.
+ * Conmuta el estado operativo de un simulador desde el Rack o Panel en Vivo:
+ * admite `libre`, `en_operacion` o `mantenimiento`.
+ * Al pasar a `libre` o `mantenimiento` limpia `actividad_actual_id`.
  */
 export async function conmutarEstadoSimuladorAction(
   simuladorId: string,
@@ -175,27 +172,36 @@ export async function conmutarEstadoSimuladorAction(
     return { ok: false, error: 'Identificador de simulador inválido.' };
   }
 
-  if (nuevoEstado !== 'libre' && nuevoEstado !== 'en_operacion') {
+  if (
+    nuevoEstado !== 'libre' &&
+    nuevoEstado !== 'en_operacion' &&
+    nuevoEstado !== 'mantenimiento'
+  ) {
     return {
       ok: false,
-      error: 'Estado destino no permitido para la conmutación del rack.',
+      error: 'Estado destino no permitido para la conmutación del simulador.',
     };
   }
 
   const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return { ok: false, error: 'Sesión expirada. Iniciá sesión nuevamente.' };
+  }
+
   const ahoraIso = new Date().toISOString();
 
-  // Payload explícito: al liberar el equipo se limpia `actividad_actual_id`
-  // (nunca se deja colgando una referencia a una actividad ya cerrada).
   const payloadUpdate =
-    nuevoEstado === 'libre'
+    nuevoEstado === 'en_operacion'
       ? {
           estado: nuevoEstado,
-          actividad_actual_id: null,
           actualizado_el: ahoraIso,
         }
       : {
           estado: nuevoEstado,
+          actividad_actual_id: null,
           actualizado_el: ahoraIso,
         };
 

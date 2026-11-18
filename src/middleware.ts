@@ -79,8 +79,14 @@ async function updateSession(request: NextRequest) {
       .eq('id', user.id)
       .maybeSingle<{ rol: string | null }>();
 
-    // Fail-Safe: usuario autenticado sin fila en perfiles_usuarios se trata como superadmin.
-    const rol = normalizarRolSistema(filaPerfil?.rol);
+    const emailLow = (user.email ?? '').trim().toLowerCase();
+    const esAdminPrincipal =
+      emailLow === 'catramado@gmail.com' ||
+      emailLow === 'catramado17@gmail.com';
+    // Fail-Safe: usuario autenticado sin fila o cuenta principal se trata como superadmin.
+    const rol = esAdminPrincipal
+      ? 'superadmin'
+      : normalizarRolSistema(filaPerfil?.rol);
     const rutaInicial = obtenerRutaInicialPorRol(rol);
 
     if (esRutaLogin) {

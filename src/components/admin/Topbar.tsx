@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { ChevronRight, LogOut, ShieldCheck } from 'lucide-react';
+import { ChevronRight, ExternalLink, LogOut, ShieldCheck } from 'lucide-react';
 import {
   esRutaActiva,
   obtenerRutaActiva,
@@ -101,8 +101,17 @@ export default function Topbar({
           </ol>
         </nav>
 
-        <div className="flex shrink-0 items-center gap-2.5 sm:gap-3">
+        <div className="flex shrink-0 items-center gap-2 sm:gap-2.5">
           {!modoLimpioChofer && <RelojEnVivo />}
+          {!modoLimpioChofer && (
+            <Link
+              href="/"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-bold text-blue-700 transition-colors hover:bg-blue-100"
+            >
+              <span>Ver Web en Vivo</span>
+              <ExternalLink size={13} strokeWidth={2} aria-hidden />
+            </Link>
+          )}
           <span
             title={usuarioEmail ?? undefined}
             className="inline-flex items-center gap-1.5 rounded-md border border-blue-200 bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-700"

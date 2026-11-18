@@ -11,8 +11,8 @@
 /** Estados operativos admitidos por la tabla `simuladores`. */
 export type EstadoSimulador = 'libre' | 'en_operacion' | 'mantenimiento';
 
-/** Estados que puede conmutar el operador desde el Rack (excluye mantenimiento). */
-export type EstadoSimuladorConmutable = 'libre' | 'en_operacion';
+/** Estados conmutables del Rack y Panel en Vivo. */
+export type EstadoSimuladorConmutable = 'libre' | 'en_operacion' | 'mantenimiento';
 
 /** Tipos de actividad presencial registrables en el panel. */
 export type TipoActividad =

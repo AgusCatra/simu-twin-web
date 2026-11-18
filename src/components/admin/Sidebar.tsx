@@ -32,13 +32,19 @@ export interface RutaAdmin {
  * filtra automáticamente según el rol activo en sesión.
  */
 export const RUTAS_ADMIN: readonly RutaAdmin[] = [
-  { href: '/admin', label: 'Inicio del Centro', icono: Activity },
-  { href: '/gestion/cohortes', label: 'Cursos y Alumnos', icono: UsersRound },
-  { href: '/cabina/evaluacion', label: 'Evaluar en Cabina / Patio', icono: Gauge },
-  { href: '/admin/visitas-educativas', label: 'Escuelas y Visitas', icono: BookOpen },
+  { href: '/admin', label: 'Panel en Vivo (Inicio)', icono: Activity },
+  { href: '/gestion/cohortes', label: 'Capacitación Laboral (Cohortes)', icono: UsersRound },
+  { href: '/cabina/evaluacion', label: 'Evaluar en Cabina / Patio (Tablet)', icono: Gauge },
+  { href: '/admin/visitas-educativas', label: 'Visitas Educativas (Escuelas)', icono: BookOpen },
   { href: '/admin/tup', label: 'Colectivo TUP', icono: Truck },
-  { href: '/admin/insumos', label: 'Stock y Refrigerios', icono: Package },
-  { href: '/admin/registro-actividades', label: 'Bitácora y Simuladores', icono: ClipboardList },
+  { href: '/admin/insumos', label: 'Stock de Merienda', icono: Package },
+  { href: '/admin/registro-actividades', label: 'Simuladores y Mantenimiento', icono: ClipboardList },
+];
+
+const SUBRUTAS_ESCUELAS: readonly RutaAdmin[] = [
+  { href: '/admin/visitas-educativas', label: 'Escuelas y Solicitudes', icono: BookOpen },
+  { href: '/admin/tup', label: 'Colectivo TUP', icono: Truck },
+  { href: '/admin/insumos', label: 'Stock de Merienda', icono: Package },
 ];
 
 export function obtenerRutasVisiblesPorRol(rol: RolSistema): RutaAdmin[] {
@@ -65,14 +71,23 @@ const ENLACE_ACTIVO =
 const ENLACE_INACTIVO =
   'border-transparent text-slate-600 hover:bg-slate-100 hover:text-slate-900 font-medium';
 
+const SUBENLACE_BASE =
+  'flex items-center gap-2.5 rounded-lg border px-3 py-2 text-xs transition-colors focus-visible:outline-2 focus-visible:outline-blue-500';
+
 export default function Sidebar({ rol = 'superadmin' }: { rol?: RolSistema }) {
   const pathname = usePathname();
   if (rol === 'chofer_tup') return null;
 
-  const rutasVisibles = obtenerRutasVisiblesPorRol(rol);
+  const rutasPrincipales: readonly RutaAdmin[] = [
+    { href: '/admin', label: 'Panel en Vivo (Inicio)', icono: Activity },
+    { href: '/gestion/cohortes', label: 'Capacitación Laboral (Cohortes)', icono: UsersRound },
+    { href: '/cabina/evaluacion', label: 'Evaluar en Cabina / Patio (Tablet)', icono: Gauge },
+    { href: '/admin/visitas-educativas', label: 'Visitas Educativas (Escuelas)', icono: BookOpen },
+    { href: '/admin/registro-actividades', label: 'Simuladores y Mantenimiento', icono: ClipboardList },
+  ];
 
   return (
-    <aside className="print-ocultar hidden w-64 shrink-0 flex-col border-r border-slate-200 bg-white lg:sticky lg:top-0 lg:flex lg:h-screen">
+    <aside className="print-ocultar hidden w-72 shrink-0 flex-col border-r border-slate-200 bg-white lg:sticky lg:top-0 lg:flex lg:h-screen">
       <div className="flex items-center gap-3 border-b border-slate-200 px-4 py-4">
         <span
           aria-hidden
@@ -102,14 +117,17 @@ export default function Sidebar({ rol = 'superadmin' }: { rol?: RolSistema }) {
           Menú principal
         </p>
         <ul className="space-y-1">
-          {rutasVisibles.map((ruta) => {
-            const activa = esRutaActiva(pathname, ruta.href);
+          {rutasPrincipales.map((ruta) => {
+            const esModuloEscuelas = ruta.href === '/admin/visitas-educativas';
+            const activa = esModuloEscuelas
+              ? SUBRUTAS_ESCUELAS.some((sub) => esRutaActiva(pathname, sub.href))
+              : esRutaActiva(pathname, ruta.href);
             const Icono = ruta.icono;
             return (
               <li key={ruta.href}>
                 <Link
                   href={ruta.href}
-                  aria-current={activa ? 'page' : undefined}
+                  aria-current={esRutaActiva(pathname, ruta.href) ? 'page' : undefined}
                   className={`${ENLACE_BASE} ${activa ? ENLACE_ACTIVO : ENLACE_INACTIVO}`}
                 >
                   <Icono
@@ -119,19 +137,60 @@ export default function Sidebar({ rol = 'superadmin' }: { rol?: RolSistema }) {
                   />
                   <span className="truncate">{ruta.label}</span>
                 </Link>
+
+                {esModuloEscuelas && (
+                  <ul
+                    aria-label="Submódulo Escuelas, TUP y Stock"
+                    className="mt-1 ml-4 space-y-0.5 border-l-2 border-slate-200 pl-2.5"
+                  >
+                    {SUBRUTAS_ESCUELAS.map((sub) => {
+                      const subActiva = esRutaActiva(pathname, sub.href);
+                      const SubIcono = sub.icono;
+                      return (
+                        <li key={sub.href}>
+                          <Link
+                            href={sub.href}
+                            aria-current={subActiva ? 'page' : undefined}
+                            className={`${SUBENLACE_BASE} ${
+                              subActiva
+                                ? 'border-blue-200 bg-blue-50/90 font-semibold text-blue-700'
+                                : 'border-transparent font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                            }`}
+                          >
+                            <SubIcono
+                              size={14}
+                              strokeWidth={subActiva ? 2.1 : 1.75}
+                              className={`shrink-0 ${
+                                subActiva ? 'text-blue-700' : 'text-slate-500'
+                              }`}
+                            />
+                            <span className="truncate">{sub.label}</span>
+                          </Link>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
               </li>
             );
           })}
         </ul>
       </nav>
 
-      <div className="border-t border-slate-200 p-3">
+      <div className="space-y-1.5 border-t border-slate-200 p-3">
+        <Link
+          href="/"
+          className="flex items-center justify-between gap-2 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2.5 text-xs font-bold text-blue-700 transition-colors hover:bg-blue-100"
+        >
+          <span>Ver Web Pública en Vivo</span>
+          <ExternalLink size={14} strokeWidth={2} aria-hidden />
+        </Link>
         <Link
           href="/visitas"
-          className="flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900"
+          className="flex items-center justify-between gap-2 rounded-lg px-3 py-1.5 text-xs font-medium text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900"
         >
-          <ExternalLink size={14} strokeWidth={1.85} />
-          Portal público de visitas
+          <span>Formulario Público de Escuelas</span>
+          <ExternalLink size={13} strokeWidth={1.85} aria-hidden />
         </Link>
       </div>
     </aside>

@@ -234,6 +234,7 @@ export async function obtenerEstadisticasGlobalesCentro(): Promise<EstadisticasG
     resAsistentes,
     resPostulantes,
     resSesiones,
+    resDiag,
     resMovs,
   ] = await Promise.all([
     db
@@ -268,6 +269,10 @@ export async function obtenerEstadisticasGlobalesCentro(): Promise<EstadisticasG
       .select('cohorte_id, dupla_id, numero_sesion, fecha_programada, fecha_real, estado_asistencia')
       .returns<FilaSesionPracticaEst[]>(),
     db
+      .from('evaluacion_diagnostico')
+      .select('postulante_id, etapa')
+      .returns<Array<{ postulante_id: string | null; etapa: string | null }>>(),
+    db
       .from('stock_movimientos')
       .select('visita_id, cantidad')
       .eq('tipo', 'visita_escolar')
@@ -282,7 +287,13 @@ export async function obtenerEstadisticasGlobalesCentro(): Promise<EstadisticasG
   const filasAsistentes = resAsistentes.data ?? [];
   const postulantesCount = resPostulantes.count ?? 0;
   const filasSesiones = resSesiones.data ?? [];
+  const filasDiag = resDiag.data ?? [];
   const filasMovs = resMovs.data ?? [];
+
+  const postulantesDiagnosticados = new Set(
+    filasDiag.map((d) => d.postulante_id).filter((id): id is string => Boolean(id))
+  ).size;
+  const horasDiagnosticoSimulador = Number(postulantesDiagnosticados.toFixed(2));
 
   // 1. Uso por simulador (los 7 equipos + sesiones de cohorte en autoelevador)
   const simMap = new Map<string, FilaSimuladorEst>();
@@ -310,13 +321,15 @@ export async function obtenerEstadisticasGlobalesCentro(): Promise<EstadisticasG
     const horasOdometro = Number(numSeguro(row?.horas_uso_totales).toFixed(2));
     const horasActividades = Number((act.minutos / 60).toFixed(2));
     const esAutoelevador = slug === 'autoelevador';
-    const sesionesCohorte = esAutoelevador ? turnosMaquinaActivos : 0;
-    // Horas-Máquina de SIM-01: 1.0 h reloj por turno de dupla (sin duplicar por 2 alumnos)
-    const horasCohorte = esAutoelevador ? horasMaquinaSimulador : 0;
-    const horasBase = Math.max(horasOdometro, horasActividades);
-    // Evita doble conteo si el odómetro persistido ya fue actualizado por sesiones
+    const sesionesCohorte = esAutoelevador
+      ? turnosMaquinaActivos + postulantesDiagnosticados
+      : 0;
+    // Horas-Máquina de SIM-01: 1.0 h por turno de dupla + jornadas de diagnóstico
+    const horasCohorte = esAutoelevador
+      ? horasMaquinaSimulador + horasDiagnosticoSimulador
+      : 0;
     const horasConsolidadas = Number(
-      Math.max(horasBase, horasActividades + horasCohorte).toFixed(2)
+      Math.max(horasOdometro, horasActividades + horasCohorte).toFixed(2)
     );
 
     return {
@@ -328,7 +341,9 @@ export async function obtenerEstadisticasGlobalesCentro(): Promise<EstadisticasG
       sesionesActividades: act.sesiones,
       sesionesCohorte,
       horasCohorte,
-      horasHombreCohorte: esAutoelevador ? horasHombreSimulador : 0,
+      horasHombreCohorte: esAutoelevador
+        ? horasHombreSimulador + horasDiagnosticoSimulador
+        : 0,
       horasConsolidadas,
     };
   });
@@ -336,9 +351,13 @@ export async function obtenerEstadisticasGlobalesCentro(): Promise<EstadisticasG
   const horasTotalesFlota = Number(
     usoPorSimulador.reduce((acc, s) => acc + s.horasConsolidadas, 0).toFixed(2)
   );
+  const horasHombreTotales = Number(
+    (horasHombreSimulador + horasDiagnosticoSimulador).toFixed(2)
+  );
   const totalSesionesRegistradas =
     usoPorSimulador.reduce((acc, s) => acc + s.sesionesActividades, 0) +
-    sesionesPresentes;
+    sesionesPresentes +
+    filasDiag.length;
 
   // 2. Perfil demográfico, ocupacional y distribución por tipo de actividad
   const porGenero: ResumenGenero = {
@@ -492,7 +511,7 @@ export async function obtenerEstadisticasGlobalesCentro(): Promise<EstadisticasG
 
   return {
     horasTotalesFlota,
-    horasHombreCapacitacion: horasHombreSimulador,
+    horasHombreCapacitacion: horasHombreTotales,
     totalSesionesRegistradas,
     totalActividades: filasActs.length,
     alcance: {
@@ -594,7 +613,7 @@ export async function obtenerMetricasLandingCentro(): Promise<MetricasLandingCen
 
     return {
       puestosActivos: simuladoresCount > 0 ? simuladoresCount : 7,
-      horasPracticaTotales: Math.round(horasSimuladores + horasCohortes),
+      horasPracticaTotales: Math.round(Math.max(horasSimuladores, horasCohortes)),
       escuelasRecibidas: escuelasUnicas.size,
       personasAlcanzadas,
     };

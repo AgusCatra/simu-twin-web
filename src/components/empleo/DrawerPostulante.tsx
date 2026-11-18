@@ -78,6 +78,7 @@ interface Props {
   cohorte?: CohorteActiva | null;
   enfocarTitan?: boolean;
   enfocarSignal?: number;
+  imprimirSignal?: number;
   onCerrar: () => void;
 }
 
@@ -305,9 +306,11 @@ export default function DrawerPostulante({
   cohorte = null,
   enfocarTitan = false,
   enfocarSignal = 0,
+  imprimirSignal = 0,
   onCerrar,
 }: Props) {
   const router = useRouter();
+  const ultimoImprimirRef = useRef(0);
   const [notas, setNotas] = useState('');
   const [franjaSeleccionada, setFranjaSeleccionada] = useState('');
   const [mensaje, setMensaje] = useState<{ texto: string; tipo: 'ok' | 'error' } | null>(
@@ -578,6 +581,30 @@ export default function DrawerPostulante({
     cohorteId,
     cohorte?.configuracion_cursado,
   ]);
+
+  useEffect(() => {
+    if (
+      !postulante ||
+      imprimirSignal <= 0 ||
+      imprimirSignal === ultimoImprimirRef.current ||
+      cargandoLegajo ||
+      cargandoComp
+    ) {
+      return;
+    }
+    ultimoImprimirRef.current = imprimirSignal;
+    const t = window.setTimeout(() => {
+      document.body.setAttribute('data-print-mode', 'legajo');
+      const limpiar = () => {
+        document.body.removeAttribute('data-print-mode');
+        window.removeEventListener('afterprint', limpiar);
+      };
+      window.addEventListener('afterprint', limpiar);
+      window.print();
+      window.setTimeout(limpiar, 1500);
+    }, 180);
+    return () => window.clearTimeout(t);
+  }, [postulante, imprimirSignal, cargandoLegajo, cargandoComp]);
 
   if (!postulante) return null;
 

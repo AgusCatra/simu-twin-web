@@ -1,17 +1,19 @@
+import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { AlertTriangle, CalendarCheck2 } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, CalendarCheck2 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import { obtenerPerfilUsuarioActual, puedeAccederRuta } from '@/lib/auth/permisos';
 import {
   listarCohortesDisponibles,
   obtenerDatosCohorteActiva,
 } from '@/services/empleo';
+import { obtenerEstadisticasGlobalesCentro } from '@/services/estadisticas-centro';
 import CabeceraConfiguracion from '@/components/empleo/CabeceraConfiguracion';
 import ParrillaCabina from '@/components/empleo/ParrillaCabina';
 import BotonExportarCronograma from '@/components/empleo/BotonExportarCronograma';
 import AccionesCohorte from '@/components/empleo/AccionesCohorte';
-import SelectorCohorte from '@/components/empleo/SelectorCohorte';
 import PanelCohortesTabs from '@/components/empleo/PanelCohortesTabs';
+import VistaSelectorCohortes from '@/components/empleo/VistaSelectorCohortes';
 import {
   aFechaIso,
   describirEstadoViernesBuffer,
@@ -113,7 +115,10 @@ function construirSemanasCronograma(
 export default async function GestionCohortesPage({
   searchParams,
 }: {
-  searchParams?: Promise<{ cohorteId?: string | string[] }>;
+  searchParams?: Promise<{
+    cohorteId?: string | string[];
+    nueva?: string | string[];
+  }>;
 }) {
   const supabase = await createClient();
   const {
@@ -126,16 +131,23 @@ export default async function GestionCohortesPage({
   const cohorteIdSolicitada = Array.isArray(rawCohorteId)
     ? (rawCohorteId[0] ?? null)
     : (rawCohorteId ?? null);
+  const rawNueva = paramsResueltos?.nueva;
+  const abrirModalInicial =
+    (Array.isArray(rawNueva) ? rawNueva[0] : rawNueva) === '1';
 
   const [
     perfil,
     cohortesDisponibles,
     datos,
+    estadisticasCentro,
     { data: filasFeriados, error: errFeriados },
   ] = await Promise.all([
     obtenerPerfilUsuarioActual(),
     listarCohortesDisponibles(),
-    obtenerDatosCohorteActiva(cohorteIdSolicitada),
+    cohorteIdSolicitada
+      ? obtenerDatosCohorteActiva(cohorteIdSolicitada)
+      : Promise.resolve(null),
+    obtenerEstadisticasGlobalesCentro(),
     supabase
       .from('feriados_municipales')
       .select('fecha, descripcion')
@@ -393,66 +405,78 @@ export default async function GestionCohortesPage({
       </details>
     ) : null;
 
+  const personasLaboral = estadisticasCentro.alcance.postulantesEmpleo;
+  const personasEscuelas =
+    estadisticasCentro.alcance.alumnosVisitas +
+    estadisticasCentro.alcance.docentesVisitas;
+  const personasActividades = estadisticasCentro.alcance.participantesActividades;
+
   return (
     <div className="space-y-6">
       <div className="print-ocultar space-y-5">
-        <header className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <div>
-              <p className="text-xs font-semibold text-blue-700">
-                Cursos y Alumnos · Simu-Twin Venado Tuerto
-              </p>
-              <h1 className="mt-1 text-xl font-bold tracking-tight text-slate-900">
-                {datos
-                  ? `${datos.cohorte.nombre} (${datos.cohorte.codigo})`
-                  : 'Gestión de Cursos y Alumnos'}
-              </h1>
-              {datos && (
-                <p className="mt-0.5 text-sm text-slate-600">
-                  Cursado en duplas de a 2 alumnos · Cupo {datos.cohorte.max_titulares} lugares ·{' '}
-                  {datos.totalConfirmados} confirmados
-                </p>
-              )}
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <SelectorCohorte
-                cohortes={cohortesDisponibles}
-                cohorteSeleccionadaId={datos?.cohorte.id ?? null}
-              />
-              <AccionesCohorte
-                cohorteActivaId={datos?.cohorte.id ?? null}
-                cohorteActivaCodigo={datos?.cohorte.codigo ?? null}
-                cohorteActivaRealCodigo={cohorteActivaRealCodigo}
-                siguienteRankingSugerido={siguienteRankingSugerido}
-                feriadosMunicipales={feriadosMunicipales}
-                postulantes={(datos?.postulantes ?? []).map((p) => ({
-                  postulante_id: p.postulante_id,
-                  nombre_completo: p.nombre_completo,
-                  dni: p.dni,
-                }))}
-              />
-              {datos && proyeccion && (
-                <BotonExportarCronograma
-                  cohorte={datos.cohorte}
-                  franjas={datos.franjas}
-                  proyeccion={proyeccion}
-                />
-              )}
-            </div>
-          </div>
-        </header>
-
-        {!datos ? (
-          <div className="rounded-xl border border-dashed border-slate-300 bg-white px-6 py-16 text-center shadow-sm">
-            <p className="text-base font-bold text-slate-900">
-              Todavía no hay cursos creados
-            </p>
-            <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-slate-600">
-              Usá el botón &quot;Nuevo Curso&quot; arriba a la derecha para crear la primera cohorte, definir los días de cursado y cargar los alumnos.
-            </p>
-          </div>
+        {!cohorteIdSolicitada || !datos ? (
+          <VistaSelectorCohortes
+            cohortes={cohortesDisponibles}
+            feriadosMunicipales={feriadosMunicipales}
+            cohorteActivaRealCodigo={cohorteActivaRealCodigo}
+            totalPersonasCentro={estadisticasCentro.alcance.totalPersonas}
+            personasLaboral={personasLaboral}
+            personasEscuelas={personasEscuelas}
+            personasActividades={personasActividades}
+            horasTotalesFlota={estadisticasCentro.horasTotalesFlota}
+            horasHombreFormacion={estadisticasCentro.horasHombreCapacitacion ?? 0}
+            abrirModalInicial={abrirModalInicial}
+          />
         ) : (
           <>
+            <header className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+              <div className="flex flex-wrap items-start justify-between gap-4">
+                <div>
+                  <div className="mb-2 flex flex-wrap items-center gap-2.5">
+                    <Link
+                      href="/gestion/cohortes"
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-100 hover:text-slate-900"
+                    >
+                      <ArrowLeft size={14} aria-hidden />
+                      Cambiar de Cohorte
+                    </Link>
+                    <span className="text-xs font-semibold text-blue-700">
+                      Capacitación Laboral · Nivel 2 (4 Etapas)
+                    </span>
+                  </div>
+                  <h1 className="text-xl font-bold tracking-tight text-slate-900">
+                    {datos.cohorte.nombre} ({datos.cohorte.codigo})
+                  </h1>
+                  <p className="mt-0.5 text-sm text-slate-600">
+                    {datos.postulantes.length} alumnos inscriptos · Cursado en duplas · Cupo{' '}
+                    {datos.cohorte.max_titulares} lugares ({datos.totalConfirmados} confirmados)
+                  </p>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2">
+                  <AccionesCohorte
+                    cohorteActivaId={datos.cohorte.id}
+                    cohorteActivaCodigo={datos.cohorte.codigo}
+                    cohorteActivaRealCodigo={cohorteActivaRealCodigo}
+                    siguienteRankingSugerido={siguienteRankingSugerido}
+                    feriadosMunicipales={feriadosMunicipales}
+                    postulantes={datos.postulantes.map((p) => ({
+                      postulante_id: p.postulante_id,
+                      nombre_completo: p.nombre_completo,
+                      dni: p.dni,
+                    }))}
+                  />
+                  {proyeccion && (
+                    <BotonExportarCronograma
+                      cohorte={datos.cohorte}
+                      franjas={datos.franjas}
+                      proyeccion={proyeccion}
+                    />
+                  )}
+                </div>
+              </div>
+            </header>
+
             <CabeceraConfiguracion
               key={datos.cohorte.id}
               cohorteId={datos.cohorte.id}

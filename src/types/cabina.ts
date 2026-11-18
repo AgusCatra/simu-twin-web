@@ -36,6 +36,14 @@ export type DictamenCabina =
   | 'NO_APTO'
   | 'CONDICIONAL';
 
+export interface CohorteCabinaOpcion {
+  id: string;
+  codigo: string;
+  nombre: string;
+  estado: string;
+  total_alumnos: number;
+}
+
 export interface AlumnoTurno {
   cohorte_id: string;
   inscripcion_id: string;
@@ -44,6 +52,13 @@ export interface AlumnoTurno {
   dni: string;
   estado: string;
   ranking_orden: number;
+  dupla_label?: string | null;
+  companero_nombre?: string | null;
+}
+
+export interface DatosConsolaCabina {
+  cohortes: CohorteCabinaOpcion[];
+  alumnosPorCohorte: Record<string, AlumnoTurno[]>;
 }
 
 export interface EvaluacionCabinaInput {

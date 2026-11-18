@@ -16,6 +16,8 @@ import type {
   AlumnoTurno,
   AsistenciaCabina,
   BloqueSplit,
+  CohorteCabinaOpcion,
+  DatosConsolaCabina,
   EtapaEvaluacionCabina,
   EvaluacionCabinaInput,
   NivelAsistencia,
@@ -225,6 +227,146 @@ export async function obtenerAlumnosTurno(): Promise<AlumnoTurno[]> {
   }
 
   return alumnos;
+}
+
+const FRANJA_HORARIO_CORTO: Record<string, string> = {
+  M1_10_11: '10:00–11:00',
+  M2_11_12: '11:00–12:00',
+  T1_16_17: '16:00–17:00',
+  T2_17_18: '17:00–18:00',
+};
+
+/**
+ * Carga cohortes disponibles, sus alumnos no descartados y duplas activas
+ * para el flujo progresivo de 3 toques de /cabina/evaluacion (Modo Tablet).
+ */
+export async function obtenerDatosConsolaCabina(): Promise<DatosConsolaCabina> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return { cohortes: [], alumnosPorCohorte: {} };
+  }
+
+  const [
+    { data: filasCohortes, error: errCohortes },
+    { data: filasInscripciones, error: errInsc },
+    { data: filasDuplas },
+  ] = await Promise.all([
+    supabase
+      .from('cohortes')
+      .select('id, codigo, nombre, estado, created_at')
+      .order('created_at', { ascending: false })
+      .returns<
+        Array<{
+          id: string;
+          codigo: string;
+          nombre: string;
+          estado: string | null;
+          created_at: string | null;
+        }>
+      >(),
+    supabase
+      .from('cohorte_inscripciones')
+      .select(
+        'id, cohorte_id, estado, ranking_orden, postulante_id, postulantes(nombre_completo, dni)'
+      )
+      .neq('estado', 'DESCARTADO')
+      .order('ranking_orden', { ascending: true }),
+    supabase
+      .from('duplas_cabina')
+      .select('cohorte_id, grupo, franja, alumno_1_id, alumno_2_id, activo')
+      .eq('activo', true)
+      .returns<
+        Array<{
+          cohorte_id: string;
+          grupo: string;
+          franja: string;
+          alumno_1_id: string;
+          alumno_2_id: string;
+          activo: boolean | null;
+        }>
+      >(),
+  ]);
+
+  if (errCohortes || errInsc) {
+    console.error('[obtenerDatosConsolaCabina] Error de lectura:', {
+      errCohortes: errCohortes?.message ?? null,
+      errInsc: errInsc?.message ?? null,
+    });
+    return { cohortes: [], alumnosPorCohorte: {} };
+  }
+
+  type FilaInscMulti = FilaInscripcion & { cohorte_id: string };
+  const inscRows = (filasInscripciones ?? []) as unknown as FilaInscMulti[];
+
+  const nombrePorPostulante = new Map<string, string>();
+  const alumnosPorCohorte: Record<string, AlumnoTurno[]> = {};
+
+  for (const f of inscRows) {
+    const rel = Array.isArray(f.postulantes) ? f.postulantes[0] : f.postulantes;
+    if (!rel || !f.postulante_id || !f.cohorte_id) continue;
+    nombrePorPostulante.set(f.postulante_id, rel.nombre_completo);
+    if (!alumnosPorCohorte[f.cohorte_id]) {
+      alumnosPorCohorte[f.cohorte_id] = [];
+    }
+    alumnosPorCohorte[f.cohorte_id].push({
+      cohorte_id: f.cohorte_id,
+      inscripcion_id: f.id,
+      postulante_id: f.postulante_id,
+      nombre_completo: rel.nombre_completo,
+      dni: rel.dni,
+      estado: f.estado,
+      ranking_orden: f.ranking_orden,
+    });
+  }
+
+  const duplaMeta = new Map<
+    string,
+    { dupla_label: string; companero_nombre: string | null }
+  >();
+  for (const d of filasDuplas ?? []) {
+    const gLabel = d.grupo === 'GRUPO_B' ? 'Grupo B' : 'Grupo A';
+    const hLabel = FRANJA_HORARIO_CORTO[d.franja] ?? d.franja;
+    const etiqueta = `${gLabel} · ${hLabel}`;
+    duplaMeta.set(`${d.cohorte_id}::${d.alumno_1_id}`, {
+      dupla_label: etiqueta,
+      companero_nombre: nombrePorPostulante.get(d.alumno_2_id) ?? null,
+    });
+    duplaMeta.set(`${d.cohorte_id}::${d.alumno_2_id}`, {
+      dupla_label: etiqueta,
+      companero_nombre: nombrePorPostulante.get(d.alumno_1_id) ?? null,
+    });
+  }
+
+  for (const [cid, lista] of Object.entries(alumnosPorCohorte)) {
+    for (const a of lista) {
+      const meta = duplaMeta.get(`${cid}::${a.postulante_id}`);
+      if (meta) {
+        a.dupla_label = meta.dupla_label;
+        a.companero_nombre = meta.companero_nombre;
+      }
+    }
+  }
+
+  const pesoEstado = (e: string | null): number => {
+    if (e === 'activa') return 0;
+    if (e === 'borrador') return 1;
+    return 2;
+  };
+
+  const cohortes: CohorteCabinaOpcion[] = [...(filasCohortes ?? [])]
+    .sort((a, b) => pesoEstado(a.estado) - pesoEstado(b.estado))
+    .map((c) => ({
+      id: c.id,
+      codigo: c.codigo,
+      nombre: c.nombre,
+      estado: c.estado ?? 'activa',
+      total_alumnos: (alumnosPorCohorte[c.id] ?? []).length,
+    }));
+
+  return { cohortes, alumnosPorCohorte };
 }
 
 /**

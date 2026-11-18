@@ -1,7 +1,18 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
-import { Volume2, VolumeX, ArrowLeftRight } from 'lucide-react';
+import {
+  ArrowLeft,
+  ArrowLeftRight,
+  Award,
+  CheckCircle2,
+  ClipboardCheck,
+  Search,
+  Users,
+  Volume2,
+  VolumeX,
+  Wrench,
+} from 'lucide-react';
 import {
   conmutarSimuladorAutoelevadorCabina,
   registrarEvaluacionCabina,
@@ -14,6 +25,7 @@ import {
 import type {
   AlumnoTurno,
   BloqueSplit,
+  CohorteCabinaOpcion,
   DictamenCabina,
   EtapaEvaluacionCabina,
   EvaluacionCabinaInput,
@@ -24,17 +36,18 @@ import type {
 import type { DecisionInstructorTerreno } from '@/types/empleo';
 
 /**
- * Consola Viva de Cabina — interfaz táctil fullscreen para el instructor.
- *
- * Incluye selector granular de `nivel_asistencia` (min-h-[48px]) y cronómetro
- * Split 30/30 (1800 s por mitad) con switch visual de Piloto/Copiloto y alerta
- * sonora vía Web Audio API al alcanzar el minuto 30.
+ * Consola Viva de Cabina — Modo Tablet limpio en 3 Toques:
+ * 1. Elegir Cohorte -> 2. Elegir Instancia -> 3. Elegir Persona / Dupla -> Consola Táctil.
  */
 
 interface Props {
-  alumnos: AlumnoTurno[];
+  cohortes: CohorteCabinaOpcion[];
+  alumnosPorCohorte: Record<string, AlumnoTurno[]>;
   instructorDefault?: string;
 }
+
+type PasoTablet = 'cohorte' | 'instancia' | 'persona' | 'consola';
+type InstanciaTablet = 'DIAGNOSTICO' | 'FINAL' | 'PRACTICA_REAL';
 
 type ClavePuntaje =
   | 'puntaje_lateralidad'
@@ -258,22 +271,36 @@ function reproducirAlarmaIntercambio(ctxExistente: AudioContext | null): AudioCo
 }
 
 export default function ConsolaTactil({
-  alumnos,
+  cohortes,
+  alumnosPorCohorte,
   instructorDefault = '',
 }: Props) {
-  const [idSeleccionado, setIdSeleccionado] = useState<string | null>(
-    () => alumnos[0]?.inscripcion_id ?? null
+  const [paso, setPaso] = useState<PasoTablet>('cohorte');
+  const [cohorteIdSeleccionada, setCohorteIdSeleccionada] = useState<string | null>(
+    null
   );
+  const [instanciaSeleccionada, setInstanciaSeleccionada] =
+    useState<InstanciaTablet>('DIAGNOSTICO');
+  const [busquedaAlumno, setBusquedaAlumno] = useState('');
+
+  const cohorteActual = cohortes.find((c) => c.id === cohorteIdSeleccionada) ?? null;
+  const alumnos = useMemo(
+    () =>
+      cohorteIdSeleccionada
+        ? (alumnosPorCohorte[cohorteIdSeleccionada] ?? [])
+        : [],
+    [cohorteIdSeleccionada, alumnosPorCohorte]
+  );
+
+  const [idSeleccionado, setIdSeleccionado] = useState<string | null>(null);
   const [evaluados, setEvaluados] = useState<ReadonlySet<string>>(
     () => new Set<string>()
   );
   const [etapa, setEtapa] = useState<ModoConsolaTactil>('DIAG_INTENTO_1');
 
-  // Selección por id (no por índice). Tras revalidatePath la lista se
-  // acorta al remover descartados; si el id ya no existe, sincroniza al primero.
   const idx = alumnos.findIndex((a) => a.inscripcion_id === idSeleccionado);
-  const idxSeguro = idx >= 0 ? idx : 0;
-  const alumno = alumnos.length > 0 ? alumnos[idxSeguro] : undefined;
+  const alumno =
+    idSeleccionado && idx >= 0 && alumnos.length > 0 ? alumnos[idx] : undefined;
 
   const [puntajes, setPuntajes] = useState<PuntajesEstado>({
     puntaje_lateralidad: undefined,
@@ -321,18 +348,6 @@ export default function ConsolaTactil({
   const [enTransicion, iniciarTransicion] = useTransition();
   // Bloqueo síncrono contra doble submit por dos toques rápidos.
   const lock = useRef(false);
-
-  useEffect(() => {
-    if (alumnos.length === 0) {
-      setIdSeleccionado((id) => (id === null ? id : null));
-      return;
-    }
-    setIdSeleccionado((id) =>
-      id !== null && alumnos.some((a) => a.inscripcion_id === id)
-        ? id
-        : alumnos[0].inscripcion_id
-    );
-  }, [alumnos]);
 
   useEffect(() => {
     if (!corriendo) return;
@@ -453,24 +468,11 @@ export default function ConsolaTactil({
     setIntercambioConfirmado(true);
   }
 
-  /** Siguiente postulante sin evaluar (búsqueda lineal con wrap). */
-  function siguienteSinEvaluar(
-    lista: AlumnoTurno[],
-    yaEvaluados: ReadonlySet<string>,
-    desdeIdx: number
-  ): string | null {
-    for (let k = 1; k <= lista.length; k++) {
-      const cand = lista[(desdeIdx + k) % lista.length];
-      if (!yaEvaluados.has(cand.inscripcion_id)) return cand.inscripcion_id;
-    }
-    return null;
-  }
-
   function guardar() {
     if (enTransicion || lock.current) return;
 
     if (!alumno) {
-      setFeedback({ ok: false, texto: 'SIN POSTULANTE PENDIENTE PARA EVALUAR' });
+      setFeedback({ ok: false, texto: 'Seleccioná una persona para evaluar.' });
       return;
     }
 
@@ -482,7 +484,7 @@ export default function ConsolaTactil({
       lock.current = false;
       setFeedback({
         ok: false,
-        texto: 'DEBE INDICAR EL MOTIVO OBLIGATORIO DEL HARD-FAIL',
+        texto: 'Indicá el motivo obligatorio de la falta crítica.',
       });
       motivoHardFailRef.current?.focus();
       return;
@@ -492,7 +494,7 @@ export default function ConsolaTactil({
     if (etapa === 'PRACTICA_REAL') {
       const nivelFinal: NivelAsistencia = nivelAsistencia ?? 'AUTONOMO';
       const idGuardado = alumno.inscripcion_id;
-      const idxGuardado = idxSeguro;
+      const nombreGuardado = alumno.nombre_completo;
       const notasJuntas = [
         ...observacionesRapidas,
         observacionesDetalle.trim(),
@@ -535,18 +537,17 @@ export default function ConsolaTactil({
           if (resTerreno.ok) {
             setFeedback({
               ok: true,
-              texto: `PATIO GUARDADO (${asistenciaTerreno} · ${decisionTerreno}) · 0 STORAGE`,
+              texto: `${nombreGuardado}: Práctica en patio guardada (${asistenciaTerreno} · ${decisionTerreno}).`,
             });
             resetPantalla();
-            const nuevosEvaluados = new Set(evaluados).add(idGuardado);
-            const siguiente = siguienteSinEvaluar(alumnos, nuevosEvaluados, idxGuardado);
-            setEvaluados(nuevosEvaluados);
-            setIdSeleccionado(siguiente);
+            setEvaluados((prev) => new Set(prev).add(idGuardado));
+            setIdSeleccionado(null);
+            setPaso('persona');
           } else {
             setFeedback({ ok: false, texto: resTerreno.error });
           }
           if (timerFeedback.current) clearTimeout(timerFeedback.current);
-          timerFeedback.current = setTimeout(() => setFeedback(null), 4000);
+          timerFeedback.current = setTimeout(() => setFeedback(null), 5000);
         } finally {
           lock.current = false;
         }
@@ -557,12 +558,12 @@ export default function ConsolaTactil({
     const faltanEjes = EJES.some((e) => puntajes[e.clave] === undefined);
     if (!hardFail && faltanEjes) {
       lock.current = false;
-      setFeedback({ ok: false, texto: 'FALTAN PUNTAJES DE EJES POR MARCAR' });
+      setFeedback({ ok: false, texto: 'Faltan puntajes de ejes por marcar.' });
       return;
     }
     if (!hardFail && !nivelAsistencia) {
       lock.current = false;
-      setFeedback({ ok: false, texto: 'SELECCIONE EL NIVEL DE ASISTENCIA' });
+      setFeedback({ ok: false, texto: 'Seleccioná el nivel de asistencia.' });
       return;
     }
 
@@ -591,7 +592,7 @@ export default function ConsolaTactil({
     };
 
     const idGuardado = alumno.inscripcion_id;
-    const idxGuardado = idxSeguro;
+    const nombreGuardado = alumno.nombre_completo;
 
     iniciarTransicion(async () => {
       try {
@@ -599,24 +600,19 @@ export default function ConsolaTactil({
         if (resultado.ok) {
           setFeedback({
             ok: true,
-            texto: `GUARDADO (${etapa} · ${bloqueSplit}) · ${resultado.dictamen ?? 'OK'} · ${resultado.score ?? 0} PTS`,
+            texto: `${nombreGuardado} guardado (${etapa} · ${resultado.dictamen ?? 'OK'} · ${resultado.score ?? 0} pts).`,
           });
           resetPantalla();
-          const nuevosEvaluados = new Set(evaluados).add(idGuardado);
-          const siguiente = siguienteSinEvaluar(alumnos, nuevosEvaluados, idxGuardado);
-          setEvaluados(nuevosEvaluados);
-          setIdSeleccionado(siguiente);
-          if (!siguiente) {
-            setSimuladorEnLinea(false);
-            void conmutarSimuladorAutoelevadorCabina(false);
-          } else {
-            setSimuladorEnLinea(true);
-          }
+          setEvaluados((prev) => new Set(prev).add(idGuardado));
+          setIdSeleccionado(null);
+          setSimuladorEnLinea(false);
+          void conmutarSimuladorAutoelevadorCabina(false);
+          setPaso('persona');
         } else {
-          setFeedback({ ok: false, texto: resultado.error ?? 'ERROR AL GUARDAR' });
+          setFeedback({ ok: false, texto: resultado.error ?? 'Error al guardar.' });
         }
         if (timerFeedback.current) clearTimeout(timerFeedback.current);
-        timerFeedback.current = setTimeout(() => setFeedback(null), 4000);
+        timerFeedback.current = setTimeout(() => setFeedback(null), 5000);
       } finally {
         lock.current = false;
       }
@@ -625,9 +621,6 @@ export default function ConsolaTactil({
 
   const badge = preview.dictamen ? BADGE_DICTAMEN[preview.dictamen] : null;
   const etapaActual = ETAPAS.find((item) => item.valor === etapa) ?? ETAPAS[0];
-  const pendientes = alumnos.filter((a) => !evaluados.has(a.inscripcion_id)).length;
-  const jornadaFinalizada =
-    alumnos.length === 0 || alumnos.every((a) => evaluados.has(a.inscripcion_id));
 
   const alertaIntercambioActiva =
     segundos >= SEGUNDOS_MITAD_SPLIT && !intercambioConfirmado;
@@ -653,157 +646,386 @@ export default function ConsolaTactil({
     </p>
   ) : null;
 
-  // Pantalla de cierre cuando no queda ningún postulante pendiente en sesión.
-  if (jornadaFinalizada) {
+  const alumnosFiltrados = useMemo(() => {
+    const q = busquedaAlumno.trim().toLowerCase();
+    if (!q) return alumnos;
+    return alumnos.filter(
+      (a) =>
+        a.nombre_completo.toLowerCase().includes(q) ||
+        a.dni.toLowerCase().includes(q) ||
+        (a.dupla_label ?? '').toLowerCase().includes(q) ||
+        (a.companero_nombre ?? '').toLowerCase().includes(q)
+    );
+  }, [alumnos, busquedaAlumno]);
+
+  // ── TOQUE 1: Elegir Cohorte ──────────────────────────────────────────────
+  if (paso === 'cohorte' || !cohorteActual) {
     return (
-      <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col items-center justify-center gap-5 rounded-xl border border-slate-200 bg-white px-6 py-12 text-center shadow-sm">
-        <span
-          aria-hidden
-          className="h-3 w-3 rounded-full bg-emerald-500"
-        />
-        {feedbackBanner ? <div className="w-full max-w-sm">{feedbackBanner}</div> : null}
-        <h2 className="text-lg font-bold text-slate-900">
-          Sin alumnos pendientes · Jornada finalizada
-        </h2>
-        <p className="max-w-sm text-sm leading-relaxed text-slate-600">
-          Se evaluaron {evaluados.size} alumnos en etapa {etapaActual.codigo}.
-          Recargá la pantalla para ver los últimos cambios guardados.
-        </p>
-        <button
-          type="button"
-          onClick={() => {
-            setEvaluados(new Set<string>());
-            setIdSeleccionado(alumnos[0]?.inscripcion_id ?? null);
-            resetPantalla();
-          }}
-          className="flex h-14 w-full max-w-sm items-center justify-center rounded-xl bg-blue-600 text-sm font-bold text-white shadow-sm transition-colors hover:bg-blue-700 active:bg-blue-800"
-        >
-          Reiniciar sesión de evaluación
-        </button>
+      <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col space-y-5">
+        <header className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+          <p className="text-xs font-bold uppercase tracking-wider text-blue-700">
+            Modo Tablet · Paso 1 de 3
+          </p>
+          <h1 className="mt-1 text-xl font-bold text-slate-900">
+            Elegí la Cohorte para evaluar
+          </h1>
+          <p className="mt-1 text-sm text-slate-600">
+            Tocá una cohorte para seleccionar luego si vas a evaluar Diagnóstico, Prueba Final o Práctica en Patio.
+          </p>
+        </header>
+
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          {cohortes.map((c) => (
+            <button
+              key={c.id}
+              type="button"
+              onClick={() => {
+                setCohorteIdSeleccionada(c.id);
+                setIdSeleccionado(null);
+                setBusquedaAlumno('');
+                setPaso('instancia');
+              }}
+              className="flex min-h-[136px] flex-col justify-between rounded-2xl border-2 border-slate-200 bg-white p-5 text-left shadow-sm transition-all hover:border-blue-400 hover:bg-blue-50/40 active:scale-[0.99]"
+            >
+              <div className="flex items-start justify-between gap-2">
+                <span className="rounded-md border border-slate-200 bg-slate-50 px-2.5 py-0.5 text-xs font-bold text-slate-700">
+                  {c.codigo}
+                </span>
+                <span
+                  className={`rounded-full border px-2.5 py-0.5 text-xs font-semibold ${
+                    c.estado === 'activa'
+                      ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                      : 'border-slate-200 bg-slate-100 text-slate-600'
+                  }`}
+                >
+                  {c.estado === 'activa' ? 'En Curso' : c.estado}
+                </span>
+              </div>
+
+              <div className="mt-3">
+                <p className="text-base font-bold text-slate-900">{c.nombre}</p>
+                <p className="mt-1 flex items-center gap-1.5 text-xs font-semibold text-blue-700">
+                  <Users size={14} aria-hidden />
+                  {c.total_alumnos} alumnos habilitados
+                </p>
+              </div>
+            </button>
+          ))}
+        </div>
       </div>
     );
   }
 
-  return (
-    <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col space-y-4">
-      {/* ── Cabecera ─────────────────────────────────────────────── */}
-      <header className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h1 className="text-lg font-bold text-slate-900">
-              Evaluar en Cabina / Patio
-            </h1>
-            <p className="mt-0.5 text-xs font-medium text-slate-600">
-              Etapa {etapaActual.codigo} · Curso activo · {pendientes} pendientes de{' '}
-              {alumnos.length}
-            </p>
-          </div>
+  // ── TOQUE 2: Elegir Instancia ────────────────────────────────────────────
+  if (paso === 'instancia') {
+    const opcionesInstancia: Array<{
+      id: InstanciaTablet;
+      etapaDefault: ModoConsolaTactil;
+      titulo: string;
+      subtitulo: string;
+      icono: typeof ClipboardCheck;
+      borde: string;
+      badge: string;
+    }> = [
+      {
+        id: 'DIAGNOSTICO',
+        etapaDefault: 'DIAG_INTENTO_1',
+        titulo: '1. Prueba de Diagnóstico',
+        subtitulo: 'Primera o segunda pasada de evaluación inicial en simulador (V1 / V2).',
+        icono: ClipboardCheck,
+        borde: 'border-blue-200 hover:border-blue-500 hover:bg-blue-50/50',
+        badge: 'Cabina Simulador',
+      },
+      {
+        id: 'FINAL',
+        etapaDefault: 'FINAL',
+        titulo: '2. Prueba Final de Simulador',
+        subtitulo: 'Evaluación final de egreso en simulador al terminar las horas de cursado.',
+        icono: Award,
+        borde: 'border-emerald-200 hover:border-emerald-500 hover:bg-emerald-50/50',
+        badge: 'Cierre Simulador',
+      },
+      {
+        id: 'PRACTICA_REAL',
+        etapaDefault: 'PRACTICA_REAL',
+        titulo: '3. Práctica Real en Patio (Máquina Física)',
+        subtitulo: 'Evaluación directa sobre autoelevador real en predio con dictamen final.',
+        icono: Wrench,
+        borde: 'border-amber-200 hover:border-amber-500 hover:bg-amber-50/50',
+        badge: 'Patio / Terreno',
+      },
+    ];
+
+    return (
+      <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col space-y-5">
+        <header className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
           <button
             type="button"
-            onClick={() => {
-              const siguienteEstado = !simuladorEnLinea;
-              setSimuladorEnLinea(siguienteEstado);
-              void conmutarSimuladorAutoelevadorCabina(siguienteEstado);
-            }}
-            aria-pressed={simuladorEnLinea}
-            className={`inline-flex min-h-[40px] items-center gap-2 rounded-lg border px-3.5 py-1.5 text-xs font-bold transition-colors ${
-              simuladorEnLinea
-                ? 'border-amber-300 bg-amber-50 text-amber-800'
-                : 'border-emerald-300 bg-emerald-50 text-emerald-800'
-            }`}
+            onClick={() => setPaso('cohorte')}
+            className="mb-3 inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100"
           >
-            <span
-              aria-hidden
-              className={`h-2.5 w-2.5 rounded-full ${
-                simuladorEnLinea ? 'bg-amber-500 animate-pulse' : 'bg-emerald-500'
-              }`}
-            />
-            {simuladorEnLinea ? 'Simulador Autoelevador en uso (3D)' : 'Simulador libre (3D)'}
+            <ArrowLeft size={14} aria-hidden />
+            Cambiar Cohorte ({cohorteActual.codigo})
           </button>
-        </div>
-      </header>
+          <p className="text-xs font-bold uppercase tracking-wider text-blue-700">
+            Modo Tablet · Paso 2 de 3
+          </p>
+          <h1 className="mt-1 text-xl font-bold text-slate-900">
+            ¿Qué instancia vas a evaluar?
+          </h1>
+          <p className="mt-0.5 text-sm text-slate-600">
+            Cohorte: <strong>{cohorteActual.nombre}</strong>
+          </p>
+        </header>
 
-      {/* ── Selector de etapa de evaluación ──────────────────────── */}
-      <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-        <p className="mb-2.5 text-xs font-bold uppercase tracking-wider text-slate-500">
-          Etapa de evaluación
-        </p>
-        <div role="group" aria-label="Etapa de evaluación" className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-          {ETAPAS.map((item) => {
-            const activa = etapa === item.valor;
+        <div className="grid grid-cols-1 gap-4">
+          {opcionesInstancia.map((op) => {
+            const Icon = op.icono;
             return (
               <button
-                key={item.valor}
+                key={op.id}
                 type="button"
-                aria-pressed={activa}
-                onClick={() => setEtapa(item.valor)}
-                className={`flex min-h-[52px] flex-col items-center justify-center rounded-xl border px-2 py-2 text-center transition-colors ${
-                  activa
-                    ? 'border-blue-600 bg-blue-600 text-white shadow-sm'
-                    : 'border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100'
-                }`}
+                onClick={() => {
+                  setInstanciaSeleccionada(op.id);
+                  setEtapa(op.etapaDefault);
+                  setPaso('persona');
+                }}
+                className={`flex min-h-[112px] items-center gap-4 rounded-2xl border-2 bg-white p-5 text-left shadow-sm transition-all active:scale-[0.99] ${op.borde}`}
               >
-                <span className="text-xs font-bold">
-                  {item.codigo}
+                <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-slate-800">
+                  <Icon size={26} strokeWidth={1.85} aria-hidden />
                 </span>
-                <span
-                  className={`text-[11px] ${
-                    activa ? 'text-blue-100' : 'text-slate-500'
-                  }`}
-                >
-                  {item.subtitulo}
-                </span>
+                <div className="min-w-0 flex-1">
+                  <span className="inline-block rounded-full border border-slate-200 bg-slate-100 px-2.5 py-0.5 text-[11px] font-bold text-slate-700">
+                    {op.badge}
+                  </span>
+                  <p className="mt-1.5 text-lg font-bold text-slate-900">
+                    {op.titulo}
+                  </p>
+                  <p className="mt-0.5 text-xs text-slate-600">{op.subtitulo}</p>
+                </div>
               </button>
             );
           })}
         </div>
-      </section>
+      </div>
+    );
+  }
 
-      {/* ── Selector de alumnos (chips con scroll horizontal) ────── */}
-      <nav
-        aria-label="Alumnos en turno"
-        className="flex gap-2.5 overflow-x-auto rounded-xl border border-slate-200 bg-white p-3 shadow-sm"
-      >
-        {alumnos.map((a) => {
-          const activo = a.inscripcion_id === idSeleccionado;
-          const yaEvaluado = evaluados.has(a.inscripcion_id);
-          return (
+  // ── TOQUE 3: Elegir Persona o Dupla ──────────────────────────────────────
+  if (paso === 'persona' || !alumno) {
+    return (
+      <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col space-y-4">
+        <header className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="mb-3 flex flex-wrap gap-2">
             <button
-              key={a.inscripcion_id}
               type="button"
-              onClick={() => setIdSeleccionado(a.inscripcion_id)}
-              aria-pressed={activo}
-              className={`flex min-h-[52px] shrink-0 flex-col items-start justify-center rounded-xl border px-4 py-2 transition-colors ${
-                activo
-                  ? 'border-blue-600 bg-blue-600 text-white shadow-sm'
-                  : 'border-slate-200 bg-slate-50 text-slate-800 hover:bg-slate-100'
+              onClick={() => setPaso('cohorte')}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100"
+            >
+              <ArrowLeft size={14} aria-hidden />
+              Cohorte: {cohorteActual.codigo}
+            </button>
+            <button
+              type="button"
+              onClick={() => setPaso('instancia')}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700 hover:bg-blue-100"
+            >
+              <ArrowLeft size={14} aria-hidden />
+              Instancia: {etapaActual.codigo}
+            </button>
+          </div>
+          <p className="text-xs font-bold uppercase tracking-wider text-blue-700">
+            Modo Tablet · Paso 3 de 3
+          </p>
+          <h1 className="mt-1 text-xl font-bold text-slate-900">
+            Tocá a la persona o dupla a evaluar
+          </h1>
+          <p className="mt-0.5 text-sm text-slate-600">
+            {alumnos.length} alumnos en {cohorteActual.nombre} · {evaluados.size} evaluados en esta sesión
+          </p>
+        </header>
+
+        {feedbackBanner}
+
+        <div className="relative">
+          <Search
+            size={18}
+            className="pointer-events-none absolute top-1/2 left-4 -translate-y-1/2 text-slate-400"
+            aria-hidden
+          />
+          <input
+            type="search"
+            value={busquedaAlumno}
+            onChange={(e) => setBusquedaAlumno(e.target.value)}
+            placeholder="Buscar alumno por nombre, DNI o grupo de dupla…"
+            className="h-12 w-full rounded-xl border border-slate-300 bg-white pr-4 pl-11 text-sm text-slate-900 shadow-xs placeholder:text-slate-400"
+          />
+        </div>
+
+        {alumnosFiltrados.length === 0 ? (
+          <div className="rounded-xl border border-dashed border-slate-300 bg-white p-8 text-center">
+            <p className="text-sm font-semibold text-slate-700">
+              No hay alumnos que coincidan con la búsqueda.
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            {alumnosFiltrados.map((a) => {
+              const yaEvaluado = evaluados.has(a.inscripcion_id);
+              return (
+                <button
+                  key={a.inscripcion_id}
+                  type="button"
+                  onClick={() => {
+                    setIdSeleccionado(a.inscripcion_id);
+                    resetPantalla();
+                    setPaso('consola');
+                  }}
+                  className={`flex min-h-[88px] flex-col justify-between rounded-xl border-2 p-4 text-left shadow-xs transition-all active:scale-[0.99] ${
+                    yaEvaluado
+                      ? 'border-emerald-200 bg-emerald-50/40 hover:border-emerald-400'
+                      : 'border-slate-200 bg-white hover:border-blue-400 hover:bg-blue-50/30'
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <p className="text-base font-bold text-slate-900">
+                        {a.nombre_completo}
+                      </p>
+                      <p className="text-xs text-slate-600">
+                        #{a.ranking_orden} · DNI {a.dni}
+                      </p>
+                    </div>
+                    {yaEvaluado && (
+                      <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-emerald-200 bg-emerald-100 px-2 py-0.5 text-[11px] font-bold text-emerald-800">
+                        <CheckCircle2 size={12} aria-hidden />
+                        Evaluado
+                      </span>
+                    )}
+                  </div>
+
+                  {a.dupla_label && (
+                    <p className="mt-2 rounded-md border border-blue-200 bg-blue-50 px-2.5 py-1 text-[11px] font-semibold text-blue-800">
+                      {a.dupla_label}
+                      {a.companero_nombre ? ` · Dupla con ${a.companero_nombre}` : ''}
+                    </p>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  const companeroAlumno = alumno.companero_nombre
+    ? alumnos.find((a) => a.nombre_completo === alumno.companero_nombre) ?? null
+    : null;
+
+  return (
+    <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col space-y-4">
+      {/* ── Cabecera de Evaluación Activa ────────────────────────── */}
+      <header className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              setCorriendo(false);
+              setPaso('persona');
+            }}
+            className="inline-flex min-h-[40px] items-center gap-1.5 rounded-lg border border-slate-300 bg-slate-50 px-3 text-xs font-semibold text-slate-700 hover:bg-slate-100"
+          >
+            <ArrowLeft size={14} aria-hidden />
+            Elegir otra persona / dupla
+          </button>
+
+          {etapa !== 'PRACTICA_REAL' && (
+            <button
+              type="button"
+              onClick={() => {
+                const siguienteEstado = !simuladorEnLinea;
+                setSimuladorEnLinea(siguienteEstado);
+                void conmutarSimuladorAutoelevadorCabina(siguienteEstado);
+              }}
+              aria-pressed={simuladorEnLinea}
+              className={`inline-flex min-h-[40px] items-center gap-2 rounded-lg border px-3.5 py-1.5 text-xs font-bold transition-colors ${
+                simuladorEnLinea
+                  ? 'border-blue-300 bg-blue-50 text-blue-800'
+                  : 'border-emerald-300 bg-emerald-50 text-emerald-800'
               }`}
             >
-              <span className="flex items-center gap-1.5">
-                {yaEvaluado ? (
-                  <span
-                    aria-hidden
-                    className={`h-2.5 w-2.5 rounded-full ${
-                      activo ? 'bg-emerald-300' : 'bg-emerald-500'
-                    }`}
-                    title="Evaluado en esta sesión"
-                  />
-                ) : null}
-                <span className="max-w-44 truncate text-xs font-bold">
-                  {a.nombre_completo}
-                </span>
-              </span>
               <span
-                className={`text-[11px] ${
-                  activo ? 'text-blue-100' : 'text-slate-500'
+                aria-hidden
+                className={`h-2.5 w-2.5 rounded-full ${
+                  simuladorEnLinea ? 'bg-blue-500 animate-pulse' : 'bg-emerald-500'
                 }`}
-              >
-                DNI {a.dni}
-              </span>
+              />
+              {simuladorEnLinea ? 'SIM-01 En Uso (3D)' : 'SIM-01 Libre (3D)'}
             </button>
-          );
-        })}
-      </nav>
+          )}
+        </div>
+
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-3">
+          <div>
+            <p className="text-xs font-semibold text-blue-700">
+              {cohorteActual.codigo} · {etapaActual.codigo}
+            </p>
+            <h1 className="text-xl font-bold text-slate-900">
+              {alumno.nombre_completo}
+            </h1>
+            <p className="text-xs text-slate-600">
+              DNI {alumno.dni}
+              {alumno.dupla_label ? ` · ${alumno.dupla_label}` : ''}
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            {instanciaSeleccionada === 'DIAGNOSTICO' && (
+              <div
+                role="group"
+                aria-label="Pasada de diagnóstico"
+                className="flex rounded-lg border border-slate-200 bg-slate-50 p-1"
+              >
+                {(
+                  [
+                    ['DIAG_INTENTO_1', 'Diag 1 (V1)'],
+                    ['DIAG_INTENTO_2', 'Diag 2 (V2)'],
+                  ] as const
+                ).map(([val, lbl]) => (
+                  <button
+                    key={val}
+                    type="button"
+                    onClick={() => setEtapa(val)}
+                    className={`rounded-md px-3 py-1.5 text-xs font-bold transition-colors ${
+                      etapa === val
+                        ? 'bg-blue-600 text-white shadow-2xs'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    {lbl}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {companeroAlumno && (
+              <button
+                type="button"
+                onClick={() => {
+                  setIdSeleccionado(companeroAlumno.inscripcion_id);
+                  resetPantalla();
+                }}
+                className="inline-flex min-h-[40px] items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-3 text-xs font-semibold text-blue-700 hover:bg-blue-100"
+              >
+                <ArrowLeftRight size={13} aria-hidden />
+                Compañero: {companeroAlumno.nombre_completo.split(' ')[0]}
+              </button>
+            )}
+          </div>
+        </div>
+      </header>
 
       {/* ── Cronómetro Split 30/30 OR Panel Práctica Real en Patio ─ */}
       {etapa === 'PRACTICA_REAL' ? (

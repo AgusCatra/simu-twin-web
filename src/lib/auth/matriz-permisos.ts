@@ -65,29 +65,13 @@ export function puedeAccederRuta(rol: RolSistema, pathnameRaw: string): boolean 
   const pathname =
     pathnameRaw.length > 1 ? pathnameRaw.replace(/\/+$/, '') : pathnameRaw;
 
-  if (rol === 'superadmin' || rol === 'administracion') {
-    return (
-      coincidePrefijoRuta(pathname, '/admin') ||
-      coincidePrefijoRuta(pathname, '/gestion') ||
-      coincidePrefijoRuta(pathname, '/cabina')
-    );
-  }
-
-  if (rol === 'empleo') {
-    return coincidePrefijoRuta(pathname, '/gestion/cohortes');
-  }
-
-  if (rol === 'instructor' || rol === 'mesa_instructores') {
-    return (
-      coincidePrefijoRuta(pathname, '/cabina/evaluacion') ||
-      coincidePrefijoRuta(pathname, '/admin/registro-actividades') ||
-      coincidePrefijoRuta(pathname, '/gestion/cohortes')
-    );
-  }
-
   if (rol === 'chofer_tup') {
     return coincidePrefijoRuta(pathname, '/admin/tup');
   }
 
-  return false;
+  return (
+    coincidePrefijoRuta(pathname, '/admin') ||
+    coincidePrefijoRuta(pathname, '/gestion') ||
+    coincidePrefijoRuta(pathname, '/cabina')
+  );
 }

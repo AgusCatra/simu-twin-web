@@ -30,13 +30,18 @@ interface FilaPerfilDB {
   activo: boolean | null;
 }
 
+const EMAILS_SUPERADMIN_PRINCIPAL = new Set([
+  'catramado@gmail.com',
+  'catramado17@gmail.com',
+]);
+
 /**
  * Resuelve el perfil y rol RBAC del usuario autenticado en `public.perfiles_usuarios`.
  *
  * REGLA ANTI-BLOQUEO (Fail-Safe): si el usuario posee sesión válida en Supabase Auth
- * pero aún no tiene fila en `public.perfiles_usuarios` (o su rol no es válido),
- * se resuelve en tiempo de ejecución como `'superadmin'` y se intenta sembrar la fila
- * para que la cuenta principal jamás quede bloqueada fuera del sistema.
+ * pero aún no tiene fila en `public.perfiles_usuarios`, su rol no es válido, o
+ * corresponde al correo administrador principal con un rol degradado, se promueve y
+ * persiste como `'superadmin'`.
  */
 export async function obtenerPerfilUsuarioActual(): Promise<PerfilUsuario | null> {
   const supabase = await createClient();
@@ -61,6 +66,9 @@ export async function obtenerPerfilUsuarioActual(): Promise<PerfilUsuario | null
   }
 
   const emailUsuario = fila?.email?.trim() || user.email?.trim() || 'usuario@local';
+  const esAdminPrincipal = EMAILS_SUPERADMIN_PRINCIPAL.has(
+    emailUsuario.toLowerCase()
+  );
   const nombreDefault =
     fila?.nombre_completo?.trim() ||
     (typeof user.user_metadata?.full_name === 'string'
@@ -69,7 +77,11 @@ export async function obtenerPerfilUsuarioActual(): Promise<PerfilUsuario | null
     emailUsuario.split('@')[0] ||
     'Administrador';
 
-  if (fila && esRolSistemaValido(fila.rol)) {
+  if (
+    fila &&
+    esRolSistemaValido(fila.rol) &&
+    (!esAdminPrincipal || fila.rol === 'superadmin')
+  ) {
     return {
       id: fila.id,
       email: emailUsuario,
@@ -80,8 +92,10 @@ export async function obtenerPerfilUsuarioActual(): Promise<PerfilUsuario | null
     };
   }
 
-  // Fail-Safe: sembrar fila superadmin si la tabla no tiene el registro o le falta rol.
-  const rolFailSafe: RolSistema = normalizarRolSistema(fila?.rol);
+  // Fail-Safe: sembrar/elevar fila a superadmin si falta o si es cuenta administradora principal.
+  const rolFailSafe: RolSistema = esAdminPrincipal
+    ? 'superadmin'
+    : normalizarRolSistema(fila?.rol);
   try {
     await reader.from('perfiles_usuarios').upsert(
       {
