@@ -6,6 +6,7 @@ import {
   type GeneroParticipante,
   type TipoActividad,
 } from '@/types/actividades';
+import { calcularHorasHombreYMaquina } from '@/lib/horas-capacitacion';
 import { METADATA_BAHIAS, SLUGS_SIMULADORES, type SimuladorSlug } from '@/types/gemelo';
 
 export interface UsoSimuladorResumen {
@@ -17,6 +18,7 @@ export interface UsoSimuladorResumen {
   sesionesActividades: number;
   sesionesCohorte: number;
   horasCohorte: number;
+  horasHombreCohorte?: number;
   horasConsolidadas: number;
 }
 
@@ -54,6 +56,7 @@ export interface ResumenVisitasHistoricas {
 
 export interface EstadisticasGlobalesCentro {
   horasTotalesFlota: number;
+  horasHombreCapacitacion?: number;
   totalSesionesRegistradas: number;
   totalActividades: number;
   alcance: {
@@ -120,8 +123,12 @@ interface FilaAsistenteEst {
 }
 
 interface FilaSesionPracticaEst {
+  cohorte_id: string | null;
+  dupla_id: string | null;
+  numero_sesion: number | null;
+  fecha_programada: string | null;
+  fecha_real: string | null;
   estado_asistencia: string;
-  minutos_operacion: number | null;
 }
 
 interface FilaMovimientoEst {
@@ -258,7 +265,7 @@ export async function obtenerEstadisticasGlobalesCentro(): Promise<EstadisticasG
     db.from('postulantes').select('id', { count: 'exact', head: true }),
     db
       .from('sesiones_practica')
-      .select('estado_asistencia, minutos_operacion')
+      .select('cohorte_id, dupla_id, numero_sesion, fecha_programada, fecha_real, estado_asistencia')
       .returns<FilaSesionPracticaEst[]>(),
     db
       .from('stock_movimientos')
@@ -289,14 +296,12 @@ export async function obtenerEstadisticasGlobalesCentro(): Promise<EstadisticasG
     actPorSim.set(asim.simulador_id, prev);
   }
 
-  const sesionesPresentesCohorte = filasSesiones.filter(
-    (s) => s.estado_asistencia === 'PRESENTE'
-  );
-  const minutosCohorte = sesionesPresentesCohorte.reduce(
-    (acc, s) => acc + Math.max(0, numSeguro(s.minutos_operacion) || 30),
-    0
-  );
-  const horasCohorteAutoelevador = Number((minutosCohorte / 60).toFixed(2));
+  const {
+    sesionesPresentes,
+    turnosMaquinaActivos,
+    horasHombreSimulador,
+    horasMaquinaSimulador,
+  } = calcularHorasHombreYMaquina(filasSesiones);
 
   const usoPorSimulador: UsoSimuladorResumen[] = SLUGS_SIMULADORES.map((slug) => {
     const meta = METADATA_BAHIAS[slug];
@@ -305,10 +310,14 @@ export async function obtenerEstadisticasGlobalesCentro(): Promise<EstadisticasG
     const horasOdometro = Number(numSeguro(row?.horas_uso_totales).toFixed(2));
     const horasActividades = Number((act.minutos / 60).toFixed(2));
     const esAutoelevador = slug === 'autoelevador';
-    const sesionesCohorte = esAutoelevador ? sesionesPresentesCohorte.length : 0;
-    const horasCohorte = esAutoelevador ? horasCohorteAutoelevador : 0;
+    const sesionesCohorte = esAutoelevador ? turnosMaquinaActivos : 0;
+    // Horas-Máquina de SIM-01: 1.0 h reloj por turno de dupla (sin duplicar por 2 alumnos)
+    const horasCohorte = esAutoelevador ? horasMaquinaSimulador : 0;
     const horasBase = Math.max(horasOdometro, horasActividades);
-    const horasConsolidadas = Number((horasBase + horasCohorte).toFixed(2));
+    // Evita doble conteo si el odómetro persistido ya fue actualizado por sesiones
+    const horasConsolidadas = Number(
+      Math.max(horasBase, horasActividades + horasCohorte).toFixed(2)
+    );
 
     return {
       id: slug,
@@ -319,6 +328,7 @@ export async function obtenerEstadisticasGlobalesCentro(): Promise<EstadisticasG
       sesionesActividades: act.sesiones,
       sesionesCohorte,
       horasCohorte,
+      horasHombreCohorte: esAutoelevador ? horasHombreSimulador : 0,
       horasConsolidadas,
     };
   });
@@ -326,10 +336,9 @@ export async function obtenerEstadisticasGlobalesCentro(): Promise<EstadisticasG
   const horasTotalesFlota = Number(
     usoPorSimulador.reduce((acc, s) => acc + s.horasConsolidadas, 0).toFixed(2)
   );
-  const totalSesionesRegistradas = usoPorSimulador.reduce(
-    (acc, s) => acc + s.sesionesActividades + s.sesionesCohorte,
-    0
-  );
+  const totalSesionesRegistradas =
+    usoPorSimulador.reduce((acc, s) => acc + s.sesionesActividades, 0) +
+    sesionesPresentes;
 
   // 2. Perfil demográfico, ocupacional y distribución por tipo de actividad
   const porGenero: ResumenGenero = {
@@ -483,6 +492,7 @@ export async function obtenerEstadisticasGlobalesCentro(): Promise<EstadisticasG
 
   return {
     horasTotalesFlota,
+    horasHombreCapacitacion: horasHombreSimulador,
     totalSesionesRegistradas,
     totalActividades: filasActs.length,
     alcance: {
@@ -534,9 +544,9 @@ export async function obtenerMetricasLandingCentro(): Promise<MetricasLandingCen
         .returns<Array<{ id: string; horas_uso_totales: number | null }>>(),
       db
         .from('sesiones_practica')
-        .select('minutos_operacion')
+        .select('cohorte_id, dupla_id, numero_sesion, fecha_programada, fecha_real, estado_asistencia')
         .eq('estado_asistencia', 'PRESENTE')
-        .returns<Array<{ minutos_operacion: number | null }>>(),
+        .returns<FilaSesionPracticaEst[]>(),
       db
         .from('visitas_educativas')
         .select('id, id_escuela, otra_institucion_nombre, cant_alumnos, estado_visita')
@@ -562,9 +572,8 @@ export async function obtenerMetricasLandingCentro(): Promise<MetricasLandingCen
       (acc, s) => acc + Math.max(0, numSeguro(s.horas_uso_totales)),
       0
     );
-    const horasCohortes = (resSesiones.data ?? []).reduce(
-      (acc, s) => acc + Math.max(0, numSeguro(s.minutos_operacion) || 30) / 60,
-      0
+    const { horasMaquinaSimulador: horasCohortes } = calcularHorasHombreYMaquina(
+      resSesiones.data ?? []
     );
 
     const escuelasUnicas = new Set<string>();

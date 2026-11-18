@@ -38,22 +38,15 @@ const IDS_SIMULADOR_AUTOELEVADOR = ['autoelevador', 'SIM-01'] as const;
 
 type ClienteSupabaseServidor = Awaited<ReturnType<typeof createClient>>;
 
-interface FilaSimuladorAutoelevador {
-  id: string;
-  estado: string | null;
-  horas_uso_totales: number | null;
-}
-
 async function sincronizarSimuladorAutoelevador(
   supabase: ClienteSupabaseServidor,
-  enOperacion: boolean,
-  segundosSesion?: number | null
+  enOperacion: boolean
 ): Promise<boolean> {
   const { data: filasRaw, error: errSelect } = await supabase
     .from('simuladores')
-    .select('id, estado, horas_uso_totales')
+    .select('id, estado')
     .in('id', [...IDS_SIMULADOR_AUTOELEVADOR])
-    .returns<FilaSimuladorAutoelevador[]>();
+    .returns<Array<{ id: string; estado: string | null }>>();
 
   if (errSelect) {
     console.error('[cabina] Error al leer simulador de autoelevador:', {
@@ -67,28 +60,14 @@ async function sincronizarSimuladorAutoelevador(
   if (filas.length === 0) return false;
 
   const ahoraIso = new Date().toISOString();
-  const horasExtra =
-    typeof segundosSesion === 'number' &&
-    Number.isFinite(segundosSesion) &&
-    segundosSesion > 0
-      ? Math.round((segundosSesion / 3600) * 100) / 100
-      : 0;
-
   let actualizadoAlguno = false;
   for (const fila of filas) {
     if (fila.estado === 'mantenimiento') continue;
-
-    const horasActuales =
-      typeof fila.horas_uso_totales === 'number' &&
-      Number.isFinite(fila.horas_uso_totales)
-        ? fila.horas_uso_totales
-        : 0;
 
     const patch: {
       estado: 'en_operacion' | 'libre';
       actualizado_el: string;
       actividad_actual_id?: null;
-      horas_uso_totales?: number;
     } = enOperacion
       ? {
           estado: 'en_operacion',
@@ -99,10 +78,6 @@ async function sincronizarSimuladorAutoelevador(
           actividad_actual_id: null,
           actualizado_el: ahoraIso,
         };
-
-    if (horasExtra > 0) {
-      patch.horas_uso_totales = Math.round((horasActuales + horasExtra) * 100) / 100;
-    }
 
     const { error: errUpdate } = await supabase
       .from('simuladores')
@@ -239,6 +214,7 @@ export async function obtenerAlumnosTurno(): Promise<AlumnoTurno[]> {
     if (!rel || !f.postulante_id) continue;
 
     alumnos.push({
+      cohorte_id: cohorteId,
       inscripcion_id: f.id,
       postulante_id: f.postulante_id,
       nombre_completo: rel.nombre_completo,
@@ -472,14 +448,21 @@ export async function registrarEvaluacionCabina(
   }
 
   const ahoraIso = new Date().toISOString();
-  if (dictamenFinal === 'NO_APTO' || hardFail) {
+  const decisionManual = datos.decision_manual_t0 ?? null;
+  const descartePorDecision =
+    decisionManual === 'RECHAZADO' ||
+    (decisionManual === null && (dictamenFinal === 'NO_APTO' || hardFail));
+
+  if (descartePorDecision) {
     const motivoBaja =
-      hardFail && motivoHardFail
-        ? `Hard-fail en cabina (${etapa}): ${motivoHardFail}`.slice(
-            0,
-            MAX_MOTIVO_HARD_FAIL
-          )
-        : `No apto en evaluación de cabina (${etapa})`;
+      decisionManual === 'RECHAZADO'
+        ? `Rechazado por decisión manual del instructor (${etapa})`
+        : hardFail && motivoHardFail
+          ? `Hard-fail en cabina (${etapa}): ${motivoHardFail}`.slice(
+              0,
+              MAX_MOTIVO_HARD_FAIL
+            )
+          : `No apto en evaluación de cabina (${etapa})`;
 
     const { error: errUpdate } = await supabase
       .from('cohorte_inscripciones')
@@ -526,8 +509,37 @@ export async function registrarEvaluacionCabina(
     }
   }
 
-  // Refleja la práctica activa de autoelevador en SIM-01 (Gemelo 3D + SCADA).
-  await sincronizarSimuladorAutoelevador(supabase, true, tiempo);
+  if (decisionManual) {
+    await supabase.from('evaluacion_diagnostico').upsert(
+      {
+        postulante_id: postulanteId,
+        etapa: 'DIAG_INTENTO_1',
+        es_mejor_diagnostico: false,
+        archivo_fuente: 'DECISION_INSTRUCTOR_COHORTE',
+        asistencia_cabina: asistencia,
+        dictamen:
+          decisionManual === 'RECHAZADO'
+            ? 'NO_APTO'
+            : decisionManual === 'PENDIENTE'
+              ? 'CONDICIONAL'
+              : 'APTO_DIRECTO',
+        instructor_evaluador: instructorEvaluador,
+        observaciones_detalle: observacionesDetalle,
+        telemetria_metricas: {
+          tipo: 'DECISION_INSTRUCTOR',
+          cohorte_id: cohorteActivaId,
+          decision_t0: decisionManual,
+          observacion_decision_t0: observacionesDetalle,
+          horas_refuerzo_simulador: 0,
+          asistio_teoria: true,
+        },
+      },
+      { onConflict: 'postulante_id,archivo_fuente' }
+    );
+  }
+
+  // Refleja la práctica activa de autoelevador en SIM-01 (sin sumar tiempo de vuelta al odómetro).
+  await sincronizarSimuladorAutoelevador(supabase, true);
 
   revalidatePath('/cabina/evaluacion');
   revalidatePath('/gestion/cohortes');

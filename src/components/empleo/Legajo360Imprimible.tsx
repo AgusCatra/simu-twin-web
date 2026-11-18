@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { calcularCargaHorariaOperador } from '@/lib/horas-capacitacion';
 import type { InformeEmpleoIA } from '@/lib/ia/generador-informe';
 import type { MetricasSimulador } from '@/lib/telemetria/parser-simulador';
 import type {
@@ -106,6 +107,19 @@ export default function Legajo360Imprimible({
   const presentes = sesiones.filter(
     (s) => s.estado_asistencia === 'PRESENTE'
   ).length;
+  const decInst = legajo?.decisionInstructor ?? null;
+  const pracReal = legajo?.practicaReal ?? null;
+  const carga = calcularCargaHorariaOperador({
+    config: cohorte?.configuracion_cursado,
+    asistioTeoria:
+      decInst?.asistio_teoria ??
+      (postulante.estado === 'CONFIRMADO' || presentes > 0 || Boolean(pracReal)),
+    sesionesPresentes: presentes,
+    tieneInstanciaCabina: Boolean(ev || metricas),
+    horasRefuerzoSimulador: decInst?.horas_refuerzo_simulador ?? 0,
+    practicaReal: pracReal,
+    horasRecomendadasTitan: horasRec,
+  });
 
   const contenido = (
     <div className="hoja-legajo-360" aria-hidden="true">
@@ -273,10 +287,112 @@ export default function Legajo360Imprimible({
         )}
       </section>
 
+      {/* ── Analítica Predictiva + Evaluación Longitudinal 4 Etapas ─ */}
+      <section className="l360-box">
+        <h2 className="l360-box-title">
+          4B. Analítica Predictiva B2B e Integración Longitudinal (4 Etapas)
+        </h2>
+        <p style={{ margin: '0 0 4px' }}>
+          <strong>Cuidado Mecánico del Activo:</strong>{' '}
+          {postulante.analitica?.cuidadoMecanico
+            ? `${postulante.analitica.cuidadoMecanico.indiceCuidadoMecanico}% (${postulante.analitica.cuidadoMecanico.categoria})`
+            : '—'}{' '}
+          · <strong>Plasticidad Predictiva (V1→V2):</strong>{' '}
+          {postulante.analitica?.plasticidad
+            ? `${postulante.analitica.plasticidad.indicePlasticidad}/100 (${postulante.analitica.plasticidad.categoria})`
+            : 'Instancia única'}{' '}
+          · <strong>Percentiles Cohorte:</strong> Score P
+          {postulante.analitica?.percentilScore ?? '—'} · Vel P
+          {postulante.analitica?.percentilVelocidad ?? '—'} · Cuidado P
+          {postulante.analitica?.percentilCuidadoMecanico ?? '—'}
+        </p>
+        <div style={{ fontSize: '8.2pt', lineHeight: 1.35 }}>
+          <p style={{ margin: '0 0 2px' }}>
+            <strong>Etapa 1 (Diagnóstico T0 + Tablet):</strong>{' '}
+            {informe?.evaluacionLongitudinal?.etapa1DiagnosticoT0 ??
+              `Perfil ${perfil}, Score ${fNum(metricas?.scorePuntos ?? ev?.telemetria.score_puntos, ' pts')}, Colisiones ${fNum(metricas?.colisionesReales ?? ev?.telemetria.colisiones)}${decInst?.decision_t0 ? `, Decisión instructor T0: ${decInst.decision_t0}` : ''}.`}
+          </p>
+          <p style={{ margin: '0 0 2px' }}>
+            <strong>Etapa 2 (Capacitación en Simulador):</strong>{' '}
+            {informe?.evaluacionLongitudinal?.etapa2CapacitacionSimulador ??
+              `${presentes} sesiones en dupla (${carga.horasSimuladorTotal} hs sim.) · Carga certificada acumulada: ${carga.totalCertificadas} hs (Teoría ${carga.horasTeoria}h + Sim. ${carga.horasSimuladorTotal}h + Terreno ${carga.horasTerrenoTotal}h).`}
+          </p>
+          <p style={{ margin: '0 0 2px' }}>
+            <strong>Etapa 3 (Prueba Final T1 y Deltas):</strong>{' '}
+            {informe?.evaluacionLongitudinal?.etapa3PruebaFinalT1 ??
+              (comparativa?.pruebaFinal
+                ? `Score Final ${fNum(comparativa.pruebaFinal.scorePuntos, ' pts')} · ΔScore ${fNum(comparativa.deltaFinal?.deltaScore, ' pts')} · Colisiones ${fNum(comparativa.pruebaFinal.colisiones)}.`
+                : 'Pendiente de realización / carga de reporte final T1.')}
+          </p>
+          <p style={{ margin: 0 }}>
+            <strong>Etapa 4 (Práctica Real en Terreno):</strong>{' '}
+            {informe?.evaluacionLongitudinal?.etapa4PracticaTerreno ??
+              (pracReal
+                ? `${pracReal.fecha_practica} · Asistencia ${pracReal.asistencia_terreno ?? 'PRESENTE'} · Resultado ${pracReal.resultado.toUpperCase()} · Decisión: ${pracReal.decision_instructor_terreno ?? '—'}.`
+                : 'Pendiente de evaluación en autoelevador físico.')}
+          </p>
+        </div>
+      </section>
+
+      {/* ── Carga Horaria Total de Capacitación ──────────────────── */}
+      <section className="l360-box">
+        <h2 className="l360-box-title">
+          5A. Carga Horaria Total de Capacitación (Regla Duplas 1.0 h c/u)
+        </h2>
+        <table className="l360-table">
+          <thead>
+            <tr>
+              <th>Instancia Formativa</th>
+              <th>Detalle de Acreditación</th>
+              <th>Horas Certificadas</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Teoría y Seguridad</td>
+              <td>Jornada introductoria obligatoria en aula</td>
+              <td>{carga.horasTeoria} hs</td>
+            </tr>
+            <tr>
+              <td>Entrenamiento e Instrucción en Simulador</td>
+              <td>
+                {presentes} sesiones dupla ({carga.horasSesionesDupla}h) + Diag./Final ({carga.horasDiagnosticoYFinal}h)
+                {carga.horasRefuerzoSimulador > 0
+                  ? ` + Refuerzo (${carga.horasRefuerzoSimulador}h)`
+                  : ''}
+              </td>
+              <td>{carga.horasSimuladorTotal} hs</td>
+            </tr>
+            <tr>
+              <td>Práctica Real en Terreno</td>
+              <td>
+                {pracReal
+                  ? `Asistencia: ${pracReal.asistencia_terreno ?? 'PRESENTE'} (Base ${carga.horasTerrenoBase}h + Extra ${carga.horasExtraTerreno}h)`
+                  : 'Pendiente de registro en patio'}
+              </td>
+              <td>{carga.horasTerrenoTotal} hs</td>
+            </tr>
+            <tr>
+              <td>
+                <strong>TOTAL HORAS DE FORMACIÓN CERTIFICADAS</strong>
+              </td>
+              <td>
+                {carga.horasRecomendadasTitan !== null
+                  ? `Comparado contra sugerencia Titán (${carga.horasRecomendadasTitan} hs): ${carga.cumpleRecomendacionTitan ? 'META CUMPLIDA' : `Restan ${Math.abs(carga.diferenciaContraTitan ?? 0)} hs`}`
+                  : 'Cómputo integral de instrucción y práctica'}
+              </td>
+              <td>
+                <strong>{carga.totalCertificadas} hs</strong>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
       {/* ── Asistencias de Simulador ─────────────────────────────── */}
       <section className="l360-box">
         <h2 className="l360-box-title">
-          5. Asistencias de Simulador ({presentes}/{sesiones.length} Presentes)
+          5B. Asistencias de Simulador ({presentes}/{sesiones.length} Presentes)
         </h2>
         {sesiones.length === 0 ? (
           <p style={{ margin: 0 }}>
@@ -317,13 +433,24 @@ export default function Legajo360Imprimible({
       {/* ── Práctica Real en Terreno + Egreso ────────────────────── */}
       <div className="l360-grid-2">
         <section className="l360-box">
-          <h2 className="l360-box-title">6. Práctica Real en Terreno</h2>
+          <h2 className="l360-box-title">6. Práctica Real en Terreno (Patio)</h2>
           {legajo?.practicaReal ? (
             <>
               <p style={{ margin: '0 0 2px' }}>
                 <strong>Fecha:</strong> {legajo.practicaReal.fecha_practica} ·{' '}
+                <strong>Asistencia:</strong>{' '}
+                {legajo.practicaReal.asistencia_terreno ?? 'PRESENTE'} ·{' '}
+                <strong>Horas Terreno:</strong>{' '}
+                {legajo.practicaReal.horas_practica_terreno ?? 1.5} hs
+                {(legajo.practicaReal.horas_extra_terreno ?? 0) > 0
+                  ? ` (+${legajo.practicaReal.horas_extra_terreno}h extra)`
+                  : ''}
+              </p>
+              <p style={{ margin: '0 0 2px' }}>
                 <strong>Resultado:</strong>{' '}
-                {legajo.practicaReal.resultado.toUpperCase()}
+                {legajo.practicaReal.resultado.toUpperCase()} ·{' '}
+                <strong>Decisión Terreno:</strong>{' '}
+                {legajo.practicaReal.decision_instructor_terreno ?? '—'}
               </p>
               <p style={{ margin: '0 0 2px' }}>
                 <strong>Predio / Lugar:</strong> {legajo.practicaReal.lugar_predio ?? '—'} ·{' '}
@@ -332,9 +459,23 @@ export default function Legajo360Imprimible({
               <p style={{ margin: '0 0 2px' }}>
                 <strong>Instructor Patio:</strong>{' '}
                 {legajo.practicaReal.instructor_patio ?? '—'} ·{' '}
-                <strong>PDF Adjunto:</strong>{' '}
-                {legajo.practicaReal.pdf_reporte_path ? 'SÍ (ARCHIVADO)' : 'NO'}
+                <strong>¿Requiere refuerzo?:</strong>{' '}
+                {legajo.practicaReal.requiere_horas_extra
+                  ? `SÍ (+${legajo.practicaReal.horas_extra_sugeridas ?? 0} hs sugeridas)`
+                  : 'NO'}
               </p>
+              {(legajo.practicaReal.puntaje_lateralidad !== null ||
+                legajo.practicaReal.puntaje_tacto_mandos !== null ||
+                legajo.practicaReal.puntaje_mastil !== null ||
+                legajo.practicaReal.puntaje_control_receptividad !== null) && (
+                <p style={{ margin: '0 0 2px' }}>
+                  <strong>4 Ejes Patio (0–20):</strong> Lat{' '}
+                  {fNum(legajo.practicaReal.puntaje_lateralidad)} · Mandos{' '}
+                  {fNum(legajo.practicaReal.puntaje_tacto_mandos)} · Mástil{' '}
+                  {fNum(legajo.practicaReal.puntaje_mastil)} · Control{' '}
+                  {fNum(legajo.practicaReal.puntaje_control_receptividad)}
+                </p>
+              )}
               {legajo.practicaReal.observaciones_terreno && (
                 <p style={{ margin: '2px 0 0' }}>
                   <strong>Observaciones:</strong>{' '}

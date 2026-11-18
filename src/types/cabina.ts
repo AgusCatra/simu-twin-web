@@ -28,6 +28,8 @@ export type BloqueSplit =
 
 export type EtapaEvaluacionCabina = 'DIAG_INTENTO_1' | 'DIAG_INTENTO_2' | 'FINAL';
 
+export type ModoConsolaTactil = EtapaEvaluacionCabina | 'PRACTICA_REAL';
+
 export type DictamenCabina =
   | 'APTO_DIRECTO'
   | 'APTO_OBSERVACION'
@@ -35,6 +37,7 @@ export type DictamenCabina =
   | 'CONDICIONAL';
 
 export interface AlumnoTurno {
+  cohorte_id: string;
   inscripcion_id: string;
   postulante_id: string;
   nombre_completo: string;
@@ -61,6 +64,7 @@ export interface EvaluacionCabinaInput {
   instructor_evaluador?: string | null;
   observaciones_rapidas?: string[] | null;
   observaciones_detalle?: string | null;
+  decision_manual_t0?: 'APROBADO_A_CAPACITACION' | 'PENDIENTE' | 'RECHAZADO' | null;
 }
 
 export interface ResultadoGuardar {

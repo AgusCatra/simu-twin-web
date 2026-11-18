@@ -93,7 +93,8 @@ export default function PanelEstadisticasCentro({ estadisticas }: Props) {
             {estadisticas.horasTotalesFlota.toLocaleString('es-AR')} h
           </p>
           <p className="mt-1 font-mono text-[10px] text-zinc-500">
-            Odómetro + sesiones de cohorte
+            Odómetro máquina · Hs-Hombre duplas:{' '}
+            {(estadisticas.horasHombreCapacitacion ?? 0).toLocaleString('es-AR')} h
           </p>
         </div>
 

@@ -42,6 +42,10 @@ export const CONFIGURACION_CURSADO_DEFECTO: ConfiguracionCursadoCohorte = {
   dias_grupo_b: [2, 4],
   franjas_activas: [...FRANJAS_ESTANDAR_LABELS],
   sesiones_objetivo: 6,
+  horas_teoria: 2.0,
+  horas_diagnostico_y_final: 1.0,
+  horas_por_sesion_simulador: 1.0,
+  horas_base_practica_real: 1.5,
 };
 
 export const TOTAL_SESIONES_CICLO = 6;
@@ -215,10 +219,17 @@ function normalizarLabelFranja(label: string): string {
   return label.replace(/\s+/g, '').trim();
 }
 
+function sanitizarHoraConfig(val: unknown, fallback: number, max: number): number {
+  if (typeof val !== 'number' || !Number.isFinite(val) || val < 0) {
+    return fallback;
+  }
+  return Math.round(Math.min(max, val) * 10) / 10;
+}
+
 /**
  * Normaliza la configuración JSONB de `public.cohortes.configuracion_cursado`,
  * admitiendo tanto el formato nuevo (`dias_grupo_a`, `dias_grupo_b`,
- * `franjas_activas`, `sesiones_objetivo`) como el default legado de migración 0009.
+ * `franjas_activas`, `sesiones_objetivo`, `horas_*`) como el default legado de migración 0009.
  */
 export function normalizarConfiguracionCursado(
   raw: unknown
@@ -230,6 +241,10 @@ export function normalizarConfiguracionCursado(
       dias_grupo_b: [...CONFIGURACION_CURSADO_DEFECTO.dias_grupo_b],
       franjas_activas: [...CONFIGURACION_CURSADO_DEFECTO.franjas_activas],
       sesiones_objetivo: CONFIGURACION_CURSADO_DEFECTO.sesiones_objetivo,
+      horas_teoria: 2.0,
+      horas_diagnostico_y_final: 1.0,
+      horas_por_sesion_simulador: 1.0,
+      horas_base_practica_real: 1.5,
     };
   }
 
@@ -298,6 +313,22 @@ export function normalizarConfiguracionCursado(
     dias_grupo_b: diasGrupoB,
     franjas_activas: franjasActivas,
     sesiones_objetivo: sesionesObjetivo,
+    horas_teoria: sanitizarHoraConfig(obj.horas_teoria, 2.0, 24),
+    horas_diagnostico_y_final: sanitizarHoraConfig(
+      obj.horas_diagnostico_y_final,
+      1.0,
+      12
+    ),
+    horas_por_sesion_simulador: sanitizarHoraConfig(
+      obj.horas_por_sesion_simulador,
+      1.0,
+      8
+    ),
+    horas_base_practica_real: sanitizarHoraConfig(
+      obj.horas_base_practica_real,
+      1.5,
+      24
+    ),
   };
 }
 

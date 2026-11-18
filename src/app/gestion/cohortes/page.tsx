@@ -11,6 +11,7 @@ import CabeceraConfiguracion from '@/components/empleo/CabeceraConfiguracion';
 import ParrillaCabina from '@/components/empleo/ParrillaCabina';
 import BotonExportarCronograma from '@/components/empleo/BotonExportarCronograma';
 import AccionesCohorte from '@/components/empleo/AccionesCohorte';
+import PanelImpactoIndustrialCohorte from '@/components/empleo/PanelImpactoIndustrialCohorte';
 import SelectorCohorte from '@/components/empleo/SelectorCohorte';
 import PanelDuplasYPostulantes from '@/components/empleo/PanelDuplasYPostulantes';
 import BotonVolver from '@/components/ui/BotonVolver';
@@ -265,6 +266,11 @@ export default async function GestionCohortesPage({
               cohorteActivaRealCodigo={cohorteActivaRealCodigo}
               siguienteRankingSugerido={siguienteRankingSugerido}
               feriadosMunicipales={feriadosMunicipales}
+              postulantes={(datos?.postulantes ?? []).map((p) => ({
+                postulante_id: p.postulante_id,
+                nombre_completo: p.nombre_completo,
+                dni: p.dni,
+              }))}
             />
             {datos && proyeccion && (
               <BotonExportarCronograma
@@ -308,6 +314,13 @@ export default async function GestionCohortesPage({
             feriadosMunicipales={feriadosMunicipales}
             configuracionInicial={datos.cohorte.configuracion_cursado}
           />
+
+          {datos.impactoIndustrial && (
+            <PanelImpactoIndustrialCohorte
+              cohorteCodigo={datos.cohorte.codigo}
+              impacto={datos.impactoIndustrial}
+            />
+          )}
 
           <section
             aria-label="Cronograma de duplas y Viernes Buffer"

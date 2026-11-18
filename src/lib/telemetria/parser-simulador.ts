@@ -129,7 +129,7 @@ function leerEnteroNoNegativo(
   return entero >= 0 ? entero : null;
 }
 
-function hmsASegundos(texto: string | null): number | null {
+export function hmsASegundos(texto: string | null): number | null {
   if (!texto) return null;
   const match = texto.trim().match(RE_DURACION_HMS);
   if (!match) return null;
@@ -241,6 +241,44 @@ function seleccionarObjetoRaiz(
 
 export function esArtefactoSueloTitan(descripcion: string): boolean {
   return RE_ARTEFACTO_SUELO.test(descripcion);
+}
+
+/** Normaliza nombres exportados con `;` en lugar de `ñ` y colapsa espacios. */
+export function normalizarNombreAlumno(texto: string | null | undefined): string | null {
+  if (!texto) return null;
+  const limpio = texto.replace(/;/g, 'ñ').replace(/\s+/g, ' ').trim();
+  return limpio.length > 0 ? limpio : null;
+}
+
+/** Extrae hasta 8 descripciones únicas asociadas a mástil, horquillas, tilt o pallet. */
+export function construirHallazgosMastil(
+  colisiones: readonly EventoFaltaSimulador[],
+  infracciones: readonly EventoFaltaSimulador[]
+): string[] {
+  return Array.from(
+    new Set(
+      [...colisiones, ...infracciones]
+        .map((f) => f.descripcion)
+        .filter((d) => /fork|mastil|mástil|tilt|pallet/i.test(d))
+    )
+  ).slice(0, 8);
+}
+
+/** Clasifica riesgo y aptitud operativa con la misma heurística del pipeline Titán. */
+export function clasificarRiesgoYAptitud(
+  colisiones: number,
+  indiceSerrucho: number | null,
+  frenadasPanico: number | null
+): { riesgo: string; aptitud: string } {
+  const serrucho = indiceSerrucho ?? 99.0;
+  const frenadas = frenadasPanico ?? 99;
+  if (colisiones <= 1 && serrucho < 1.8 && frenadas <= 1) {
+    return { riesgo: 'Mínima (Autónomo)', aptitud: 'Apto Directo' };
+  }
+  if (colisiones <= 2 && serrucho < 3.2) {
+    return { riesgo: 'Media', aptitud: 'Apto / Observación' };
+  }
+  return { riesgo: 'Alta', aptitud: 'Condicional' };
 }
 
 /**
@@ -501,13 +539,10 @@ export function parsearReporteSimulador(
     );
   }
 
-  const hallazgosMastil = Array.from(
-    new Set(
-      [...colisionesRealesDetalle, ...infraccionesFiltradas]
-        .map((f) => f.descripcion)
-        .filter((d) => /fork|mastil|mástil|tilt|pallet/i.test(d))
-    )
-  ).slice(0, 8);
+  const hallazgosMastil = construirHallazgosMastil(
+    colisionesRealesDetalle,
+    infraccionesFiltradas
+  );
 
   return {
     archivoFuente,

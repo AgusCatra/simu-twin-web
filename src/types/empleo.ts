@@ -7,6 +7,10 @@
 import type { InformeEmpleoIA } from '@/lib/ia/generador-informe';
 import type { MetricasSimulador, PerfilOperador } from '@/lib/telemetria/parser-simulador';
 import type {
+  AnaliticaOperadorCohorte,
+  ResumenImpactoIndustrialCohorte,
+} from '@/lib/telemetria/analitica-predictiva';
+import type {
   EstadoEgreso,
   FranjaCursado,
   GrupoCursado,
@@ -31,6 +35,10 @@ export interface ConfiguracionCursadoCohorte {
   dias_grupo_b: number[];
   franjas_activas: string[];
   sesiones_objetivo: number;
+  horas_teoria?: number;
+  horas_diagnostico_y_final?: number;
+  horas_por_sesion_simulador?: number;
+  horas_base_practica_real?: number;
 }
 
 export type EstadoAsistenciaUI =
@@ -148,6 +156,7 @@ export interface PostulanteFila {
   obs_empleo: string | null;
   franja_id: string | null;
   evaluacion: FichaEvaluacion | null;
+  analitica?: AnaliticaOperadorCohorte | null;
 }
 
 export interface DuplaPersistidaItem {
@@ -177,6 +186,16 @@ export interface SesionPracticaItem {
   observaciones_instructor: string | null;
 }
 
+export type DecisionInstructorT0 =
+  | 'APROBADO_A_CAPACITACION'
+  | 'PENDIENTE'
+  | 'RECHAZADO';
+
+export type DecisionInstructorTerreno =
+  | 'APROBADO_EMPRESAS'
+  | 'REQUIERE_MAS_HORAS'
+  | 'NO_APTO';
+
 export interface PracticaRealItem {
   id: string;
   fecha_practica: string;
@@ -185,8 +204,28 @@ export interface PracticaRealItem {
   instructor_patio: string | null;
   resultado: ResultadoPracticaReal;
   observaciones_terreno: string | null;
+  asistencia_terreno?: 'PRESENTE' | 'AUSENTE' | null;
+  horas_practica_terreno?: number | null;
+  horas_extra_terreno?: number | null;
+  requiere_horas_extra?: boolean;
+  horas_extra_sugeridas?: number | null;
+  puntaje_lateralidad?: number | null;
+  puntaje_tacto_mandos?: number | null;
+  puntaje_mastil?: number | null;
+  puntaje_control_receptividad?: number | null;
+  nivel_asistencia?: string | null;
+  decision_instructor_terreno?: DecisionInstructorTerreno | null;
   pdf_reporte_path: string | null;
   pdf_url_firmada: string | null;
+}
+
+export interface DecisionInstructorCohorteItem {
+  decision_t0: DecisionInstructorT0 | null;
+  observacion_decision_t0: string | null;
+  horas_refuerzo_simulador: number;
+  asistio_teoria: boolean;
+  instructor_decision: string | null;
+  fecha_decision: string | null;
 }
 
 export interface EvaluacionFinalEgresoItem {
@@ -207,6 +246,7 @@ export interface Legajo360Postulante {
   viernesSugeridos: string[];
   practicaReal: PracticaRealItem | null;
   egreso: EvaluacionFinalEgresoItem | null;
+  decisionInstructor?: DecisionInstructorCohorteItem | null;
 }
 
 export interface DatosCohorteActiva {
@@ -216,6 +256,7 @@ export interface DatosCohorteActiva {
   totalConfirmados: number;
   duplasPersistidas: DuplaPersistidaItem[];
   sesionesPractica: SesionPracticaItem[];
+  impactoIndustrial?: ResumenImpactoIndustrialCohorte | null;
 }
 
 export interface ConfiguracionCohorteInput {
@@ -364,6 +405,64 @@ export interface AnalizarTelemetriaIAInput {
   archivo_nombre: string;
   metricas: MetricasSimulador;
 }
+
+export interface GuardarPracticaRealSinStorageInput {
+  cohorte_id: string;
+  postulante_id: string;
+  fecha_practica: string;
+  lugar_predio: string;
+  maquina_utilizada: string;
+  instructor_patio: string;
+  resultado: ResultadoPracticaReal;
+  observaciones_terreno?: string | null;
+  asistencia_terreno: 'PRESENTE' | 'AUSENTE';
+  horas_practica_terreno: number;
+  horas_extra_terreno?: number;
+  requiere_horas_extra: boolean;
+  horas_extra_sugeridas?: number;
+  puntaje_lateralidad?: number | null;
+  puntaje_tacto_mandos?: number | null;
+  puntaje_mastil?: number | null;
+  puntaje_control_receptividad?: number | null;
+  nivel_asistencia?: string | null;
+  decision_instructor_terreno?: DecisionInstructorTerreno | null;
+}
+
+export interface GuardarDecisionInstructorInput {
+  cohorte_id: string;
+  postulante_id: string;
+  inscripcion_id?: string;
+  decision_t0?: DecisionInstructorT0 | null;
+  observacion_decision_t0?: string | null;
+  horas_refuerzo_simulador?: number;
+  asistio_teoria?: boolean;
+}
+
+export interface ItemLoteTelemetriaInput {
+  postulante_id: string;
+  archivo_nombre: string;
+  metricas: MetricasSimulador;
+}
+
+export interface ResultadoLoteTelemetriaItem {
+  archivo_nombre: string;
+  postulante_id: string;
+  etapa: EtapaEvaluacion;
+  perfil_operador: PerfilOperador;
+  es_mejor_diagnostico: boolean;
+  delta_score: number | null;
+  ok: boolean;
+  error?: string;
+}
+
+export type ResultadoImportarLoteTelemetria =
+  | {
+      ok: true;
+      guardados: number;
+      errores: number;
+      detalles: ResultadoLoteTelemetriaItem[];
+    }
+  | { ok: false; error: string };
 
 export type ResultadoAccion = { ok: true } | { ok: false; error: string };
 

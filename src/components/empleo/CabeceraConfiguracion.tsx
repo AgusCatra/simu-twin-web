@@ -70,6 +70,16 @@ export default function CabeceraConfiguracion({
   const [diasGrupoB, setDiasGrupoB] = useState<number[]>(cfgBase.dias_grupo_b);
   const [franjasActivas, setFranjasActivas] = useState<string[]>(cfgBase.franjas_activas);
   const [sesionesObjetivo, setSesionesObjetivo] = useState<number>(cfgBase.sesiones_objetivo);
+  const [horasTeoria, setHorasTeoria] = useState<number>(cfgBase.horas_teoria ?? 2.0);
+  const [horasDiagYFinal, setHorasDiagYFinal] = useState<number>(
+    cfgBase.horas_diagnostico_y_final ?? 1.0
+  );
+  const [horasPorSesion, setHorasPorSesion] = useState<number>(
+    cfgBase.horas_por_sesion_simulador ?? 1.0
+  );
+  const [horasBaseTerreno, setHorasBaseTerreno] = useState<number>(
+    cfgBase.horas_base_practica_real ?? 1.5
+  );
   const [nuevaFranja, setNuevaFranja] = useState('');
   const [abiertoAvanzado, setAbiertoAvanzado] = useState(false);
   const [mensaje, setMensaje] = useState<{ texto: string; tipo: 'ok' | 'error' } | null>(
@@ -85,8 +95,21 @@ export default function CabeceraConfiguracion({
       franjas_activas:
         franjasActivas.length > 0 ? franjasActivas : [...FRANJAS_ESTANDAR_LABELS],
       sesiones_objetivo: Math.min(24, Math.max(2, sesionesObjetivo || 6)),
+      horas_teoria: Math.max(0, horasTeoria),
+      horas_diagnostico_y_final: Math.max(0, horasDiagYFinal),
+      horas_por_sesion_simulador: Math.max(0.5, horasPorSesion),
+      horas_base_practica_real: Math.max(0, horasBaseTerreno),
     }),
-    [diasGrupoA, diasGrupoB, franjasActivas, sesionesObjetivo]
+    [
+      diasGrupoA,
+      diasGrupoB,
+      franjasActivas,
+      sesionesObjetivo,
+      horasTeoria,
+      horasDiagYFinal,
+      horasPorSesion,
+      horasBaseTerreno,
+    ]
   );
 
   const gruposActivosCount = diasGrupoB.length > 0 ? 2 : 1;
@@ -495,6 +518,80 @@ export default function CabeceraConfiguracion({
             <p className="font-mono text-[10px] text-zinc-500">
               Estándar 6 sesiones = 3 semanas (2 clases semanales por grupo).
             </p>
+          </div>
+
+          {/* Regla de carga horaria de capacitación */}
+          <div className="md:col-span-3 rounded-sm border border-zinc-800 bg-zinc-900/50 p-3 space-y-2.5">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="font-mono text-[10px] tracking-[0.16em] text-emerald-300">
+                CARGA HORARIA DE FORMACIÓN POR ALUMNO (REGLA DE DUPLA)
+              </p>
+              <span className="font-mono text-[9.5px] text-zinc-400">
+                1 turno en dupla (1.0 h) acredita {horasPorSesion} h a CADA alumno PRESENTE y 1.0 h al odómetro de SIM-01
+              </span>
+            </div>
+            <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
+              <label className="space-y-1">
+                <span className="block font-mono text-[9.5px] text-zinc-400">TEORÍA (HS)</span>
+                <input
+                  type="number"
+                  min={0}
+                  max={24}
+                  step={0.5}
+                  value={horasTeoria}
+                  onChange={(e) => {
+                    const v = Number(e.target.value);
+                    if (Number.isFinite(v)) setHorasTeoria(v);
+                  }}
+                  className="h-9 w-full rounded-sm border border-zinc-700 bg-zinc-950 px-2.5 font-mono text-xs text-white outline-none focus:border-zinc-500"
+                />
+              </label>
+              <label className="space-y-1">
+                <span className="block font-mono text-[9.5px] text-zinc-400">DIAG. Y FINAL (HS)</span>
+                <input
+                  type="number"
+                  min={0}
+                  max={12}
+                  step={0.5}
+                  value={horasDiagYFinal}
+                  onChange={(e) => {
+                    const v = Number(e.target.value);
+                    if (Number.isFinite(v)) setHorasDiagYFinal(v);
+                  }}
+                  className="h-9 w-full rounded-sm border border-zinc-700 bg-zinc-950 px-2.5 font-mono text-xs text-white outline-none focus:border-zinc-500"
+                />
+              </label>
+              <label className="space-y-1">
+                <span className="block font-mono text-[9.5px] text-zinc-400">C/ SESIÓN DUPLA (HS)</span>
+                <input
+                  type="number"
+                  min={0.5}
+                  max={8}
+                  step={0.5}
+                  value={horasPorSesion}
+                  onChange={(e) => {
+                    const v = Number(e.target.value);
+                    if (Number.isFinite(v)) setHorasPorSesion(v);
+                  }}
+                  className="h-9 w-full rounded-sm border border-zinc-700 bg-zinc-950 px-2.5 font-mono text-xs text-white outline-none focus:border-zinc-500"
+                />
+              </label>
+              <label className="space-y-1">
+                <span className="block font-mono text-[9.5px] text-zinc-400">PRÁCTICA REAL BASE (HS)</span>
+                <input
+                  type="number"
+                  min={0}
+                  max={24}
+                  step={0.5}
+                  value={horasBaseTerreno}
+                  onChange={(e) => {
+                    const v = Number(e.target.value);
+                    if (Number.isFinite(v)) setHorasBaseTerreno(v);
+                  }}
+                  className="h-9 w-full rounded-sm border border-zinc-700 bg-zinc-950 px-2.5 font-mono text-xs text-white outline-none focus:border-zinc-500"
+                />
+              </label>
+            </div>
           </div>
         </div>
       )}

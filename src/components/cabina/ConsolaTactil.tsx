@@ -6,6 +6,7 @@ import {
   conmutarSimuladorAutoelevadorCabina,
   registrarEvaluacionCabina,
 } from '@/services/cabina';
+import { guardarPracticaRealAction } from '@/services/empleo';
 import {
   calcularDictamen,
   mapearNivelAsistenciaACabina,
@@ -16,9 +17,11 @@ import type {
   DictamenCabina,
   EtapaEvaluacionCabina,
   EvaluacionCabinaInput,
+  ModoConsolaTactil,
   NivelAsistencia,
   PuntajeEje,
 } from '@/types/cabina';
+import type { DecisionInstructorTerreno } from '@/types/empleo';
 
 /**
  * Consola Viva de Cabina — interfaz táctil fullscreen para el instructor.
@@ -45,13 +48,14 @@ const SEGUNDOS_MITAD_SPLIT = 1800; // 30 minutos por bloque
 const SEGUNDOS_SESION_TOTAL = 3600; // 60 minutos sesión completa en dupla
 
 const ETAPAS: readonly {
-  valor: EtapaEvaluacionCabina;
+  valor: ModoConsolaTactil;
   codigo: string;
   subtitulo: string;
 }[] = [
   { valor: 'DIAG_INTENTO_1', codigo: 'V1 · DIAG 1', subtitulo: 'PRIMERA PASADA' },
   { valor: 'DIAG_INTENTO_2', codigo: 'V2 · DIAG 2', subtitulo: 'SEGUNDA PASADA' },
   { valor: 'FINAL', codigo: 'FINAL · EGRESO', subtitulo: 'PRUEBA FINAL' },
+  { valor: 'PRACTICA_REAL', codigo: 'PATIO · TERRENO', subtitulo: 'MÁQUINA REAL' },
 ];
 
 const OBSERVACIONES_RAPIDAS_PRESETS: readonly string[] = [
@@ -263,7 +267,7 @@ export default function ConsolaTactil({
   const [evaluados, setEvaluados] = useState<ReadonlySet<string>>(
     () => new Set<string>()
   );
-  const [etapa, setEtapa] = useState<EtapaEvaluacionCabina>('DIAG_INTENTO_1');
+  const [etapa, setEtapa] = useState<ModoConsolaTactil>('DIAG_INTENTO_1');
 
   // Selección por id (no por índice). Tras revalidatePath la lista se
   // acorta al remover descartados; si el id ya no existe, sincroniza al primero.
@@ -287,6 +291,19 @@ export default function ConsolaTactil({
   const [instructor, setInstructor] = useState(instructorDefault);
   const [observacionesRapidas, setObservacionesRapidas] = useState<string[]>([]);
   const [observacionesDetalle, setObservacionesDetalle] = useState('');
+
+  // Campos Tablet en Patio (PRACTICA_REAL · 0 Storage) + Decisión Manual
+  const [asistenciaTerreno, setAsistenciaTerreno] = useState<'PRESENTE' | 'AUSENTE'>('PRESENTE');
+  const [horasTerreno, setHorasTerreno] = useState(1.5);
+  const [lugarTerreno, setLugarTerreno] = useState('Predio Municipal / Patio');
+  const [maquinaTerreno, setMaquinaTerreno] = useState('Autoelevador Real');
+  const [requiereHorasExtra, setRequiereHorasExtra] = useState(false);
+  const [horasExtraSugeridas, setHorasExtraSugeridas] = useState(2);
+  const [decisionTerreno, setDecisionTerreno] =
+    useState<DecisionInstructorTerreno>('APROBADO_EMPRESAS');
+  const [decisionManualT0, setDecisionManualT0] = useState<
+    'AUTO' | 'APROBADO_A_CAPACITACION' | 'RECHAZADO'
+  >('AUTO');
 
   const [segundos, setSegundos] = useState(0);
   const [corriendo, setCorriendo] = useState(false);
@@ -416,6 +433,12 @@ export default function ConsolaTactil({
     setSegundos(0);
     setCorriendo(false);
     setIntercambioConfirmado(false);
+    setAsistenciaTerreno('PRESENTE');
+    setHorasTerreno(1.5);
+    setRequiereHorasExtra(false);
+    setHorasExtraSugeridas(2);
+    setDecisionTerreno('APROBADO_EMPRESAS');
+    setDecisionManualT0('AUTO');
     alarmaDisparadaRef.current = false;
   }
 
@@ -465,6 +488,72 @@ export default function ConsolaTactil({
       return;
     }
 
+    // Modo Tablet en Patio (Práctica Real · Cero Storage)
+    if (etapa === 'PRACTICA_REAL') {
+      const nivelFinal: NivelAsistencia = nivelAsistencia ?? 'AUTONOMO';
+      const idGuardado = alumno.inscripcion_id;
+      const idxGuardado = idxSeguro;
+      const notasJuntas = [
+        ...observacionesRapidas,
+        observacionesDetalle.trim(),
+      ]
+        .filter(Boolean)
+        .join(' · ');
+
+      const resultadoTerreno =
+        hardFail || decisionTerreno === 'NO_APTO'
+          ? 'no_apto'
+          : decisionTerreno === 'REQUIERE_MAS_HORAS' || requiereHorasExtra
+            ? 'requiere_refuerzo'
+            : 'aprobado';
+
+      iniciarTransicion(async () => {
+        try {
+          const resTerreno = await guardarPracticaRealAction({
+            cohorte_id: alumno.cohorte_id,
+            postulante_id: alumno.postulante_id,
+            fecha_practica: new Date().toISOString().split('T')[0],
+            lugar_predio: lugarTerreno.trim() || 'Predio Municipal / Patio',
+            maquina_utilizada: maquinaTerreno.trim() || 'Autoelevador Real',
+            instructor_patio: instructor.trim() || 'Equipo de Instructores',
+            resultado: resultadoTerreno,
+            observaciones_terreno: notasJuntas || null,
+            asistencia_terreno: asistenciaTerreno,
+            horas_practica_terreno: asistenciaTerreno === 'PRESENTE' ? horasTerreno : 0,
+            horas_extra_terreno: 0,
+            requiere_horas_extra: requiereHorasExtra,
+            horas_extra_sugeridas: requiereHorasExtra ? horasExtraSugeridas : 0,
+            puntaje_lateralidad: puntajes.puntaje_lateralidad ?? null,
+            puntaje_tacto_mandos: puntajes.puntaje_tacto_mandos ?? null,
+            puntaje_mastil: puntajes.puntaje_mastil ?? null,
+            puntaje_control_receptividad:
+              puntajes.puntaje_control_receptividad ?? null,
+            nivel_asistencia: nivelFinal,
+            decision_instructor_terreno: hardFail ? 'NO_APTO' : decisionTerreno,
+          });
+
+          if (resTerreno.ok) {
+            setFeedback({
+              ok: true,
+              texto: `PATIO GUARDADO (${asistenciaTerreno} · ${decisionTerreno}) · 0 STORAGE`,
+            });
+            resetPantalla();
+            const nuevosEvaluados = new Set(evaluados).add(idGuardado);
+            const siguiente = siguienteSinEvaluar(alumnos, nuevosEvaluados, idxGuardado);
+            setEvaluados(nuevosEvaluados);
+            setIdSeleccionado(siguiente);
+          } else {
+            setFeedback({ ok: false, texto: resTerreno.error });
+          }
+          if (timerFeedback.current) clearTimeout(timerFeedback.current);
+          timerFeedback.current = setTimeout(() => setFeedback(null), 4000);
+        } finally {
+          lock.current = false;
+        }
+      });
+      return;
+    }
+
     const faltanEjes = EJES.some((e) => puntajes[e.clave] === undefined);
     if (!hardFail && faltanEjes) {
       lock.current = false;
@@ -482,7 +571,7 @@ export default function ConsolaTactil({
     const datos: EvaluacionCabinaInput = {
       postulante_id: alumno.postulante_id,
       inscripcion_id: alumno.inscripcion_id,
-      etapa,
+      etapa: etapa as EtapaEvaluacionCabina,
       puntaje_lateralidad: puntajes.puntaje_lateralidad ?? 0,
       puntaje_tacto_mandos: puntajes.puntaje_tacto_mandos ?? 0,
       puntaje_mastil: puntajes.puntaje_mastil ?? 0,
@@ -498,6 +587,7 @@ export default function ConsolaTactil({
       observaciones_rapidas:
         observacionesRapidas.length > 0 ? observacionesRapidas : null,
       observaciones_detalle: observacionesDetalle.trim() || null,
+      decision_manual_t0: decisionManualT0 === 'AUTO' ? null : decisionManualT0,
     };
 
     const idGuardado = alumno.inscripcion_id;
@@ -636,7 +726,7 @@ export default function ConsolaTactil({
         <p className="mb-2 text-[9px] uppercase tracking-[0.16em] text-zinc-500">
           ETAPA DE EVALUACIÓN EN CABINA
         </p>
-        <div role="group" aria-label="Etapa de evaluación" className="grid grid-cols-3 gap-2">
+        <div role="group" aria-label="Etapa de evaluación" className="grid grid-cols-2 gap-2 sm:grid-cols-4">
           {ETAPAS.map((item) => {
             const activa = etapa === item.valor;
             return (
@@ -713,7 +803,153 @@ export default function ConsolaTactil({
         })}
       </nav>
 
-      {/* ── Cronómetro Split 30/30 + Switch Piloto / Copiloto ────── */}
+      {/* ── Cronómetro Split 30/30 OR Panel Práctica Real en Patio ─ */}
+      {etapa === 'PRACTICA_REAL' ? (
+        <section
+          aria-label="Tablet en Patio — Práctica Real"
+          className="space-y-3 border-b border-zinc-800 bg-amber-950/10 px-4 py-3"
+        >
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-amber-300">
+              TABLET EN PATIO · PRÁCTICA REAL (CERO STORAGE)
+            </span>
+            <div className="flex gap-2">
+              {(['PRESENTE', 'AUSENTE'] as const).map((st) => (
+                <button
+                  key={st}
+                  type="button"
+                  aria-pressed={asistenciaTerreno === st}
+                  onClick={() => setAsistenciaTerreno(st)}
+                  className={`min-h-[40px] rounded-sm border px-3 text-[10px] font-bold uppercase tracking-[0.1em] ${
+                    asistenciaTerreno === st
+                      ? st === 'PRESENTE'
+                        ? 'border-emerald-400 bg-emerald-500 text-emerald-950'
+                        : 'border-red-400 bg-red-500 text-red-950'
+                      : 'border-zinc-700 bg-zinc-900 text-zinc-300'
+                  }`}
+                >
+                  {st}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+            <label className="block">
+              <span className="mb-1 block text-[9px] uppercase tracking-[0.14em] text-zinc-400">
+                PREDIO / LUGAR
+              </span>
+              <input
+                type="text"
+                maxLength={150}
+                value={lugarTerreno}
+                onChange={(e) => setLugarTerreno(e.target.value)}
+                className="min-h-[44px] w-full rounded-sm border border-zinc-700 bg-zinc-950 px-3 text-xs text-zinc-100"
+              />
+            </label>
+            <label className="block">
+              <span className="mb-1 block text-[9px] uppercase tracking-[0.14em] text-zinc-400">
+                MÁQUINA REAL
+              </span>
+              <input
+                type="text"
+                maxLength={120}
+                value={maquinaTerreno}
+                onChange={(e) => setMaquinaTerreno(e.target.value)}
+                className="min-h-[44px] w-full rounded-sm border border-zinc-700 bg-zinc-950 px-3 text-xs text-zinc-100"
+              />
+            </label>
+            <label className="block">
+              <span className="mb-1 block text-[9px] uppercase tracking-[0.14em] text-zinc-400">
+                HORAS TERRENO (HS)
+              </span>
+              <input
+                type="number"
+                min={0}
+                max={24}
+                step={0.5}
+                value={asistenciaTerreno === 'AUSENTE' ? 0 : horasTerreno}
+                disabled={asistenciaTerreno === 'AUSENTE'}
+                onChange={(e) => {
+                  const v = Number(e.target.value);
+                  if (Number.isFinite(v)) setHorasTerreno(Math.max(0, v));
+                }}
+                className="min-h-[44px] w-full rounded-sm border border-zinc-700 bg-zinc-950 px-3 text-xs text-zinc-100 disabled:opacity-50"
+              />
+            </label>
+          </div>
+
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-sm border border-zinc-800 bg-zinc-900/70 p-2.5">
+            <label className="inline-flex min-h-[40px] cursor-pointer items-center gap-2 text-[11px] font-bold uppercase tracking-[0.08em] text-amber-200">
+              <input
+                type="checkbox"
+                checked={requiereHorasExtra}
+                onChange={(e) => setRequiereHorasExtra(e.target.checked)}
+                className="h-4 w-4 accent-amber-400"
+              />
+              ¿REQUIERE MÁS HORAS DE REFUERZO?
+            </label>
+            {requiereHorasExtra && (
+              <label className="inline-flex items-center gap-2 text-[10px] uppercase text-zinc-300">
+                <span>HORAS EXTRA SUGERIDAS:</span>
+                <input
+                  type="number"
+                  min={0.5}
+                  max={24}
+                  step={0.5}
+                  value={horasExtraSugeridas}
+                  onChange={(e) => {
+                    const v = Number(e.target.value);
+                    if (Number.isFinite(v)) setHorasExtraSugeridas(Math.max(0.5, v));
+                  }}
+                  className="h-9 w-20 rounded-sm border border-amber-500/50 bg-zinc-950 px-2 text-xs text-white"
+                />
+              </label>
+            )}
+          </div>
+
+          <div>
+            <p className="mb-1.5 text-[9px] font-bold uppercase tracking-[0.14em] text-emerald-300">
+              DECISIÓN MANUAL INSTRUCTOR EN TERRENO (EL INSTRUCTOR MANDA)
+            </p>
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+              {(
+                [
+                  {
+                    valor: 'APROBADO_EMPRESAS',
+                    etiqueta: 'APRUEBA · APTO EMPRESAS',
+                    activo: 'border-emerald-400 bg-emerald-500 text-emerald-950',
+                  },
+                  {
+                    valor: 'REQUIERE_MAS_HORAS',
+                    etiqueta: 'REQUIERE MÁS HORAS',
+                    activo: 'border-amber-400 bg-amber-400 text-amber-950',
+                  },
+                  {
+                    valor: 'NO_APTO',
+                    etiqueta: 'NO APTO TERRENO',
+                    activo: 'border-red-500 bg-red-500 text-red-950',
+                  },
+                ] as const
+              ).map((op) => (
+                <button
+                  key={op.valor}
+                  type="button"
+                  aria-pressed={decisionTerreno === op.valor}
+                  onClick={() => setDecisionTerreno(op.valor)}
+                  className={`min-h-[48px] rounded-sm border px-3 text-[10.5px] font-bold uppercase tracking-[0.08em] transition-colors ${
+                    decisionTerreno === op.valor
+                      ? op.activo
+                      : 'border-zinc-700 bg-zinc-900 text-zinc-300'
+                  }`}
+                >
+                  {op.etiqueta}
+                </button>
+              ))}
+            </div>
+          </div>
+        </section>
+      ) : (
       <section
         aria-label="Cronómetro Split 30/30 y rol en dupla"
         className="space-y-3 border-b border-zinc-800 px-4 py-3"
@@ -899,6 +1135,7 @@ export default function ConsolaTactil({
           })}
         </div>
       </section>
+      )}
 
       {/* ── Los 4 ejes: pastillas gigantes [0][10][20] ───────────── */}
       <section className="flex flex-col gap-3 px-4 py-4">
@@ -1149,6 +1386,52 @@ export default function ConsolaTactil({
           </div>
         </div>
       </section>
+
+      {/* ── Decisión manual del instructor T0 (El Instructor Manda) ─ */}
+      {etapa !== 'PRACTICA_REAL' && (
+        <section className="px-4 pb-4">
+          <div className="rounded-sm border border-zinc-800 bg-zinc-900 p-3">
+            <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-emerald-300">
+              DECISIÓN MANUAL DEL INSTRUCTOR (T0 · EL INSTRUCTOR MANDA)
+            </p>
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+              {(
+                [
+                  {
+                    valor: 'AUTO',
+                    etiqueta: 'SEGÚN DICTAMEN AUTO',
+                    activo: 'border-zinc-200 bg-zinc-200 text-zinc-950',
+                  },
+                  {
+                    valor: 'APROBADO_A_CAPACITACION',
+                    etiqueta: 'APRUEBA → CAPACITACIÓN',
+                    activo: 'border-emerald-400 bg-emerald-500 text-emerald-950',
+                  },
+                  {
+                    valor: 'RECHAZADO',
+                    etiqueta: 'NO APRUEBA (DESCARTAR)',
+                    activo: 'border-red-500 bg-red-500 text-red-950',
+                  },
+                ] as const
+              ).map((op) => (
+                <button
+                  key={op.valor}
+                  type="button"
+                  aria-pressed={decisionManualT0 === op.valor}
+                  onClick={() => setDecisionManualT0(op.valor)}
+                  className={`min-h-[48px] rounded-sm border px-3 text-[10px] font-bold uppercase tracking-[0.08em] transition-colors ${
+                    decisionManualT0 === op.valor
+                      ? op.activo
+                      : 'border-zinc-700 bg-zinc-950 text-zinc-300'
+                  }`}
+                >
+                  {op.etiqueta}
+                </button>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* ── Panel en vivo: score + dictamen ──────────────────────── */}
       <section className="px-4 pb-4">

@@ -10,7 +10,6 @@ import {
   CheckCircle2,
   ClipboardCopy,
   Clock,
-  ExternalLink,
   FileJson,
   FileText,
   Loader2,
@@ -24,6 +23,7 @@ import {
   analizarTelemetriaPostulanteAction,
   asignarPostulanteFranja,
   darDeBajaPostulante,
+  guardarDecisionInstructorAction,
   guardarEvaluacionFinalEgresoAction,
   guardarNotasEmpleo,
   guardarPracticaRealAction,
@@ -31,17 +31,27 @@ import {
   obtenerLegajo360PostulanteAction,
 } from '@/services/empleo';
 import {
+  calcularCargaHorariaOperador,
+  resolverParametrosHoras,
+} from '@/lib/horas-capacitacion';
+import {
   clasificarPerfilOperador,
   MAX_BYTES_REPORTE_JSON,
   parsearReporteSimulador,
   type MetricasSimulador,
   type PerfilOperador,
 } from '@/lib/telemetria/parser-simulador';
+import {
+  MAX_BYTES_REPORTE_PDF,
+  parsearPdfSimuladorBrowser,
+} from '@/lib/telemetria/parser-pdf-simulador';
 import type { InformeEmpleoIA } from '@/lib/ia/generador-informe';
 import type { EstadoEgreso, PerfilLaboral } from '@/types/cohorte-v2';
 import type {
   CohorteActiva,
   ComparativaProgreso,
+  DecisionInstructorT0,
+  DecisionInstructorTerreno,
   EstadoAsistenciaUI,
   FranjaCabina,
   Legajo360Postulante,
@@ -319,7 +329,25 @@ export default function DrawerPostulante({
   const [pracInstructor, setPracInstructor] = useState('');
   const [pracResultado, setPracResultado] = useState<ResultadoPracticaReal>('aprobado');
   const [pracObs, setPracObs] = useState('');
-  const [pracArchivoPdf, setPracArchivoPdf] = useState<File | null>(null);
+  const [pracAsistencia, setPracAsistencia] = useState<'PRESENTE' | 'AUSENTE'>('PRESENTE');
+  const [pracHorasBase, setPracHorasBase] = useState(1.5);
+  const [pracHorasExtra, setPracHorasExtra] = useState(0);
+  const [pracRequiereExtra, setPracRequiereExtra] = useState(false);
+  const [pracHorasSugeridas, setPracHorasSugeridas] = useState(2);
+  const [pracLat, setPracLat] = useState<string>('');
+  const [pracMan, setPracMan] = useState<string>('');
+  const [pracMas, setPracMas] = useState<string>('');
+  const [pracCon, setPracCon] = useState<string>('');
+  const [pracNivelAsist, setPracNivelAsist] = useState<string>('AUTONOMO');
+  const [pracDecision, setPracDecision] =
+    useState<DecisionInstructorTerreno>('APROBADO_EMPRESAS');
+
+  const [decisionT0, setDecisionT0] = useState<DecisionInstructorT0>('APROBADO_A_CAPACITACION');
+  const [horasRefuerzoSim, setHorasRefuerzoSim] = useState(0);
+  const [asistioTeoria, setAsistioTeoria] = useState(true);
+  const [obsDecisionT0, setObsDecisionT0] = useState('');
+  const [guardandoDecision, startDecisionTransition] = useTransition();
+
   const [egEstado, setEgEstado] = useState<EstadoEgreso>('INCOMPLETO');
   const [egTerrenoAprobado, setEgTerrenoAprobado] = useState<'pendiente' | 'si' | 'no'>(
     'pendiente'
@@ -339,6 +367,7 @@ export default function DrawerPostulante({
     null
   );
   const [errorJson, setErrorJson] = useState<string | null>(null);
+  const [procesandoArchivo, setProcesandoArchivo] = useState(false);
   const [informeLocal, setInformeLocal] = useState<InformeEmpleoIA | null>(null);
   const [avisoPersistenciaIA, setAvisoPersistenciaIA] = useState<string | null>(null);
   const [analizandoIA, setAnalizandoIA] = useState(false);
@@ -351,12 +380,13 @@ export default function DrawerPostulante({
     setMensaje(null);
   }, [postulante?.inscripcion_id, postulante?.obs_empleo]);
 
-  // Reinicia el estado efímero de carga JSON / informe al cambiar de postulante.
+  // Reinicia el estado efímero de carga PDF/JSON / informe al cambiar de postulante.
   useEffect(() => {
     setArrastrandoJson(false);
     setArchivoJsonNombre(null);
     setMetricasJsonLocal(null);
     setErrorJson(null);
+    setProcesandoArchivo(false);
     setInformeLocal(null);
     setAvisoPersistenciaIA(null);
     setErrorIA(null);
@@ -401,14 +431,18 @@ export default function DrawerPostulante({
     return () => {
       vivo = false;
     };
-  }, [postulante?.postulante_id, cohorteId]);
+  }, [
+    postulante?.postulante_id,
+    postulante?.estado,
+    cohorteId,
+    cohorte?.configuracion_cursado,
+  ]);
 
   // Carga el Legajo 360° (sesiones, práctica real en terreno y egreso).
   useEffect(() => {
     const pid = postulante?.postulante_id;
     const cid = cohorteId ?? '';
     setMsgLegajo(null);
-    setPracArchivoPdf(null);
     if (!pid || !cid) {
       setLegajo360(null);
       return;
@@ -420,6 +454,7 @@ export default function DrawerPostulante({
         if (!vivo) return;
         if (res.ok) {
           setLegajo360(res.data);
+          const paramsHoras = resolverParametrosHoras(cohorte?.configuracion_cursado);
           if (res.data.practicaReal) {
             setPracFecha(res.data.practicaReal.fecha_practica);
             setPracLugar(res.data.practicaReal.lugar_predio ?? '');
@@ -430,6 +465,48 @@ export default function DrawerPostulante({
             setPracInstructor(res.data.practicaReal.instructor_patio ?? '');
             setPracResultado(res.data.practicaReal.resultado);
             setPracObs(res.data.practicaReal.observaciones_terreno ?? '');
+            setPracAsistencia(
+              res.data.practicaReal.asistencia_terreno === 'AUSENTE' ? 'AUSENTE' : 'PRESENTE'
+            );
+            setPracHorasBase(
+              res.data.practicaReal.horas_practica_terreno ?? paramsHoras.horas_base_practica_real
+            );
+            setPracHorasExtra(res.data.practicaReal.horas_extra_terreno ?? 0);
+            setPracRequiereExtra(res.data.practicaReal.requiere_horas_extra === true);
+            setPracHorasSugeridas(res.data.practicaReal.horas_extra_sugeridas ?? 2);
+            setPracLat(
+              res.data.practicaReal.puntaje_lateralidad !== null &&
+                res.data.practicaReal.puntaje_lateralidad !== undefined
+                ? String(res.data.practicaReal.puntaje_lateralidad)
+                : ''
+            );
+            setPracMan(
+              res.data.practicaReal.puntaje_tacto_mandos !== null &&
+                res.data.practicaReal.puntaje_tacto_mandos !== undefined
+                ? String(res.data.practicaReal.puntaje_tacto_mandos)
+                : ''
+            );
+            setPracMas(
+              res.data.practicaReal.puntaje_mastil !== null &&
+                res.data.practicaReal.puntaje_mastil !== undefined
+                ? String(res.data.practicaReal.puntaje_mastil)
+                : ''
+            );
+            setPracCon(
+              res.data.practicaReal.puntaje_control_receptividad !== null &&
+                res.data.practicaReal.puntaje_control_receptividad !== undefined
+                ? String(res.data.practicaReal.puntaje_control_receptividad)
+                : ''
+            );
+            setPracNivelAsist(res.data.practicaReal.nivel_asistencia ?? 'AUTONOMO');
+            setPracDecision(
+              res.data.practicaReal.decision_instructor_terreno ??
+                (res.data.practicaReal.resultado === 'aprobado'
+                  ? 'APROBADO_EMPRESAS'
+                  : res.data.practicaReal.resultado === 'requiere_refuerzo'
+                    ? 'REQUIERE_MAS_HORAS'
+                    : 'NO_APTO')
+            );
           } else {
             setPracFecha(new Date().toISOString().split('T')[0]);
             setPracLugar('');
@@ -437,6 +514,30 @@ export default function DrawerPostulante({
             setPracInstructor('');
             setPracResultado('aprobado');
             setPracObs('');
+            setPracAsistencia('PRESENTE');
+            setPracHorasBase(paramsHoras.horas_base_practica_real);
+            setPracHorasExtra(0);
+            setPracRequiereExtra(false);
+            setPracHorasSugeridas(2);
+            setPracLat('');
+            setPracMan('');
+            setPracMas('');
+            setPracCon('');
+            setPracNivelAsist('AUTONOMO');
+            setPracDecision('APROBADO_EMPRESAS');
+          }
+          if (res.data.decisionInstructor) {
+            setDecisionT0(res.data.decisionInstructor.decision_t0 ?? 'APROBADO_A_CAPACITACION');
+            setHorasRefuerzoSim(res.data.decisionInstructor.horas_refuerzo_simulador ?? 0);
+            setAsistioTeoria(res.data.decisionInstructor.asistio_teoria !== false);
+            setObsDecisionT0(res.data.decisionInstructor.observacion_decision_t0 ?? '');
+          } else {
+            setDecisionT0(
+              postulante?.estado === 'DESCARTADO' ? 'RECHAZADO' : 'APROBADO_A_CAPACITACION'
+            );
+            setHorasRefuerzoSim(0);
+            setAsistioTeoria(postulante?.estado !== 'DESCARTADO');
+            setObsDecisionT0('');
           }
           if (res.data.egreso) {
             setEgEstado(res.data.egreso.estado_egreso);
@@ -468,7 +569,12 @@ export default function DrawerPostulante({
     return () => {
       vivo = false;
     };
-  }, [postulante?.postulante_id, cohorteId]);
+  }, [
+    postulante?.postulante_id,
+    postulante?.estado,
+    cohorteId,
+    cohorte?.configuracion_cursado,
+  ]);
 
   if (!postulante) return null;
 
@@ -582,35 +688,49 @@ export default function DrawerPostulante({
     );
   }
 
-  async function procesarArchivoJson(archivo: File) {
-    if (!postulante) return;
+  async function procesarArchivoTelemetria(archivo: File) {
+    if (!postulante || procesandoArchivo) return;
     setErrorJson(null);
     setErrorIA(null);
     setAvisoPersistenciaIA(null);
 
-    const nombre = archivo.name.trim() || 'telemetria.json';
+    const nombre = archivo.name.trim() || 'telemetria';
+    const nombreLower = nombre.toLowerCase();
+    const esPdf =
+      nombreLower.endsWith('.pdf') || archivo.type === 'application/pdf';
     const esJson =
-      nombre.toLowerCase().endsWith('.json') ||
+      nombreLower.endsWith('.json') ||
       archivo.type === 'application/json' ||
       archivo.type === 'text/json';
-    if (!esJson) {
-      setErrorJson('Solo se admiten archivos de telemetría en formato .json.');
+
+    if (!esPdf && !esJson) {
+      setErrorJson(
+        'Solo se admiten archivos de telemetría del simulador en formato .pdf o .json.'
+      );
       return;
     }
     if (archivo.size === 0) {
-      setErrorJson('El archivo .json seleccionado está vacío.');
+      setErrorJson('El archivo seleccionado está vacío.');
       return;
     }
-    if (archivo.size > MAX_BYTES_REPORTE_JSON) {
-      setErrorJson('El archivo excede el tamaño máximo permitido (2 MB).');
+    if (esJson && archivo.size > MAX_BYTES_REPORTE_JSON) {
+      setErrorJson('El archivo .json excede el tamaño máximo permitido (2 MB).');
+      return;
+    }
+    if (esPdf && archivo.size > MAX_BYTES_REPORTE_PDF) {
+      setErrorJson('El archivo .pdf excede el tamaño máximo permitido (20 MB).');
       return;
     }
 
+    setProcesandoArchivo(true);
     try {
-      const contenido = await archivo.text();
-      const metricas = parsearReporteSimulador(contenido, {
-        nombrePostulante: postulante.nombre_completo,
-      });
+      const metricas = esPdf
+        ? await parsearPdfSimuladorBrowser(archivo, {
+            nombrePostulante: postulante.nombre_completo,
+          })
+        : parsearReporteSimulador(await archivo.text(), {
+            nombrePostulante: postulante.nombre_completo,
+          });
       setArchivoJsonNombre(nombre);
       setMetricasJsonLocal(metricas);
       setInformeLocal(null);
@@ -618,15 +738,17 @@ export default function DrawerPostulante({
       setErrorJson(
         err instanceof Error
           ? err.message
-          : 'No se pudo procesar el reporte .json de telemetría.'
+          : 'No se pudo procesar el reporte de telemetría (.pdf / .json).'
       );
+    } finally {
+      setProcesandoArchivo(false);
     }
   }
 
   function manejarSeleccionArchivo(e: React.ChangeEvent<HTMLInputElement>) {
     const archivo = e.target.files?.[0];
     if (archivo) {
-      void procesarArchivoJson(archivo);
+      void procesarArchivoTelemetria(archivo);
     }
     e.target.value = '';
   }
@@ -636,7 +758,7 @@ export default function DrawerPostulante({
     setArrastrandoJson(false);
     const archivo = e.dataTransfer.files?.[0];
     if (archivo) {
-      void procesarArchivoJson(archivo);
+      void procesarArchivoTelemetria(archivo);
     }
   }
 
@@ -726,34 +848,78 @@ export default function DrawerPostulante({
     }
   }
 
+  function guardarDecisionSubmit() {
+    if (!postulante || !cohorteId) return;
+    setMsgLegajo(null);
+    startDecisionTransition(async () => {
+      const res = await guardarDecisionInstructorAction({
+        cohorte_id: cohorteId,
+        postulante_id: postulante.postulante_id,
+        inscripcion_id: postulante.inscripcion_id,
+        decision_t0: decisionT0,
+        observacion_decision_t0: obsDecisionT0,
+        horas_refuerzo_simulador: horasRefuerzoSim,
+        asistio_teoria: asistioTeoria,
+      });
+      if (!res.ok) {
+        setMsgLegajo({ tipo: 'error', texto: res.error });
+        return;
+      }
+      setLegajo360((prev) =>
+        prev
+          ? { ...prev, decisionInstructor: res.decisionInstructor }
+          : {
+              sesiones: [],
+              viernesSugeridos: [],
+              practicaReal: null,
+              egreso: null,
+              decisionInstructor: res.decisionInstructor,
+            }
+      );
+      setMsgLegajo({
+        tipo: 'ok',
+        texto: `Decisión de instructor y carga horaria actualizadas (${decisionT0}).`,
+      });
+      router.refresh();
+    });
+  }
+
   function guardarPracticaRealSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!postulante || !cohorteId) return;
     setMsgLegajo(null);
 
-    const fd = new FormData();
-    fd.set('cohorte_id', cohorteId);
-    fd.set('postulante_id', postulante.postulante_id);
-    fd.set('fecha_practica', pracFecha);
-    fd.set('lugar_predio', pracLugar);
-    fd.set('maquina_utilizada', pracMaquina);
-    fd.set('instructor_patio', pracInstructor);
-    fd.set('resultado', pracResultado);
-    fd.set('observaciones_terreno', pracObs);
-    if (legajo360?.practicaReal?.pdf_reporte_path) {
-      fd.set('pdf_previo_path', legajo360.practicaReal.pdf_reporte_path);
-    }
-    if (pracArchivoPdf) {
-      fd.set('archivo_pdf', pracArchivoPdf);
-    }
+    const parseEje = (val: string): number | null => {
+      if (val === '0' || val === '10' || val === '20') return Number(val);
+      return null;
+    };
 
     startPracTransition(async () => {
-      const res = await guardarPracticaRealAction(fd);
+      const res = await guardarPracticaRealAction({
+        cohorte_id: cohorteId,
+        postulante_id: postulante.postulante_id,
+        fecha_practica: pracFecha,
+        lugar_predio: pracLugar,
+        maquina_utilizada: pracMaquina,
+        instructor_patio: pracInstructor,
+        resultado: pracResultado,
+        observaciones_terreno: pracObs,
+        asistencia_terreno: pracAsistencia,
+        horas_practica_terreno: pracHorasBase,
+        horas_extra_terreno: pracHorasExtra,
+        requiere_horas_extra: pracRequiereExtra,
+        horas_extra_sugeridas: pracRequiereExtra ? pracHorasSugeridas : 0,
+        puntaje_lateralidad: parseEje(pracLat),
+        puntaje_tacto_mandos: parseEje(pracMan),
+        puntaje_mastil: parseEje(pracMas),
+        puntaje_control_receptividad: parseEje(pracCon),
+        nivel_asistencia: pracNivelAsist,
+        decision_instructor_terreno: pracDecision,
+      });
       if (!res.ok) {
         setMsgLegajo({ tipo: 'error', texto: res.error });
         return;
       }
-      setPracArchivoPdf(null);
       setLegajo360((prev) =>
         prev
           ? { ...prev, practicaReal: res.practicaReal }
@@ -766,9 +932,7 @@ export default function DrawerPostulante({
       );
       setMsgLegajo({
         tipo: 'ok',
-        texto: res.practicaReal.pdf_reporte_path
-          ? 'Práctica en terreno y comprobante PDF guardados.'
-          : 'Práctica en terreno guardada correctamente.',
+        texto: 'Evaluación en Terreno guardada correctamente (cero Storage).',
       });
       router.refresh();
     });
@@ -828,6 +992,17 @@ export default function DrawerPostulante({
     (s) => s.estado_asistencia === 'PRESENTE'
   ).length;
   const totalSesionesLegajo = legajo360?.sesiones.length ?? 0;
+  const cargaHoraria = calcularCargaHorariaOperador({
+    config: cohorte?.configuracion_cursado,
+    asistioTeoria,
+    sesionesPresentes: presentesSimulador,
+    tieneInstanciaCabina: Boolean(evaluacion || metricasActivas),
+    horasRefuerzoSimulador: horasRefuerzoSim,
+    practicaReal:
+      legajo360?.practicaReal ??
+      null,
+    horasRecomendadasTitan: horasRecomendadasActivas ?? null,
+  });
 
   return (
     <>
@@ -901,10 +1076,10 @@ export default function DrawerPostulante({
           </div>
         )}
 
-        {/* ── PROYECTO TITÁN: Telemetría de Cabina (.json) ────── */}
+        {/* ── PROYECTO TITÁN: Telemetría de Cabina (.pdf / .json) ── */}
         <section
           ref={titanSectionRef}
-          aria-label="PROYECTO TITÁN: Telemetría de Cabina (.json)"
+          aria-label="PROYECTO TITÁN: Telemetría de Cabina (.pdf / .json)"
           className={`space-y-3 rounded-sm border-2 bg-gradient-to-b from-emerald-950/30 via-zinc-950 to-zinc-950 p-3.5 shadow-[0_0_24px_rgba(16,185,129,0.08)] ${
             enfocarTitan
               ? 'border-emerald-400 ring-1 ring-emerald-400/40'
@@ -915,15 +1090,15 @@ export default function DrawerPostulante({
             <div>
               <p className="flex items-center gap-1.5 font-mono text-[11px] font-semibold tracking-[0.12em] text-emerald-300">
                 <Sparkles size={14} strokeWidth={2} className="shrink-0 text-emerald-400" aria-hidden />
-                <span>PROYECTO TITÁN: Telemetría de Cabina (.json)</span>
+                <span>PROYECTO TITÁN: Telemetría de Cabina (.pdf / .json)</span>
               </p>
               <p className="mt-0.5 font-mono text-[9.5px] tracking-[0.06em] text-zinc-400">
-                Cargá reportes del simulador para depurar falsos positivos (-2) y emitir dictamen IA.
+                Cargá reportes del simulador ETECH para depurar falsos positivos (-2) y emitir dictamen IA.
               </p>
             </div>
             <span
               className={`rounded-sm border px-2 py-0.5 font-mono text-[9px] font-semibold tracking-[0.1em] ${
-                analizandoIA
+                analizandoIA || procesandoArchivo
                   ? 'border-amber-500/60 bg-amber-950/40 text-amber-300'
                   : informeActivo
                     ? informeActivo.origen === 'GEMINI_2_5_FLASH'
@@ -934,22 +1109,28 @@ export default function DrawerPostulante({
                       : 'border-zinc-700 bg-zinc-900 text-zinc-400'
               }`}
             >
-              {analizandoIA
-                ? 'ANALIZANDO…'
-                : informeActivo
-                  ? informeActivo.origen === 'GEMINI_2_5_FLASH'
-                    ? 'IA · GEMINI 2.5 FLASH'
-                    : 'IA · FALLBACK HEURÍSTICO'
-                  : metricasActivas
-                    ? '.JSON CARGADO · SIN INFORME'
-                    : 'PENDIENTE DE .JSON'}
+              {procesandoArchivo
+                ? 'EXTRAYENDO TELEMETRÍA…'
+                : analizandoIA
+                  ? 'ANALIZANDO…'
+                  : informeActivo
+                    ? informeActivo.origen === 'GEMINI_2_5_FLASH'
+                      ? 'IA · GEMINI 2.5 FLASH'
+                      : 'IA · FALLBACK HEURÍSTICO'
+                    : metricasActivas
+                      ? 'REPORTE CARGADO · SIN INFORME'
+                      : 'PENDIENTE (.PDF / .JSON)'}
             </span>
           </div>
 
           {archivoActivoNombre && (
             <div className="flex flex-wrap items-center justify-between gap-2 rounded-sm border border-zinc-800 bg-zinc-900/70 px-2.5 py-1.5">
               <span className="inline-flex min-w-0 items-center gap-1.5 truncate font-mono text-[10px] text-zinc-200">
-                <FileJson size={12} strokeWidth={1.75} className="shrink-0 text-emerald-400" aria-hidden />
+                {archivoActivoNombre.toLowerCase().endsWith('.pdf') ? (
+                  <FileText size={12} strokeWidth={1.75} className="shrink-0 text-emerald-400" aria-hidden />
+                ) : (
+                  <FileJson size={12} strokeWidth={1.75} className="shrink-0 text-emerald-400" aria-hidden />
+                )}
                 <span className="truncate">{archivoActivoNombre}</span>
               </span>
               <span className="font-mono text-[9px] tracking-[0.1em] text-zinc-500">
@@ -962,13 +1143,14 @@ export default function DrawerPostulante({
             ref={inputArchivoRef}
             id="subir-telemetria-json"
             type="file"
-            accept=".json,application/json"
+            accept=".pdf,.json,application/pdf,application/json"
             onChange={manejarSeleccionArchivo}
             className="sr-only"
           />
 
           <button
             type="button"
+            disabled={procesandoArchivo}
             onClick={() => inputArchivoRef.current?.click()}
             onDragOver={(e) => {
               e.preventDefault();
@@ -976,34 +1158,62 @@ export default function DrawerPostulante({
             }}
             onDragLeave={() => setArrastrandoJson(false)}
             onDrop={manejarDropJson}
-            className={`block w-full cursor-pointer rounded-sm border-2 border-dashed px-3 py-4 text-center transition-colors focus-visible:outline-1 focus-visible:outline-white ${
+            className={`block w-full cursor-pointer rounded-sm border-2 border-dashed px-3 py-4 text-center transition-colors disabled:cursor-wait disabled:opacity-75 focus-visible:outline-1 focus-visible:outline-white ${
               arrastrandoJson
                 ? 'border-emerald-400 bg-emerald-950/40'
                 : 'border-emerald-500/45 bg-zinc-900/60 hover:border-emerald-400 hover:bg-zinc-900'
             }`}
           >
-            <Upload
-              size={20}
-              strokeWidth={1.75}
-              className="mx-auto text-emerald-400"
-              aria-hidden
-            />
+            {procesandoArchivo ? (
+              <Loader2
+                size={20}
+                strokeWidth={1.75}
+                className="mx-auto animate-spin text-emerald-400"
+                aria-hidden
+              />
+            ) : (
+              <Upload
+                size={20}
+                strokeWidth={1.75}
+                className="mx-auto text-emerald-400"
+                aria-hidden
+              />
+            )}
             <span className="mt-2 block font-mono text-[11px] font-semibold tracking-[0.08em] text-zinc-100">
-              Hacé clic o arrastrá aquí el reporte <span className="text-emerald-400">.json</span>
+              {procesandoArchivo ? (
+                'Digitalizando curvas y eventos del PDF…'
+              ) : (
+                <>
+                  Hacé clic o arrastrá aquí el reporte{' '}
+                  <span className="text-emerald-400">.pdf</span> o{' '}
+                  <span className="text-emerald-400">.json</span>
+                </>
+              )}
             </span>
             <span className="mt-1 block font-mono text-[9.5px] tracking-[0.06em] text-zinc-400">
-              Ej: <code className="text-emerald-300">Medium Load Operation_*.json</code> · Acepta hasta 2 MB
+              Ej: <code className="text-emerald-300">21.pdf</code> o{' '}
+              <code className="text-emerald-300">Medium Load Operation_*.json</code> · Hasta 20 MB (.pdf) / 2 MB (.json)
             </span>
           </button>
 
           <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
+              disabled={procesandoArchivo}
               onClick={() => inputArchivoRef.current?.click()}
-              className="inline-flex min-h-[40px] flex-1 items-center justify-center gap-1.5 rounded-sm border border-zinc-600 bg-zinc-900 px-3 font-mono text-[10px] font-semibold tracking-[0.1em] text-zinc-100 transition-colors hover:border-white hover:text-white focus-visible:outline-1 focus-visible:outline-white"
+              className="inline-flex min-h-[40px] flex-1 items-center justify-center gap-1.5 rounded-sm border border-zinc-600 bg-zinc-900 px-3 font-mono text-[10px] font-semibold tracking-[0.1em] text-zinc-100 transition-colors hover:border-white hover:text-white disabled:cursor-wait disabled:opacity-70 focus-visible:outline-1 focus-visible:outline-white"
             >
-              <FileJson size={13} strokeWidth={1.75} aria-hidden />
-              {metricasActivas ? 'SUBIR NUEVO .JSON' : 'SELECCIONAR ARCHIVO .JSON'}
+              {procesandoArchivo ? (
+                <>
+                  <Loader2 size={13} strokeWidth={2} className="animate-spin" aria-hidden />
+                  PROCESANDO REPORTE…
+                </>
+              ) : (
+                <>
+                  <FileText size={13} strokeWidth={1.75} aria-hidden />
+                  {metricasActivas ? 'SUBIR NUEVO .PDF / .JSON' : 'SELECCIONAR .PDF / .JSON'}
+                </>
+              )}
             </button>
             {metricasActivas && (
               <button
@@ -1214,6 +1424,49 @@ export default function DrawerPostulante({
             </p>
           )}
 
+          {/* ── Analítica Predictiva B2B (Cuidado Mecánico, Plasticidad y Percentiles) ── */}
+          {postulante.analitica && (postulante.analitica.cuidadoMecanico || postulante.analitica.plasticidad) && (
+            <div className="space-y-2 rounded-sm border border-cyan-500/35 bg-cyan-950/15 p-3 font-mono">
+              <p className="text-[9.5px] font-semibold tracking-[0.14em] text-cyan-300">
+                CIENCIA DE DATOS PREDICTIVA · BENCHMARKING B2B (COSTO $0)
+              </p>
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                <div className="rounded-sm border border-zinc-800 bg-zinc-950 p-2">
+                  <p className="text-[8.5px] text-zinc-500">CUIDADO MECÁNICO</p>
+                  <p className="mt-0.5 text-base font-bold text-white">
+                    {postulante.analitica.cuidadoMecanico
+                      ? `${postulante.analitica.cuidadoMecanico.indiceCuidadoMecanico}%`
+                      : '—'}
+                  </p>
+                  <p className="text-[9px] text-emerald-300">
+                    {postulante.analitica.cuidadoMecanico?.categoria ?? 'SIN DATOS'}
+                  </p>
+                </div>
+
+                <div className="rounded-sm border border-zinc-800 bg-zinc-950 p-2">
+                  <p className="text-[8.5px] text-zinc-500">PLASTICIDAD (V1→V2)</p>
+                  <p className="mt-0.5 text-base font-bold text-white">
+                    {postulante.analitica.plasticidad
+                      ? `${postulante.analitica.plasticidad.indicePlasticidad}/100`
+                      : '1 INTENTO'}
+                  </p>
+                  <p className="truncate text-[8.5px] text-sky-300">
+                    {postulante.analitica.plasticidad?.categoria ?? 'PENDIENTE V2/T1'}
+                  </p>
+                </div>
+
+                <div className="rounded-sm border border-zinc-800 bg-zinc-950 p-2">
+                  <p className="text-[8.5px] text-zinc-500">PERCENTILES COHORTE</p>
+                  <p className="mt-1 text-[10px] leading-snug text-zinc-200">
+                    Score: <strong>P{postulante.analitica.percentilScore ?? '—'}</strong> · Vel:{' '}
+                    <strong>P{postulante.analitica.percentilVelocidad ?? '—'}</strong> · Cuid:{' '}
+                    <strong>P{postulante.analitica.percentilCuidadoMecanico ?? '—'}</strong>
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
           {informeActivo ? (
             <div className="space-y-2.5 rounded-sm border border-emerald-500/35 bg-zinc-900/80 p-3">
               <div className="flex flex-wrap items-center justify-between gap-2 border-b border-zinc-800 pb-2">
@@ -1264,6 +1517,32 @@ export default function DrawerPostulante({
                   </li>
                 ))}
               </ol>
+
+              {informeActivo.evaluacionLongitudinal && (
+                <div className="space-y-1.5 border-t border-zinc-800 pt-2.5 font-mono">
+                  <p className="text-[9.5px] font-semibold tracking-[0.12em] text-cyan-300">
+                    EVALUACIÓN LONGITUDINAL INTEGRADA (4 ETAPAS)
+                  </p>
+                  <div className="grid gap-1.5 text-[10px] text-zinc-300">
+                    <p>
+                      <strong className="text-white">Etapa 1 (Diag. T0):</strong>{' '}
+                      {informeActivo.evaluacionLongitudinal.etapa1DiagnosticoT0}
+                    </p>
+                    <p>
+                      <strong className="text-white">Etapa 2 (Capacitación):</strong>{' '}
+                      {informeActivo.evaluacionLongitudinal.etapa2CapacitacionSimulador}
+                    </p>
+                    <p>
+                      <strong className="text-white">Etapa 3 (Prueba Final T1):</strong>{' '}
+                      {informeActivo.evaluacionLongitudinal.etapa3PruebaFinalT1}
+                    </p>
+                    <p>
+                      <strong className="text-white">Etapa 4 (Práctica Terreno):</strong>{' '}
+                      {informeActivo.evaluacionLongitudinal.etapa4PracticaTerreno}
+                    </p>
+                  </div>
+                </div>
+              )}
 
               <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
                 <span className="font-mono text-[9px] text-zinc-500">
@@ -1636,6 +1915,135 @@ export default function DrawerPostulante({
           )}
         </section>
 
+        {/* ── Legajo 360° · Decisión Instructor T0 y Carga Horaria ── */}
+        {cohorteId && (
+          <section
+            aria-label="Carga Horaria y Decisión Manual del Instructor"
+            className="space-y-3 rounded-sm border border-emerald-500/35 bg-zinc-950 p-3.5"
+          >
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h3 className="flex items-center gap-1.5 font-mono text-[10px] tracking-[0.16em] text-emerald-300">
+                <Clock size={13} aria-hidden />
+                CARGA HORARIA TOTAL DE CAPACITACIÓN (REGLA DUPLA 1.0H C/U)
+              </h3>
+              <span
+                className={`rounded-sm border px-2 py-0.5 font-mono text-[10px] font-semibold ${
+                  cargaHoraria.cumpleRecomendacionTitan === true
+                    ? 'border-emerald-500/60 bg-emerald-950/50 text-emerald-300'
+                    : cargaHoraria.cumpleRecomendacionTitan === false
+                      ? 'border-amber-500/60 bg-amber-950/40 text-amber-300'
+                      : 'border-zinc-700 bg-zinc-900 text-zinc-200'
+                }`}
+              >
+                TOTAL: {cargaHoraria.totalCertificadas} HS
+                {cargaHoraria.horasRecomendadasTitan !== null
+                  ? ` / REC. TITÁN ${cargaHoraria.horasRecomendadasTitan} HS`
+                  : ''}
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-3 font-mono text-[10px]">
+              <div className="rounded-sm border border-zinc-800 bg-zinc-900/70 p-2.5">
+                <p className="text-[9px] text-zinc-500">TEORÍA Y SEGURIDAD</p>
+                <p className="mt-0.5 text-sm font-semibold text-white">
+                  {cargaHoraria.horasTeoria} hs
+                </p>
+                <label className="mt-1.5 inline-flex items-center gap-1.5 text-[9.5px] text-zinc-300 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={asistioTeoria}
+                    onChange={(e) => setAsistioTeoria(e.target.checked)}
+                    className="accent-emerald-500"
+                  />
+                  Asistió a jornada teórica
+                </label>
+              </div>
+
+              <div className="rounded-sm border border-zinc-800 bg-zinc-900/70 p-2.5">
+                <p className="text-[9px] text-zinc-500">ENTRENAMIENTO SIMULADOR</p>
+                <p className="mt-0.5 text-sm font-semibold text-white">
+                  {cargaHoraria.horasSimuladorTotal} hs
+                </p>
+                <p className="mt-0.5 text-[9px] text-zinc-400">
+                  {presentesSimulador} ses. ({cargaHoraria.horasSesionesDupla}h) + Diag/Fin ({cargaHoraria.horasDiagnosticoYFinal}h) + Ref. ({cargaHoraria.horasRefuerzoSimulador}h)
+                </p>
+              </div>
+
+              <div className="rounded-sm border border-zinc-800 bg-zinc-900/70 p-2.5">
+                <p className="text-[9px] text-zinc-500">PRÁCTICA REAL TERRENO</p>
+                <p className="mt-0.5 text-sm font-semibold text-white">
+                  {cargaHoraria.horasTerrenoTotal} hs
+                </p>
+                <p className="mt-0.5 text-[9px] text-zinc-400">
+                  Base {cargaHoraria.horasTerrenoBase}h + Extra {cargaHoraria.horasExtraTerreno}h
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 gap-2.5 border-t border-zinc-800/80 pt-3 sm:grid-cols-3">
+              <label className="space-y-1 sm:col-span-2">
+                <span className="font-mono text-[9.5px] text-zinc-400">
+                  DECISIÓN MANUAL INSTRUCTOR T0 (EL INSTRUCTOR MANDA)
+                </span>
+                <select
+                  value={decisionT0}
+                  onChange={(e) => setDecisionT0(e.target.value as DecisionInstructorT0)}
+                  className="h-9 w-full rounded-sm border border-zinc-700 bg-zinc-900 px-2 font-mono text-xs text-white"
+                >
+                  <option value="APROBADO_A_CAPACITACION">
+                    APRUEBA DIAGNÓSTICO → PASA A CAPACITACIÓN
+                  </option>
+                  <option value="PENDIENTE">PENDIENTE DE REVISIÓN</option>
+                  <option value="RECHAZADO">NO APRUEBA / RECHAZADO EN T0</option>
+                </select>
+              </label>
+
+              <label className="space-y-1">
+                <span className="font-mono text-[9.5px] text-zinc-400">
+                  REFUERZO SIMULADOR (HS)
+                </span>
+                <input
+                  type="number"
+                  min={0}
+                  max={40}
+                  step={0.5}
+                  value={horasRefuerzoSim}
+                  onChange={(e) => {
+                    const v = Number(e.target.value);
+                    if (Number.isFinite(v)) setHorasRefuerzoSim(Math.max(0, v));
+                  }}
+                  className="h-9 w-full rounded-sm border border-zinc-700 bg-zinc-900 px-2.5 font-mono text-xs text-white"
+                />
+              </label>
+
+              <label className="space-y-1 sm:col-span-2">
+                <span className="font-mono text-[9.5px] text-zinc-400">
+                  FUNDAMENTO / NOTA DECISIÓN T0
+                </span>
+                <input
+                  type="text"
+                  maxLength={1000}
+                  value={obsDecisionT0}
+                  onChange={(e) => setObsDecisionT0(e.target.value)}
+                  placeholder="Ej: Aprobado con énfasis en ángulo de mástil..."
+                  className="h-9 w-full rounded-sm border border-zinc-700 bg-zinc-900 px-2.5 font-mono text-xs text-white"
+                />
+              </label>
+
+              <div className="flex items-end">
+                <button
+                  type="button"
+                  disabled={guardandoDecision}
+                  onClick={guardarDecisionSubmit}
+                  className="h-9 w-full rounded-sm border border-emerald-500/60 bg-emerald-500/15 px-3 font-mono text-[10px] font-semibold tracking-[0.1em] text-emerald-200 hover:bg-emerald-500/25 disabled:opacity-50"
+                >
+                  {guardandoDecision ? 'GUARDANDO…' : 'GUARDAR DECISIÓN Y HORAS'}
+                </button>
+              </div>
+            </div>
+          </section>
+        )}
+
         {/* ── Legajo 360° · Asistencias de Simulador ───────────── */}
         {cohorteId && (
           <section
@@ -1723,7 +2131,7 @@ export default function DrawerPostulante({
           </section>
         )}
 
-        {/* ── Legajo 360° · Práctica Real en Terreno + PDF ────── */}
+        {/* ── Legajo 360° · Práctica Real en Terreno (CERO STORAGE) ── */}
         {cohorteId && (
           <form
             onSubmit={guardarPracticaRealSubmit}
@@ -1733,22 +2141,14 @@ export default function DrawerPostulante({
             <div className="flex flex-wrap items-center justify-between gap-2">
               <h3 className="flex items-center gap-1.5 font-mono text-[10px] tracking-[0.16em] text-amber-300">
                 <FileText size={13} aria-hidden />
-                PRÁCTICA REAL EN TERRENO (PASAJE A PLANTA)
+                PRÁCTICA REAL EN TERRENO (PASAJE A PLANTA · SIN STORAGE)
               </h3>
-              {legajo360?.practicaReal?.pdf_url_firmada && (
-                <a
-                  href={legajo360.practicaReal.pdf_url_firmada}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex h-7 items-center gap-1 rounded-sm border border-emerald-500/50 bg-emerald-950/35 px-2.5 font-mono text-[9.5px] font-semibold text-emerald-300 hover:bg-emerald-500/20"
-                >
-                  <ExternalLink size={11} aria-hidden />
-                  Abrir PDF
-                </a>
-              )}
+              <span className="rounded-sm border border-emerald-500/40 bg-emerald-950/30 px-2 py-0.5 font-mono text-[9px] text-emerald-300">
+                0 BYTES STORAGE · SOLO SQL/PDF LOCAL
+              </span>
             </div>
 
-            <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-3">
               <label className="space-y-1">
                 <span className="font-mono text-[9.5px] text-zinc-500">FECHA PRÁCTICA *</span>
                 <input
@@ -1758,6 +2158,65 @@ export default function DrawerPostulante({
                   onChange={(e) => setPracFecha(e.target.value)}
                   className="h-9 w-full rounded-sm border border-zinc-700 bg-zinc-900 px-2.5 font-mono text-xs text-white [color-scheme:dark]"
                 />
+              </label>
+
+              <label className="space-y-1">
+                <span className="font-mono text-[9.5px] text-zinc-500">ASISTENCIA TERRENO *</span>
+                <select
+                  value={pracAsistencia}
+                  onChange={(e) =>
+                    setPracAsistencia(e.target.value as 'PRESENTE' | 'AUSENTE')
+                  }
+                  className="h-9 w-full rounded-sm border border-zinc-700 bg-zinc-900 px-2 font-mono text-xs text-white"
+                >
+                  <option value="PRESENTE">PRESENTE</option>
+                  <option value="AUSENTE">AUSENTE</option>
+                </select>
+              </label>
+
+              <label className="space-y-1">
+                <span className="font-mono text-[9.5px] text-zinc-500">HORAS PRÁCTICA REAL</span>
+                <input
+                  type="number"
+                  min={0}
+                  max={24}
+                  step={0.5}
+                  value={pracHorasBase}
+                  onChange={(e) => {
+                    const v = Number(e.target.value);
+                    if (Number.isFinite(v)) setPracHorasBase(Math.max(0, v));
+                  }}
+                  className="h-9 w-full rounded-sm border border-zinc-700 bg-zinc-900 px-2.5 font-mono text-xs text-white"
+                />
+              </label>
+
+              <label className="space-y-1 sm:col-span-2">
+                <span className="font-mono text-[9.5px] text-zinc-500">
+                  DECISIÓN MANUAL TERRENO (EL INSTRUCTOR MANDA) *
+                </span>
+                <select
+                  value={pracDecision}
+                  onChange={(e) => {
+                    const dec = e.target.value as DecisionInstructorTerreno;
+                    setPracDecision(dec);
+                    setPracResultado(
+                      dec === 'APROBADO_EMPRESAS'
+                        ? 'aprobado'
+                        : dec === 'REQUIERE_MAS_HORAS'
+                          ? 'requiere_refuerzo'
+                          : 'no_apto'
+                    );
+                  }}
+                  className="h-9 w-full rounded-sm border border-zinc-700 bg-zinc-900 px-2 font-mono text-xs text-white"
+                >
+                  <option value="APROBADO_EMPRESAS">
+                    APRUEBA PRÁCTICA REAL (APTO PARA EMPRESAS)
+                  </option>
+                  <option value="REQUIERE_MAS_HORAS">
+                    REQUIERE MÁS HORAS DE REFUERZO
+                  </option>
+                  <option value="NO_APTO">NO APTO EN TERRENO</option>
+                </select>
               </label>
 
               <label className="space-y-1">
@@ -1773,7 +2232,7 @@ export default function DrawerPostulante({
                 </select>
               </label>
 
-              <label className="space-y-1">
+              <label className="space-y-1 sm:col-span-2">
                 <span className="font-mono text-[9.5px] text-zinc-500">LUGAR / PREDIO *</span>
                 <input
                   type="text"
@@ -1811,7 +2270,94 @@ export default function DrawerPostulante({
                 />
               </label>
 
-              <label className="space-y-1 sm:col-span-2">
+              <label className="space-y-1">
+                <span className="font-mono text-[9.5px] text-zinc-500">ASISTENCIA EN MÁQUINA</span>
+                <select
+                  value={pracNivelAsist}
+                  onChange={(e) => setPracNivelAsist(e.target.value)}
+                  className="h-9 w-full rounded-sm border border-zinc-700 bg-zinc-900 px-2 font-mono text-xs text-white"
+                >
+                  <option value="AUTONOMO">AUTÓNOMO</option>
+                  <option value="AYUDA_VERBAL">AYUDA VERBAL</option>
+                  <option value="INTERVENCION_CONSTANTE">INT. CONSTANTE</option>
+                  <option value="INTERVENCION_CRITICA">INT. CRÍTICA</option>
+                </select>
+              </label>
+
+              {/* 4 ejes en máquina real (0 / 10 / 20) */}
+              <div className="sm:col-span-3 grid grid-cols-2 gap-2 sm:grid-cols-4 rounded-sm border border-zinc-800 bg-zinc-900/50 p-2.5">
+                {[
+                  { label: 'LATERALIDAD', val: pracLat, setter: setPracLat },
+                  { label: 'MANDOS', val: pracMan, setter: setPracMan },
+                  { label: 'MÁSTIL', val: pracMas, setter: setPracMas },
+                  { label: 'CONTROL', val: pracCon, setter: setPracCon },
+                ].map((eje) => (
+                  <label key={eje.label} className="space-y-1">
+                    <span className="block font-mono text-[9px] text-zinc-400">
+                      {eje.label} (PATIO)
+                    </span>
+                    <select
+                      value={eje.val}
+                      onChange={(e) => eje.setter(e.target.value)}
+                      className="h-8 w-full rounded-sm border border-zinc-700 bg-zinc-950 px-1.5 font-mono text-[11px] text-white"
+                    >
+                      <option value="">—</option>
+                      <option value="0">0 · CRÍTICO</option>
+                      <option value="10">10 · REGULAR</option>
+                      <option value="20">20 · ÓPTIMO</option>
+                    </select>
+                  </label>
+                ))}
+              </div>
+
+              {/* Check ¿Requiere más horas de refuerzo? + Horas extra terreno */}
+              <div className="sm:col-span-3 flex flex-wrap items-center gap-3 rounded-sm border border-zinc-800 bg-zinc-900/50 p-2.5 font-mono text-[10px]">
+                <label className="inline-flex items-center gap-2 text-amber-200 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={pracRequiereExtra}
+                    onChange={(e) => setPracRequiereExtra(e.target.checked)}
+                    className="accent-amber-400"
+                  />
+                  ¿Requiere más horas de refuerzo?
+                </label>
+
+                {pracRequiereExtra && (
+                  <label className="inline-flex items-center gap-1.5 text-zinc-300">
+                    <span>Sugeridas (hs):</span>
+                    <input
+                      type="number"
+                      min={0}
+                      max={24}
+                      step={0.5}
+                      value={pracHorasSugeridas}
+                      onChange={(e) => {
+                        const v = Number(e.target.value);
+                        if (Number.isFinite(v)) setPracHorasSugeridas(Math.max(0, v));
+                      }}
+                      className="h-8 w-16 rounded-sm border border-amber-500/50 bg-zinc-950 px-2 text-xs text-white"
+                    />
+                  </label>
+                )}
+
+                <label className="inline-flex items-center gap-1.5 text-zinc-300">
+                  <span>Horas extra cursadas (hs):</span>
+                  <input
+                    type="number"
+                    min={0}
+                    max={24}
+                    step={0.5}
+                    value={pracHorasExtra}
+                    onChange={(e) => {
+                      const v = Number(e.target.value);
+                      if (Number.isFinite(v)) setPracHorasExtra(Math.max(0, v));
+                    }}
+                    className="h-8 w-16 rounded-sm border border-zinc-700 bg-zinc-950 px-2 text-xs text-white"
+                  />
+                </label>
+              </div>
+
+              <label className="space-y-1 sm:col-span-3">
                 <span className="font-mono text-[9.5px] text-zinc-500">
                   OBSERVACIONES DE TERRENO
                 </span>
@@ -1824,27 +2370,6 @@ export default function DrawerPostulante({
                   className="w-full rounded-sm border border-zinc-700 bg-zinc-900 px-2.5 py-2 font-mono text-xs text-white"
                 />
               </label>
-
-              <div className="space-y-1 sm:col-span-2">
-                <span className="block font-mono text-[9.5px] text-zinc-500">
-                  ADJUNTAR ACTA / REPORTE PDF (MÁX 10 MB · BUCKET PRIVADO)
-                </span>
-                <input
-                  type="file"
-                  accept="application/pdf,.pdf"
-                  onChange={(e) => setPracArchivoPdf(e.target.files?.[0] ?? null)}
-                  className="block w-full rounded-sm border border-dashed border-zinc-700 bg-zinc-900 px-2.5 py-2 font-mono text-[10.5px] text-zinc-300 file:mr-3 file:rounded-sm file:border-0 file:bg-zinc-800 file:px-2.5 file:py-1 file:font-mono file:text-[10px] file:text-zinc-100"
-                />
-                {pracArchivoPdf ? (
-                  <p className="font-mono text-[9.5px] text-cyan-300">
-                    Seleccionado para subir: {pracArchivoPdf.name}
-                  </p>
-                ) : legajo360?.practicaReal?.pdf_reporte_path ? (
-                  <p className="font-mono text-[9.5px] text-emerald-400">
-                    Archivo archivado en Storage: {legajo360.practicaReal.pdf_reporte_path.split('/').pop()}
-                  </p>
-                ) : null}
-              </div>
             </div>
 
             <button
@@ -1852,7 +2377,7 @@ export default function DrawerPostulante({
               disabled={guardandoPrac}
               className="h-10 w-full rounded-sm border border-amber-500/60 bg-amber-500/15 px-4 font-mono text-[11px] font-semibold tracking-[0.12em] text-amber-200 transition-colors hover:bg-amber-500/25 disabled:opacity-50"
             >
-              {guardandoPrac ? 'GUARDANDO PRÁCTICA Y PDF…' : 'GUARDAR PRÁCTICA REAL Y PDF'}
+              {guardandoPrac ? 'GUARDANDO EVALUACIÓN EN TERRENO…' : 'GUARDAR PRÁCTICA REAL (0 BYTES STORAGE)'}
             </button>
           </form>
         )}

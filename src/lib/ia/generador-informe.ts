@@ -4,6 +4,7 @@ import {
   type PerfilOperador,
   type ResultadoClasificacionOperador,
 } from '@/lib/telemetria/parser-simulador';
+import { calcularCuidadoDesdeMetricas } from '@/lib/telemetria/analitica-predictiva';
 import type { BloqueSplit, NivelAsistencia } from '@/types/cabina';
 
 /**
@@ -45,6 +46,50 @@ export interface ContextoPostulanteIA {
   motivoHardFailCabina?: string | null;
   observacionesCabina?: string[] | null;
   notasEmpleo?: string | null;
+  decisionManualT0?: string | null;
+  deltaV1V2?: {
+    deltaScore: number | null;
+    deltaColisiones: number | null;
+    deltaTiempoSeg: number | null;
+  } | null;
+  capacitacion?: {
+    sesionesPresentes: number;
+    horasTotalesCertificadas: number;
+    horasTeoria: number;
+    horasSimulador: number;
+    horasTerreno: number;
+  } | null;
+  pruebaFinalT1?: {
+    scorePuntos: number | null;
+    colisiones: number | null;
+    tiempoSeg: number | null;
+    deltaScoreVsT0: number | null;
+    deltaColisionesVsT0: number | null;
+    cuidadoMecanicoPct: number | null;
+  } | null;
+  practicaRealTerreno?: {
+    fecha: string;
+    resultado: string;
+    asistencia: string;
+    maquina: string | null;
+    decisionTerreno: string | null;
+    nivelAsistencia: string | null;
+    observaciones: string | null;
+  } | null;
+  indicePlasticidad?: number | null;
+  categoriaPlasticidad?: string | null;
+  percentilesCohorte?: {
+    score: number | null;
+    velocidad: number | null;
+    cuidadoMecanico: number | null;
+  } | null;
+}
+
+export interface EvaluacionLongitudinal4Etapas {
+  etapa1DiagnosticoT0: string;
+  etapa2CapacitacionSimulador: string;
+  etapa3PruebaFinalT1: string;
+  etapa4PracticaTerreno: string;
 }
 
 export interface PuntoInformeEmpleo {
@@ -64,6 +109,7 @@ export interface InformeEmpleoIA {
   horasRecomendadas?: number;
   rangoHorasTexto?: string;
   modulosRecomendados?: string[];
+  evaluacionLongitudinal?: EvaluacionLongitudinal4Etapas;
   puntos: [PuntoInformeEmpleo, PuntoInformeEmpleo, PuntoInformeEmpleo];
 }
 
@@ -219,6 +265,66 @@ function evaluarRubricaAntiFalsos(
   };
 }
 
+function construirEvaluacionLongitudinal(
+  m: MetricasSimulador,
+  ctx: ContextoPostulanteIA,
+  clasificacion: ResultadoClasificacionOperador
+): EvaluacionLongitudinal4Etapas {
+  const cuidado = calcularCuidadoDesdeMetricas(m);
+  const deltaV = ctx.deltaV1V2;
+  const textoDeltaV = deltaV
+    ? `Salto V1→V2: ΔScore ${deltaV.deltaScore !== null ? `${deltaV.deltaScore >= 0 ? '+' : ''}${deltaV.deltaScore} pts` : '—'}, ΔColisiones ${deltaV.deltaColisiones ?? '—'}, ΔTiempo ${deltaV.deltaTiempoSeg !== null ? `${deltaV.deltaTiempoSeg} s` : '—'}.`
+    : 'Instancia única de diagnóstico registrada hasta el momento.';
+
+  const ejTablet =
+    ctx.scoreCabina !== null && ctx.scoreCabina !== undefined
+      ? `Tablet instructor: ${ctx.scoreCabina}/90 pts (Lat ${ctx.puntajeLateralidad ?? '—'}, Mandos ${ctx.puntajeTactoMandos ?? '—'}, Mástil ${ctx.puntajeMastil ?? '—'}, Control ${ctx.puntajeControlReceptividad ?? '—'}) · Asistencia ${ctx.nivelAsistenciaCabina ?? ctx.asistenciaCabinaLegacy ?? '—'}.`
+      : 'Sin evaluación tablet de cabina T0 registrada.';
+
+  const decT0 = ctx.decisionManualT0
+    ? ` Decisión manual T0: ${ctx.decisionManualT0}.`
+    : '';
+
+  const etapa1DiagnosticoT0 =
+    `6 curvas Titán: Score ${m.scorePuntos ?? '—'} pts, ${m.colisionesReales} colisiones (${m.colisionesDescartadas} descartes suelo -2), ` +
+    `serrucho=${m.indiceSerrucho ?? '—'}, frenadas=${m.frenadasPanico ?? '—'}, cuidado mecánico ${cuidado.indiceCuidadoMecanico}% (${cuidado.categoria}). ` +
+    `${textoDeltaV} ${ejTablet}${decT0}`;
+
+  const cap = ctx.capacitacion;
+  const etapa2CapacitacionSimulador =
+    `Perfil "${clasificacion.etiquetaPerfil}" · Receta Titán: ${clasificacion.horasRecomendadas} hs (${clasificacion.modulosRecomendados.slice(0, 2).join('; ')}). ` +
+    (cap
+      ? `Cumplimiento efectivo: ${cap.sesionesPresentes} sesiones en dupla (${cap.horasSimulador} hs simulador) + ${cap.horasTeoria} hs teoría + ${cap.horasTerreno} hs terreno = ${cap.horasTotalesCertificadas} hs certificadas totales.`
+      : 'Sesiones de dupla pendientes de sincronización o cierre.');
+
+  const t1 = ctx.pruebaFinalT1;
+  const etapa3PruebaFinalT1 = t1
+    ? `Prueba Final T1: Score ${t1.scorePuntos ?? '—'} pts (Δ vs T0: ${t1.deltaScoreVsT0 !== null ? `${t1.deltaScoreVsT0 >= 0 ? '+' : ''}${t1.deltaScoreVsT0}` : '—'}), ` +
+      `Colisiones ${t1.colisiones ?? '—'} (Δ vs T0: ${t1.deltaColisionesVsT0 ?? '—'}), Cuidado mecánico ${t1.cuidadoMecanicoPct ?? cuidado.indiceCuidadoMecanico}%.` +
+      (ctx.indicePlasticidad !== null && ctx.indicePlasticidad !== undefined
+        ? ` Plasticidad predictiva: ${ctx.indicePlasticidad}/100 (${ctx.categoriaPlasticidad ?? '—'}).`
+        : '')
+    : `Evaluación Final T1 pendiente tras completar las sesiones de cabina. Cuidado mecánico actual: ${cuidado.indiceCuidadoMecanico}%` +
+      (ctx.percentilesCohorte?.score !== null && ctx.percentilesCohorte?.score !== undefined
+        ? ` · Percentil cohorte Score P${ctx.percentilesCohorte.score}, Cuidado P${ctx.percentilesCohorte.cuidadoMecanico ?? '—'}.`
+        : '.');
+
+  const pr = ctx.practicaRealTerreno;
+  const etapa4PracticaTerreno = pr
+    ? `Patio (${pr.fecha}): Asistencia ${pr.asistencia} · Equipo ${pr.maquina ?? 'Autoelevador Real'} · ` +
+      `Resultado ${pr.resultado.toUpperCase()} · Asistencia ${pr.nivelAsistencia ?? 'ESTÁNDAR'} · ` +
+      `Decisión final empresas: ${pr.decisionTerreno ?? pr.resultado.toUpperCase()}.` +
+      (pr.observaciones ? ` Obs.: ${pr.observaciones}` : '')
+    : 'Práctica real en máquina física pendiente de evaluación en patio.';
+
+  return {
+    etapa1DiagnosticoT0,
+    etapa2CapacitacionSimulador,
+    etapa3PruebaFinalT1,
+    etapa4PracticaTerreno,
+  };
+}
+
 function generarFallbackHeuristico(
   m: MetricasSimulador,
   ctx: ContextoPostulanteIA,
@@ -238,10 +344,13 @@ function generarFallbackHeuristico(
       : 'S/D';
   const accelFondoTxt =
     m.porcentajeAceleradorFondo !== null ? `${m.porcentajeAceleradorFondo}%` : 'S/D';
+  const cuidado = calcularCuidadoDesdeMetricas(m);
+  const longitudinal = construirEvaluacionLongitudinal(m, ctx, clasificacion);
 
   const punto1 =
     `El postulante ${ctx.nombreCompleto} (DNI ${ctx.dni}) clasificó como perfil "${clasificacion.etiquetaPerfil}" ` +
-    `con score de simulador de ${scoreTxt} en ${formatoMinutosSeg(m.tiempoDuracionSeg)} y ${m.colisionesReales} colisión(es) real(es). ` +
+    `con score de simulador de ${scoreTxt} en ${formatoMinutosSeg(m.tiempoDuracionSeg)}, ${m.colisionesReales} colisión(es) real(es) ` +
+    `y Cuidado Mecánico del ${cuidado.indiceCuidadoMecanico}% (${cuidado.categoria}). ` +
     `En telemetría de las 6 curvas registró serrucho=${serruchoTxt}, volantazos=${volantazosTxt}, ` +
     `frenadas de pánico=${frenadasTxt}, velocidad pico=${velTxt}, acelerador a fondo=${accelFondoTxt} y circulación con horquilla alta=${horquillaTxt}` +
     (ctx.nivelAsistenciaCabina
@@ -310,6 +419,7 @@ function generarFallbackHeuristico(
     horasRecomendadas: clasificacion.horasRecomendadas,
     rangoHorasTexto: clasificacion.rangoHorasTexto,
     modulosRecomendados: clasificacion.modulosRecomendados,
+    evaluacionLongitudinal: longitudinal,
     puntos: [
       { titulo: '01 · SÍNTESIS TÉCNICA Y TELEMETRÍA', detalle: punto1 },
       {
@@ -368,6 +478,15 @@ function construirPromptGemini(
       hallazgos_mastil: m.hallazgosMastil,
     },
     perfil_operador_clasificado: clasificacion,
+    trayectoria_longitudinal_4_etapas: {
+      cuidado_mecanico: calcularCuidadoDesdeMetricas(m),
+      delta_v1_v2: ctx.deltaV1V2 ?? null,
+      capacitacion: ctx.capacitacion ?? null,
+      prueba_final_t1: ctx.pruebaFinalT1 ?? null,
+      practica_real_terreno: ctx.practicaRealTerreno ?? null,
+      indice_plasticidad: ctx.indicePlasticidad ?? null,
+      percentiles_cohorte: ctx.percentilesCohorte ?? null,
+    },
     preanalisis_rubrica: {
       bandera_falso_positivo_suelo: rubrica.banderaFalsoPositivoSuelo,
       bandera_falso_negativo_riesgo_oculto:
@@ -381,7 +500,7 @@ function construirPromptGemini(
     'Analizá los datos estructurados del postulante aplicando ESTRICTAMENTE la Rúbrica Antifalsos Positivos y Antifalsos Negativos:',
     '1) ANTIFALSO POSITIVO: Jamás castigues al postulante por colisiones fantasma contra suelo/malla ("bug -2" ya depuradas en colisiones_descartadas). Si la duración es lenta pero con 0 colisiones reales y serrucho < 1.8, destacalo como precaución metódica.',
     '2) ANTIFALSO NEGATIVO: No te dejes engañar por un score numérico alto (>80) si existen colisiones reales >= 2, índice serrucho >= 1.8, volantazos extremos >= 3, frenadas de pánico >= 2, circulación elevada con horquillas altas, fallas reiteradas de mástil, hard-fail o nivel de asistencia docente alto/crítico.',
-    '3) SALIDA: Generá exactamente 3 puntos claros, concisos, profesionales y accionables en español rioplatense formal para la Dirección de Empleo, integrando explícitamente el perfil de operador clasificado, la carga horaria recomendada y los módulos de práctica.',
+    '3) SALIDA: Generá exactamente 3 puntos claros, concisos, profesionales y accionables en español rioplatense formal para la Dirección de Empleo, integrando las 4 etapas longitudinales (Diagnóstico T0/V1→V2 + Tablet, Capacitación en dupla, Prueba Final T1 y Práctica Real en Terreno), perfil clasificado, cuidado mecánico y recomendación laboral.',
     `Datos del caso: ${JSON.stringify(payloadContexto)}`,
   ].join('\n');
 }
@@ -525,6 +644,12 @@ export async function generarInformeEmpleoIA(
         ? dictamenIA
         : rubrica.dictamenSugerido;
 
+    const evaluacionLongitudinal = construirEvaluacionLongitudinal(
+      metricas,
+      contexto,
+      clasificacion
+    );
+
     return {
       origen: 'GEMINI_2_5_FLASH',
       modelo: GEMINI_MODEL,
@@ -537,6 +662,7 @@ export async function generarInformeEmpleoIA(
       horasRecomendadas: clasificacion.horasRecomendadas,
       rangoHorasTexto: clasificacion.rangoHorasTexto,
       modulosRecomendados: clasificacion.modulosRecomendados,
+      evaluacionLongitudinal,
       puntos: [
         {
           titulo: '01 · SÍNTESIS TÉCNICA Y TELEMETRÍA',

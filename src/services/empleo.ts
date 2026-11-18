@@ -17,10 +17,27 @@ import {
   type ContextoPostulanteIA,
   type InformeEmpleoIA,
 } from '@/lib/ia/generador-informe';
-import type {
-  MetricasSimulador,
-  PerfilOperador,
+import {
+  calcularCargaHorariaOperador,
+  calcularHorasHombreYMaquina,
+  resolverParametrosHoras,
+} from '@/lib/horas-capacitacion';
+import {
+  analizarCohortePredictiva,
+  calcularCuidadoDesdeMetricas,
+  type RegistroEvaluacionAnalitica,
+} from '@/lib/telemetria/analitica-predictiva';
+import {
+  esNivelAsistenciaValido,
+  mapearNivelAsistenciaACabina,
+  PUNTAJES_EJE_VALIDOS,
+} from '@/lib/cabina/dictamen';
+import {
+  clasificarPerfilOperador,
+  type MetricasSimulador,
+  type PerfilOperador,
 } from '@/lib/telemetria/parser-simulador';
+import type { PuntajeEje } from '@/types/cabina';
 import type {
   EstadoEgreso,
   FranjaCursado,
@@ -37,6 +54,9 @@ import type {
   CrearCohorteInput,
   CrearPostulanteInput,
   DatosCohorteActiva,
+  DecisionInstructorCohorteItem,
+  DecisionInstructorT0,
+  DecisionInstructorTerreno,
   DuplaPersistidaItem,
   EjeRadar,
   EstadoAsistenciaUI,
@@ -47,7 +67,10 @@ import type {
   EvaluacionReceptividad,
   FichaEvaluacion,
   FranjaCabina,
+  GuardarDecisionInstructorInput,
   GuardarEgresoLegajoInput,
+  GuardarPracticaRealSinStorageInput,
+  ItemLoteTelemetriaInput,
   Legajo360Postulante,
   MetricasIntento,
   OcupanteFranja,
@@ -59,6 +82,8 @@ import type {
   ResultadoCrearCohorte,
   ResultadoCrearPostulante,
   ResultadoEgresoAccion,
+  ResultadoImportarLoteTelemetria,
+  ResultadoLoteTelemetriaItem,
   ResultadoPracticaReal,
   ResultadoPracticaRealAccion,
   ResultadoSincronizarDuplas,
@@ -261,15 +286,23 @@ function numeroOrNull(v: number | string | null | undefined): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
+const ARCHIVO_FUENTE_TERRENO = 'CABINA_TABLET_TERRENO';
+const ARCHIVO_FUENTE_DECISION = 'DECISION_INSTRUCTOR_COHORTE';
+
 function esArchivoTablet(fuente: string | null | undefined): boolean {
-  return typeof fuente === 'string' && fuente.startsWith('CABINA_TABLET');
+  return (
+    typeof fuente === 'string' &&
+    fuente.startsWith('CABINA_TABLET') &&
+    fuente !== ARCHIVO_FUENTE_TERRENO
+  );
 }
 
 function esArchivoTitan(fuente: string | null | undefined): boolean {
   return (
     typeof fuente === 'string' &&
     fuente.trim().length > 0 &&
-    !fuente.startsWith('CABINA_TABLET')
+    !fuente.startsWith('CABINA_TABLET') &&
+    fuente !== ARCHIVO_FUENTE_DECISION
   );
 }
 
@@ -671,6 +704,8 @@ export async function obtenerDatosCohorteActiva(
     { data: inscripciones, error: errInscripciones },
     { data: filasDuplas, error: errDuplas },
     { data: filasSesiones, error: errSesiones },
+    { data: filasPracticasReales },
+    { data: filasEgresosCohorte },
   ] = await Promise.all([
     supabase
       .from('franjas_cabina')
@@ -692,7 +727,8 @@ export async function obtenerDatosCohorteActiva(
              puntaje_lateralidad, puntaje_tacto_mandos, puntaje_mastil,
              puntaje_control_receptividad, eje_lateralidad, eje_tacto_mandos,
              eje_mastil, eje_control_receptividad, tiempo_vuelta_seg, colisiones,
-             colisiones_descartadas, score_puntos))`
+             colisiones_descartadas, score_puntos, delta_tiempo_seg,
+             delta_colisiones, delta_score, delta_serrucho))`
       )
       .eq('cohorte_id', filaCohorte.id)
       .order('ranking_orden', { ascending: true }),
@@ -710,6 +746,16 @@ export async function obtenerDatosCohorteActiva(
       .eq('cohorte_id', filaCohorte.id)
       .order('numero_sesion', { ascending: true })
       .returns<FilaSesionPracticaDB[]>(),
+    supabase
+      .from('practica_real')
+      .select('postulante_id, resultado')
+      .eq('cohorte_id', filaCohorte.id)
+      .returns<Array<{ postulante_id: string | null; resultado: string }>>(),
+    supabase
+      .from('evaluacion_final_egreso')
+      .select('postulante_id, aprobado_practica_terreno')
+      .eq('cohorte_id', filaCohorte.id)
+      .returns<Array<{ postulante_id: string; aprobado_practica_terreno: boolean | null }>>(),
   ]);
 
   if (errDuplas) {
@@ -823,6 +869,127 @@ export async function obtenerDatosCohorteActiva(
     (s) => mapearSesionDB(s)
   );
 
+  const sesionesPresentesPorAlumno = new Map<string, number>();
+  for (const s of sesionesPractica) {
+    if (s.estado_asistencia === 'PRESENTE') {
+      sesionesPresentesPorAlumno.set(
+        s.alumno_id,
+        (sesionesPresentesPorAlumno.get(s.alumno_id) ?? 0) + 1
+      );
+    }
+  }
+  const practicaResultadoPorAlumno = new Map<string, string>();
+  for (const pr of filasPracticasReales ?? []) {
+    if (pr.postulante_id) practicaResultadoPorAlumno.set(pr.postulante_id, pr.resultado);
+  }
+  const egresoTerrenoPorAlumno = new Map<string, boolean | null>();
+  for (const eg of filasEgresosCohorte ?? []) {
+    egresoTerrenoPorAlumno.set(eg.postulante_id, eg.aprobado_practica_terreno);
+  }
+
+  const fuentesImpacto = filasInscripcion.flatMap((f) => {
+    const rel = Array.isArray(f.postulantes) ? f.postulantes[0] : f.postulantes;
+    if (!rel || !f.postulante_id) return [];
+
+    const evalsRaw = rel.evaluacion_diagnostico ?? [];
+    const filaTerreno = evalsRaw.find((e) => e.archivo_fuente === ARCHIVO_FUENTE_TERRENO) ?? null;
+    const filaDecision = evalsRaw.find((e) => e.archivo_fuente === ARCHIVO_FUENTE_DECISION) ?? null;
+    const metaTerreno = filaTerreno
+      ? parsearTerrenoDetalle({
+          puntaje_lateralidad: filaTerreno.puntaje_lateralidad,
+          puntaje_tacto_mandos: filaTerreno.puntaje_tacto_mandos,
+          puntaje_mastil: filaTerreno.puntaje_mastil,
+          puntaje_control_receptividad: filaTerreno.puntaje_control_receptividad,
+          nivel_asistencia: filaTerreno.nivel_asistencia,
+          telemetria_metricas: filaTerreno.telemetria_metricas,
+        })
+      : null;
+    const decInst = filaDecision
+      ? parsearDecisionInstructor({
+          instructor_evaluador: filaDecision.instructor_evaluador,
+          created_at: filaDecision.created_at,
+          telemetria_metricas: filaDecision.telemetria_metricas,
+        })
+      : null;
+
+    const evalsTitan: RegistroEvaluacionAnalitica[] = evalsRaw
+      .filter((e) => esArchivoTitan(e.archivo_fuente))
+      .map((e) => {
+        const mGuard = normalizarMetricasGuardadas(e.telemetria_metricas);
+        const lat = parsearTelemetriaLateralidad(e.eje_lateralidad);
+        const fren = parsearFrenadasLegacy(e.eje_tacto_mandos);
+        const satMatch = (e.eje_control_receptividad ?? '').match(/palancas_saturadas\s*=\s*(\d+)/i);
+        return {
+          postulanteId: f.postulante_id as string,
+          archivoFuente: e.archivo_fuente,
+          etapa: normalizarEtapa(e.etapa),
+          esMejorDiagnostico: e.es_mejor_diagnostico === true,
+          scorePuntos: mGuard?.scorePuntos ?? numeroOrNull(e.score_puntos),
+          tiempoVueltaSeg: mGuard?.tiempoDuracionSeg ?? numeroOrNull(e.tiempo_vuelta_seg),
+          colisiones: mGuard?.colisionesReales ?? numeroOrNull(e.colisiones),
+          indiceSerrucho: mGuard?.indiceSerrucho ?? lat.indice_serrucho,
+          volantazosExtremos: mGuard?.volantazosExtremos ?? lat.volantazos_extremos,
+          frenadasPanico: mGuard?.frenadasPanico ?? fren,
+          porcentajeHorquillaAlta: mGuard?.porcentajeCirculacionHorquillaAlta ?? null,
+          oscilacionesMastil: mGuard?.oscilacionesMastil ?? null,
+          saturacionesPalancasCount: satMatch ? Number(satMatch[1]) : 0,
+          perfilOperador: normalizarPerfilOperador(e.perfil_operador),
+          createdAt: e.created_at,
+          metricas: mGuard,
+        };
+      });
+
+    const pRow = postulantes.find((p) => p.postulante_id === f.postulante_id);
+    const resPrac = practicaResultadoPorAlumno.get(f.postulante_id);
+    const resultadoPracTipado: ResultadoPracticaReal =
+      resPrac === 'requiere_refuerzo'
+        ? 'requiere_refuerzo'
+        : resPrac === 'no_apto'
+          ? 'no_apto'
+          : 'aprobado';
+    const pracLite =
+      metaTerreno || resPrac
+        ? {
+            asistencia_terreno: metaTerreno?.asistencia_terreno ?? ('PRESENTE' as const),
+            horas_practica_terreno: metaTerreno?.horas_practica_terreno ?? 1.5,
+            horas_extra_terreno: metaTerreno?.horas_extra_terreno ?? 0,
+            horas_extra_sugeridas: metaTerreno?.horas_extra_sugeridas ?? 0,
+            resultado: resultadoPracTipado,
+            decision_instructor_terreno: metaTerreno?.decision_instructor_terreno ?? null,
+          }
+        : null;
+
+    return [
+      {
+        postulanteId: f.postulante_id,
+        estadoInscripcion: f.estado,
+        sesionesPresentes: sesionesPresentesPorAlumno.get(f.postulante_id) ?? 0,
+        tieneCabinaTablet: Boolean(pRow?.evaluacion?.tiene_evaluacion_tablet),
+        decisionInstructor: decInst,
+        practicaReal: pracLite,
+        aprobadoEgresoTerreno: egresoTerrenoPorAlumno.get(f.postulante_id) ?? null,
+        horasRecomendadasTitan: pRow?.evaluacion?.horas_recomendadas ?? null,
+        evaluacionesTitan: evalsTitan,
+      },
+    ];
+  });
+
+  const { horasMaquinaSimulador } = calcularHorasHombreYMaquina(
+    sesionesPractica,
+    resolverParametrosHoras(configCursado).horas_por_sesion_simulador
+  );
+  const { porPostulante: analiticaPorPostulante, resumenCohorte } =
+    analizarCohortePredictiva({
+      cohorteConfig: configCursado,
+      postulantes: fuentesImpacto,
+      horasMaquinaSimulador,
+    });
+
+  const postulantesConAnalitica: PostulanteFila[] = postulantes.map((p) => ({
+    ...p,
+    analitica: analiticaPorPostulante[p.postulante_id] ?? null,
+  }));
+
   return {
     cohorte: {
       id: filaCohorte.id,
@@ -840,10 +1007,11 @@ export async function obtenerDatosCohorteActiva(
       configuracion_cursado: configCursado,
     },
     franjas: franjasDto,
-    postulantes,
+    postulantes: postulantesConAnalitica,
     totalConfirmados,
     duplasPersistidas,
     sesionesPractica,
+    impactoIndustrial: resumenCohorte,
   };
 }
 
@@ -1967,12 +2135,13 @@ export async function analizarTelemetriaPostulanteAction(
   const { data: insc, error: errInsc } = await supabase
     .from('cohorte_inscripciones')
     .select(
-      'id, obs_empleo, postulantes(nombre_completo, dni)'
+      'id, estado, obs_empleo, postulantes(nombre_completo, dni)'
     )
     .eq('cohorte_id', cohorteIdValidada)
     .eq('postulante_id', postulanteId)
     .maybeSingle<{
       id: string;
+      estado: string;
       obs_empleo: string | null;
       postulantes:
         | { nombre_completo: string; dni: string }
@@ -1994,21 +2163,60 @@ export async function analizarTelemetriaPostulanteAction(
     return { ok: false, error: 'Legajo del postulante no encontrado.' };
   }
 
-  const { data: evalFilas } = await supabase
-    .from('evaluacion_diagnostico')
-    .select(
-      'id, created_at, dictamen, asistencia_cabina, nivel_asistencia, bloque_split, score_puntos, puntaje_lateralidad, puntaje_tacto_mandos, puntaje_mastil, puntaje_control_receptividad, hard_fail, motivo_hard_fail, observaciones_rapidas, archivo_fuente'
-    )
-    .eq('postulante_id', postulanteId)
-    .order('created_at', { ascending: false });
+  const [
+    { data: evalFilas },
+    { data: sesFilas },
+    { data: pracFila },
+    { data: cohRowIA },
+  ] = await Promise.all([
+    supabase
+      .from('evaluacion_diagnostico')
+      .select(
+        'id, created_at, dictamen, asistencia_cabina, nivel_asistencia, bloque_split, score_puntos, colisiones, tiempo_vuelta_seg, etapa, es_mejor_diagnostico, delta_score, delta_colisiones, delta_tiempo_seg, puntaje_lateralidad, puntaje_tacto_mandos, puntaje_mastil, puntaje_control_receptividad, hard_fail, motivo_hard_fail, observaciones_rapidas, instructor_evaluador, telemetria_metricas, archivo_fuente'
+      )
+      .eq('postulante_id', postulanteId)
+      .order('created_at', { ascending: false }),
+    supabase
+      .from('sesiones_practica')
+      .select('estado_asistencia')
+      .eq('cohorte_id', cohorteIdValidada)
+      .eq('alumno_id', postulanteId)
+      .returns<Array<{ estado_asistencia: string }>>(),
+    supabase
+      .from('practica_real')
+      .select('fecha_practica, resultado, maquina_utilizada, observaciones_terreno')
+      .eq('cohorte_id', cohorteIdValidada)
+      .eq('postulante_id', postulanteId)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle<{
+        fecha_practica: string;
+        resultado: string;
+        maquina_utilizada: string | null;
+        observaciones_terreno: string | null;
+      }>(),
+    supabase
+      .from('cohortes')
+      .select('configuracion_cursado')
+      .eq('id', cohorteIdValidada)
+      .maybeSingle<{ configuracion_cursado: unknown }>(),
+  ]);
 
   const filas = (evalFilas ?? []) as unknown as Array<{
     id: string;
+    created_at: string | null;
     dictamen: string | null;
     asistencia_cabina: string | null;
     nivel_asistencia: string | null;
     bloque_split: string | null;
     score_puntos: number | string | null;
+    colisiones: number | null;
+    tiempo_vuelta_seg: number | null;
+    etapa: string | null;
+    es_mejor_diagnostico: boolean | null;
+    delta_score: number | string | null;
+    delta_colisiones: number | null;
+    delta_tiempo_seg: number | null;
     puntaje_lateralidad: number | null;
     puntaje_tacto_mandos: number | null;
     puntaje_mastil: number | null;
@@ -2016,11 +2224,71 @@ export async function analizarTelemetriaPostulanteAction(
     hard_fail: boolean | null;
     motivo_hard_fail: string | null;
     observaciones_rapidas: string[] | null;
+    instructor_evaluador: string | null;
+    telemetria_metricas: unknown;
     archivo_fuente: string | null;
   }>;
 
   const filaCabina =
     filas.find((f) => esArchivoTablet(f.archivo_fuente)) ?? filas[0] ?? null;
+  const filaV2 = filas.find(
+    (f) => esArchivoTitan(f.archivo_fuente) && f.etapa === 'DIAG_INTENTO_2'
+  );
+  const filaFinalT1 = filas.find(
+    (f) => esArchivoTitan(f.archivo_fuente) && f.etapa === 'FINAL'
+  );
+  const filaTerreno = filas.find((f) => f.archivo_fuente === ARCHIVO_FUENTE_TERRENO) ?? null;
+  const filaDecision = filas.find((f) => f.archivo_fuente === ARCHIVO_FUENTE_DECISION) ?? null;
+  const metaTerreno = filaTerreno
+    ? parsearTerrenoDetalle({
+        puntaje_lateralidad: filaTerreno.puntaje_lateralidad,
+        puntaje_tacto_mandos: filaTerreno.puntaje_tacto_mandos,
+        puntaje_mastil: filaTerreno.puntaje_mastil,
+        puntaje_control_receptividad: filaTerreno.puntaje_control_receptividad,
+        nivel_asistencia: filaTerreno.nivel_asistencia,
+        telemetria_metricas: filaTerreno.telemetria_metricas,
+      })
+    : null;
+  const decInst = filaDecision
+    ? parsearDecisionInstructor({
+        instructor_evaluador: filaDecision.instructor_evaluador,
+        created_at: filaDecision.created_at,
+        telemetria_metricas: filaDecision.telemetria_metricas,
+      })
+    : null;
+
+  const sesionesPres = (sesFilas ?? []).filter(
+    (s) => s.estado_asistencia === 'PRESENTE'
+  ).length;
+  const cfgCohorteIA = normalizarConfiguracionCursado(cohRowIA?.configuracion_cursado);
+  const cargaIA = calcularCargaHorariaOperador({
+    config: cfgCohorteIA,
+    asistioTeoria:
+      decInst?.asistio_teoria ??
+      (insc.estado === 'CONFIRMADO' || sesionesPres > 0 || Boolean(pracFila)),
+    sesionesPresentes: sesionesPres,
+    tieneInstanciaCabina: true,
+    horasRefuerzoSimulador: decInst?.horas_refuerzo_simulador ?? 0,
+    practicaReal:
+      pracFila || metaTerreno
+        ? {
+            asistencia_terreno: metaTerreno?.asistencia_terreno ?? 'PRESENTE',
+            horas_practica_terreno: metaTerreno?.horas_practica_terreno ?? 1.5,
+            horas_extra_terreno: metaTerreno?.horas_extra_terreno ?? 0,
+            horas_extra_sugeridas: metaTerreno?.horas_extra_sugeridas ?? 0,
+            resultado:
+              pracFila?.resultado === 'aprobado' ||
+              pracFila?.resultado === 'requiere_refuerzo' ||
+              pracFila?.resultado === 'no_apto'
+                ? pracFila.resultado
+                : 'aprobado',
+          }
+        : null,
+  });
+
+  const metricasFinalGuardadas = filaFinalT1
+    ? normalizarMetricasGuardadas(filaFinalT1.telemetria_metricas)
+    : null;
 
   const contexto: ContextoPostulanteIA = {
     nombreCompleto: rel.nombre_completo,
@@ -2042,6 +2310,44 @@ export async function analizarTelemetriaPostulanteAction(
       ? filaCabina.observaciones_rapidas
       : null,
     notasEmpleo: insc.obs_empleo,
+    decisionManualT0: decInst?.decision_t0 ?? null,
+    deltaV1V2: filaV2
+      ? {
+          deltaScore: numeroOrNull(filaV2.delta_score),
+          deltaColisiones: numeroOrNull(filaV2.delta_colisiones),
+          deltaTiempoSeg: numeroOrNull(filaV2.delta_tiempo_seg),
+        }
+      : null,
+    capacitacion: {
+      sesionesPresentes: sesionesPres,
+      horasTotalesCertificadas: cargaIA.totalCertificadas,
+      horasTeoria: cargaIA.horasTeoria,
+      horasSimulador: cargaIA.horasSimuladorTotal,
+      horasTerreno: cargaIA.horasTerrenoTotal,
+    },
+    pruebaFinalT1: filaFinalT1
+      ? {
+          scorePuntos: numeroOrNull(filaFinalT1.score_puntos),
+          colisiones: numeroOrNull(filaFinalT1.colisiones),
+          tiempoSeg: numeroOrNull(filaFinalT1.tiempo_vuelta_seg),
+          deltaScoreVsT0: numeroOrNull(filaFinalT1.delta_score),
+          deltaColisionesVsT0: numeroOrNull(filaFinalT1.delta_colisiones),
+          cuidadoMecanicoPct: metricasFinalGuardadas
+            ? calcularCuidadoDesdeMetricas(metricasFinalGuardadas).indiceCuidadoMecanico
+            : null,
+        }
+      : null,
+    practicaRealTerreno: pracFila
+      ? {
+          fecha: pracFila.fecha_practica.split('T')[0],
+          resultado: pracFila.resultado,
+          asistencia: metaTerreno?.asistencia_terreno ?? 'PRESENTE',
+          maquina: pracFila.maquina_utilizada,
+          decisionTerreno: metaTerreno?.decision_instructor_terreno ?? null,
+          nivelAsistencia: metaTerreno?.nivel_asistencia ?? null,
+          observaciones: pracFila.observaciones_terreno,
+        }
+      : null,
   };
 
   const informe = await generarInformeEmpleoIA(metricas, contexto);
@@ -2153,8 +2459,6 @@ export async function analizarTelemetriaPostulanteAction(
 // Bloque 2: Sincronización de Duplas, Asistencia, Práctica Real y Legajo 360°
 // ─────────────────────────────────────────────────────────────────────────────
 
-const BUCKET_PRACTICA_REAL = 'expedientes-practica-real';
-const MAX_PDF_PRACTICA_BYTES = 10 * 1024 * 1024;
 const ESTADOS_ASISTENCIA_UI_VALIDOS: readonly EstadoAsistenciaUI[] = [
   'PENDIENTE',
   'PRESENTE',
@@ -2166,6 +2470,16 @@ const RESULTADOS_PRACTICA_VALIDOS: readonly ResultadoPracticaReal[] = [
   'aprobado',
   'requiere_refuerzo',
   'no_apto',
+];
+const DECISIONES_T0_VALIDAS: readonly DecisionInstructorT0[] = [
+  'APROBADO_A_CAPACITACION',
+  'PENDIENTE',
+  'RECHAZADO',
+];
+const DECISIONES_TERRENO_VALIDAS: readonly DecisionInstructorTerreno[] = [
+  'APROBADO_EMPRESAS',
+  'REQUIERE_MAS_HORAS',
+  'NO_APTO',
 ];
 const ESTADOS_EGRESO_VALIDOS: readonly EstadoEgreso[] = [
   'CERTIFICADO',
@@ -2179,6 +2493,13 @@ const PERFILES_LABORALES_VALIDOS: readonly PerfilLaboral[] = [
   'NO_RECOMENDADO',
 ];
 
+function sanitizarHorasInput(val: unknown, fallback: number, max = 40): number {
+  if (typeof val !== 'number' || !Number.isFinite(val) || val < 0) {
+    return fallback;
+  }
+  return Math.round(Math.min(max, val) * 10) / 10;
+}
+
 function esFechaIsoValida(v: unknown): v is string {
   if (typeof v !== 'string') return false;
   const limpia = v.trim();
@@ -2189,29 +2510,6 @@ function esFechaIsoValida(v: unknown): v is string {
   } catch {
     return false;
   }
-}
-
-function sanitizarNombreArchivoPdf(nombre: string): string {
-  const base = nombre
-    .replace(/\.pdf$/i, '')
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^a-zA-Z0-9_-]+/g, '_')
-    .replace(/^_+|_+$/g, '')
-    .slice(0, 60);
-  return `${base || 'expediente'}.pdf`;
-}
-
-function tieneCabeceraPdfValida(bytes: Uint8Array): boolean {
-  if (bytes.length < 5) return false;
-  // %PDF-
-  return (
-    bytes[0] === 0x25 &&
-    bytes[1] === 0x50 &&
-    bytes[2] === 0x44 &&
-    bytes[3] === 0x46 &&
-    bytes[4] === 0x2d
-  );
 }
 
 function obtenerFechaBaseCalendarioHoy(): string {
@@ -2263,17 +2561,99 @@ function decodificarLegacyPractica(obsRaw: string | null): {
   return { resultadoMeta, lugarPredio, maquinaUtilizada, observacionesLimpias };
 }
 
-async function generarUrlFirmadaPractica(
-  supabase: Awaited<ReturnType<typeof createClient>>,
-  path: string | null
-): Promise<string | null> {
-  if (!path) return null;
-  const storageClient = createAdminClient() ?? supabase;
-  const { data, error } = await storageClient.storage
-    .from(BUCKET_PRACTICA_REAL)
-    .createSignedUrl(path, 3600);
-  if (error || !data?.signedUrl) return null;
-  return data.signedUrl;
+interface TerrenoMetaGuardada {
+  asistencia_terreno: 'PRESENTE' | 'AUSENTE';
+  horas_practica_terreno: number;
+  horas_extra_terreno: number;
+  requiere_horas_extra: boolean;
+  horas_extra_sugeridas: number;
+  decision_instructor_terreno: DecisionInstructorTerreno | null;
+}
+
+function parsearTerrenoDetalle(
+  fila: {
+    puntaje_lateralidad: number | null;
+    puntaje_tacto_mandos: number | null;
+    puntaje_mastil: number | null;
+    puntaje_control_receptividad: number | null;
+    nivel_asistencia: string | null;
+    telemetria_metricas: unknown;
+  } | null
+): (TerrenoMetaGuardada & {
+  puntaje_lateralidad: number | null;
+  puntaje_tacto_mandos: number | null;
+  puntaje_mastil: number | null;
+  puntaje_control_receptividad: number | null;
+  nivel_asistencia: string | null;
+}) | null {
+  if (!fila) return null;
+  const raw =
+    fila.telemetria_metricas &&
+    typeof fila.telemetria_metricas === 'object' &&
+    !Array.isArray(fila.telemetria_metricas)
+      ? (fila.telemetria_metricas as Record<string, unknown>)
+      : {};
+
+  const decisionRaw = raw.decision_instructor_terreno;
+  const decisionTerreno =
+    typeof decisionRaw === 'string' &&
+    (DECISIONES_TERRENO_VALIDAS as readonly string[]).includes(decisionRaw)
+      ? (decisionRaw as DecisionInstructorTerreno)
+      : null;
+
+  return {
+    asistencia_terreno:
+      raw.asistencia_terreno === 'AUSENTE' ? 'AUSENTE' : 'PRESENTE',
+    horas_practica_terreno: sanitizarHorasInput(raw.horas_practica_terreno, 1.5, 24),
+    horas_extra_terreno: sanitizarHorasInput(raw.horas_extra_terreno, 0, 24),
+    requiere_horas_extra: raw.requiere_horas_extra === true,
+    horas_extra_sugeridas: sanitizarHorasInput(raw.horas_extra_sugeridas, 0, 24),
+    decision_instructor_terreno: decisionTerreno,
+    puntaje_lateralidad: numeroOrNull(fila.puntaje_lateralidad),
+    puntaje_tacto_mandos: numeroOrNull(fila.puntaje_tacto_mandos),
+    puntaje_mastil: numeroOrNull(fila.puntaje_mastil),
+    puntaje_control_receptividad: numeroOrNull(fila.puntaje_control_receptividad),
+    nivel_asistencia: fila.nivel_asistencia ?? null,
+  };
+}
+
+function parsearDecisionInstructor(
+  fila: {
+    instructor_evaluador: string | null;
+    created_at: string | null;
+    telemetria_metricas: unknown;
+  } | null
+): DecisionInstructorCohorteItem | null {
+  if (!fila) return null;
+  const raw =
+    fila.telemetria_metricas &&
+    typeof fila.telemetria_metricas === 'object' &&
+    !Array.isArray(fila.telemetria_metricas)
+      ? (fila.telemetria_metricas as Record<string, unknown>)
+      : {};
+
+  const decRaw = raw.decision_t0;
+  const decisionT0 =
+    typeof decRaw === 'string' &&
+    (DECISIONES_T0_VALIDAS as readonly string[]).includes(decRaw)
+      ? (decRaw as DecisionInstructorT0)
+      : null;
+
+  return {
+    decision_t0: decisionT0,
+    observacion_decision_t0:
+      typeof raw.observacion_decision_t0 === 'string'
+        ? raw.observacion_decision_t0
+        : null,
+    horas_refuerzo_simulador: sanitizarHorasInput(
+      raw.horas_refuerzo_simulador,
+      0,
+      40
+    ),
+    asistio_teoria: raw.asistio_teoria !== false,
+    instructor_decision: fila.instructor_evaluador ?? null,
+    fecha_decision: fila.created_at ? fila.created_at.split('T')[0] : null,
+  };
 }
 
 /**
@@ -2621,13 +3001,19 @@ export async function actualizarAsistenciaSesionAction(
 
   const { data: sesion, error: errSesion } = await supabase
     .from('sesiones_practica')
-    .select('id, cohorte_id, fecha_programada, observaciones_instructor')
+    .select(
+      'id, cohorte_id, dupla_id, numero_sesion, fecha_programada, fecha_real, estado_asistencia, observaciones_instructor'
+    )
     .eq('id', input.sesion_id.trim())
     .eq('cohorte_id', input.cohorte_id.trim())
     .maybeSingle<{
       id: string;
       cohorte_id: string;
+      dupla_id: string;
+      numero_sesion: number;
       fecha_programada: string;
+      fecha_real: string | null;
+      estado_asistencia: string;
       observaciones_instructor: string | null;
     }>();
 
@@ -2662,6 +3048,16 @@ export async function actualizarAsistenciaSesionAction(
     observacionesFinal = `${PREFIJO_REPROGRAMADA}${obsBase ? ` ${obsBase}` : ''}`.trim();
   }
 
+  // Verifica si el compañero de dupla ya activó este turno para no duplicar odómetro de SIM-01
+  const { data: companerasSlot } = await supabase
+    .from('sesiones_practica')
+    .select('id, estado_asistencia')
+    .eq('cohorte_id', sesion.cohorte_id)
+    .eq('dupla_id', sesion.dupla_id)
+    .eq('numero_sesion', sesion.numero_sesion)
+    .neq('id', sesion.id)
+    .returns<Array<{ id: string; estado_asistencia: string }>>();
+
   const { error: errUpd } = await supabase
     .from('sesiones_practica')
     .update({
@@ -2681,7 +3077,50 @@ export async function actualizarAsistenciaSesionAction(
     return { ok: false, error: 'No se pudo actualizar la asistencia de la sesión.' };
   }
 
+  // Regla Horas-Máquina SIM-01: 1 turno de dupla suma 1.0 h reloj solo si pasa 0 -> >=1 PRESENTE
+  const otroPresente = (companerasSlot ?? []).some(
+    (c) => c.estado_asistencia === 'PRESENTE'
+  );
+  const eraActivo = sesion.estado_asistencia === 'PRESENTE' || otroPresente;
+  const esActivoAhora = estadoDB === 'PRESENTE' || otroPresente;
+
+  if (eraActivo !== esActivoAhora) {
+    const dbSim = createAdminClient() ?? supabase;
+    const { data: cohRow } = await dbSim
+      .from('cohortes')
+      .select('configuracion_cursado')
+      .eq('id', sesion.cohorte_id)
+      .maybeSingle<{ configuracion_cursado: unknown }>();
+    const cfg = normalizarConfiguracionCursado(cohRow?.configuracion_cursado);
+    const horasTurno = resolverParametrosHoras(cfg).horas_por_sesion_simulador;
+    const deltaMaquina = esActivoAhora ? horasTurno : -horasTurno;
+
+    const { data: sims } = await dbSim
+      .from('simuladores')
+      .select('id, horas_uso_totales')
+      .in('id', ['autoelevador', 'SIM-01'])
+      .returns<Array<{ id: string; horas_uso_totales: number | null }>>();
+
+    for (const sim of sims ?? []) {
+      const actual =
+        typeof sim.horas_uso_totales === 'number' && Number.isFinite(sim.horas_uso_totales)
+          ? sim.horas_uso_totales
+          : 0;
+      const nuevoTotal = Math.max(0, Math.round((actual + deltaMaquina) * 100) / 100);
+      await dbSim
+        .from('simuladores')
+        .update({
+          horas_uso_totales: nuevoTotal,
+          actualizado_el: new Date().toISOString(),
+        })
+        .eq('id', sim.id);
+    }
+  }
+
   revalidatePath(RUTA_PANEL);
+  revalidatePath('/admin');
+  revalidatePath('/admin/registro-actividades');
+  revalidatePath('/');
   return { ok: true };
 }
 
@@ -2804,35 +3243,67 @@ export async function obtenerLegajo360PostulanteAction(
   }
 
   let practicaReal: PracticaRealItem | null = null;
+  let decisionInstructor: DecisionInstructorCohorteItem | null = null;
   const dbReader = createAdminClient() ?? supabase;
 
-  const { data: filasPracNueva, error: errPracNueva } = await dbReader
-    .from('practica_real')
-    .select(
-      'id, fecha_practica, lugar_predio, maquina_utilizada, instructor_patio, resultado, observaciones_terreno, pdf_reporte_path, storage_pdf_path, observaciones'
-    )
-    .eq('cohorte_id', cid)
-    .eq('postulante_id', pid)
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .returns<
-      Array<{
-        id: string;
-        fecha_practica: string;
-        lugar_predio: string | null;
-        maquina_utilizada: string | null;
-        instructor_patio: string | null;
-        resultado: string;
-        observaciones_terreno: string | null;
-        pdf_reporte_path: string | null;
-        storage_pdf_path: string | null;
-        observaciones: string | null;
-      }>
-    >();
+  const [{ data: filasPracNueva, error: errPracNueva }, { data: filasMetaEval }] =
+    await Promise.all([
+      dbReader
+        .from('practica_real')
+        .select(
+          'id, fecha_practica, lugar_predio, maquina_utilizada, instructor_patio, resultado, observaciones_terreno, pdf_reporte_path, storage_pdf_path, observaciones'
+        )
+        .eq('cohorte_id', cid)
+        .eq('postulante_id', pid)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .returns<
+          Array<{
+            id: string;
+            fecha_practica: string;
+            lugar_predio: string | null;
+            maquina_utilizada: string | null;
+            instructor_patio: string | null;
+            resultado: string;
+            observaciones_terreno: string | null;
+            pdf_reporte_path: string | null;
+            storage_pdf_path: string | null;
+            observaciones: string | null;
+          }>
+        >(),
+      dbReader
+        .from('evaluacion_diagnostico')
+        .select(
+          'archivo_fuente, created_at, instructor_evaluador, nivel_asistencia, puntaje_lateralidad, puntaje_tacto_mandos, puntaje_mastil, puntaje_control_receptividad, telemetria_metricas'
+        )
+        .eq('postulante_id', pid)
+        .in('archivo_fuente', [ARCHIVO_FUENTE_TERRENO, ARCHIVO_FUENTE_DECISION])
+        .returns<
+          Array<{
+            archivo_fuente: string | null;
+            created_at: string | null;
+            instructor_evaluador: string | null;
+            nivel_asistencia: string | null;
+            puntaje_lateralidad: number | null;
+            puntaje_tacto_mandos: number | null;
+            puntaje_mastil: number | null;
+            puntaje_control_receptividad: number | null;
+            telemetria_metricas: unknown;
+          }>
+        >(),
+    ]);
+
+  const filaTerrenoTablet =
+    (filasMetaEval ?? []).find((f) => f.archivo_fuente === ARCHIVO_FUENTE_TERRENO) ??
+    null;
+  const filaDecision =
+    (filasMetaEval ?? []).find((f) => f.archivo_fuente === ARCHIVO_FUENTE_DECISION) ??
+    null;
+  const metaTerreno = parsearTerrenoDetalle(filaTerrenoTablet);
+  decisionInstructor = parsearDecisionInstructor(filaDecision);
 
   if (!errPracNueva && filasPracNueva && filasPracNueva.length > 0) {
     const p = filasPracNueva[0];
-    const pdfPath = p.pdf_reporte_path ?? p.storage_pdf_path ?? null;
     const resNormalizado: ResultadoPracticaReal = RESULTADOS_PRACTICA_VALIDOS.includes(
       p.resultado as ResultadoPracticaReal
     )
@@ -2849,8 +3320,25 @@ export async function obtenerLegajo360PostulanteAction(
       instructor_patio: p.instructor_patio ?? null,
       resultado: resNormalizado,
       observaciones_terreno: p.observaciones_terreno ?? p.observaciones ?? null,
-      pdf_reporte_path: pdfPath,
-      pdf_url_firmada: await generarUrlFirmadaPractica(supabase, pdfPath),
+      asistencia_terreno: metaTerreno?.asistencia_terreno ?? 'PRESENTE',
+      horas_practica_terreno: metaTerreno?.horas_practica_terreno ?? 1.5,
+      horas_extra_terreno: metaTerreno?.horas_extra_terreno ?? 0,
+      requiere_horas_extra: metaTerreno?.requiere_horas_extra ?? false,
+      horas_extra_sugeridas: metaTerreno?.horas_extra_sugeridas ?? 0,
+      puntaje_lateralidad: metaTerreno?.puntaje_lateralidad ?? null,
+      puntaje_tacto_mandos: metaTerreno?.puntaje_tacto_mandos ?? null,
+      puntaje_mastil: metaTerreno?.puntaje_mastil ?? null,
+      puntaje_control_receptividad: metaTerreno?.puntaje_control_receptividad ?? null,
+      nivel_asistencia: metaTerreno?.nivel_asistencia ?? null,
+      decision_instructor_terreno:
+        metaTerreno?.decision_instructor_terreno ??
+        (resNormalizado === 'aprobado'
+          ? 'APROBADO_EMPRESAS'
+          : resNormalizado === 'requiere_refuerzo'
+            ? 'REQUIERE_MAS_HORAS'
+            : 'NO_APTO'),
+      pdf_reporte_path: null,
+      pdf_url_firmada: null,
     };
   } else if (errPracNueva?.code === '42703' && dniPostulante) {
     // Fallback hacia esquema legacy 0004 (alumnos -> practica_real).
@@ -2863,7 +3351,7 @@ export async function obtenerLegajo360PostulanteAction(
     if (alumnoLegacy?.id) {
       const { data: filasPracLegacy } = await dbReader
         .from('practica_real')
-        .select('id, fecha_practica, instructor_patio, resultado, observaciones, storage_pdf_path')
+        .select('id, fecha_practica, instructor_patio, resultado, observaciones')
         .eq('alumno_id', alumnoLegacy.id)
         .order('created_at', { ascending: false })
         .limit(1)
@@ -2874,7 +3362,6 @@ export async function obtenerLegajo360PostulanteAction(
             instructor_patio: string | null;
             resultado: string;
             observaciones: string | null;
-            storage_pdf_path: string | null;
           }>
         >();
 
@@ -2892,11 +3379,19 @@ export async function obtenerLegajo360PostulanteAction(
           instructor_patio: leg.instructor_patio ?? null,
           resultado: resFallback,
           observaciones_terreno: decoded.observacionesLimpias,
-          pdf_reporte_path: leg.storage_pdf_path ?? null,
-          pdf_url_firmada: await generarUrlFirmadaPractica(
-            supabase,
-            leg.storage_pdf_path ?? null
-          ),
+          asistencia_terreno: metaTerreno?.asistencia_terreno ?? 'PRESENTE',
+          horas_practica_terreno: metaTerreno?.horas_practica_terreno ?? 1.5,
+          horas_extra_terreno: metaTerreno?.horas_extra_terreno ?? 0,
+          requiere_horas_extra: metaTerreno?.requiere_horas_extra ?? false,
+          horas_extra_sugeridas: metaTerreno?.horas_extra_sugeridas ?? 0,
+          puntaje_lateralidad: metaTerreno?.puntaje_lateralidad ?? null,
+          puntaje_tacto_mandos: metaTerreno?.puntaje_tacto_mandos ?? null,
+          puntaje_mastil: metaTerreno?.puntaje_mastil ?? null,
+          puntaje_control_receptividad: metaTerreno?.puntaje_control_receptividad ?? null,
+          nivel_asistencia: metaTerreno?.nivel_asistencia ?? null,
+          decision_instructor_terreno: metaTerreno?.decision_instructor_terreno ?? null,
+          pdf_reporte_path: null,
+          pdf_url_firmada: null,
         };
       }
     }
@@ -2936,36 +3431,55 @@ export async function obtenerLegajo360PostulanteAction(
       viernesSugeridos,
       practicaReal,
       egreso,
+      decisionInstructor,
     },
   };
 }
 
 /**
- * Registra o actualiza la práctica real en terreno del postulante y sube su
- * comprobante PDF al bucket privado `expedientes-practica-real`.
+ * Registra o actualiza la práctica real en terreno (CERO Storage: solo SQL/JSONB)
+ * junto con los 4 ejes táctiles de patio, horas extra y decisión del instructor.
  */
 export async function guardarPracticaRealAction(
-  formData: FormData
+  input: GuardarPracticaRealSinStorageInput
 ): Promise<ResultadoPracticaRealAccion> {
+  if (!input || typeof input !== 'object') {
+    return { ok: false, error: 'Datos de práctica en terreno inválidos.' };
+  }
+
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: 'Sesión no válida.' };
 
-  const cohorteId = String(formData.get('cohorte_id') ?? '').trim();
-  const postulanteId = String(formData.get('postulante_id') ?? '').trim();
-  const fechaPractica = String(formData.get('fecha_practica') ?? '').trim();
-  const lugarPredio = String(formData.get('lugar_predio') ?? '').trim().slice(0, 150);
-  const maquinaUtilizada = String(formData.get('maquina_utilizada') ?? '').trim().slice(0, 120);
+  const cohorteId = String(input.cohorte_id ?? '').trim();
+  const postulanteId = String(input.postulante_id ?? '').trim();
+  const fechaPractica = String(input.fecha_practica ?? '').trim();
+  const lugarPredio = String(input.lugar_predio ?? '').trim().slice(0, 150);
+  const maquinaUtilizada = String(input.maquina_utilizada ?? '').trim().slice(0, 120);
   const instructorPatio =
-    String(formData.get('instructor_patio') ?? '').trim().slice(0, 120) ||
+    String(input.instructor_patio ?? '').trim().slice(0, 120) ||
+    user.email?.slice(0, 120) ||
     'Equipo de Instructores';
-  const resultadoRaw = String(formData.get('resultado') ?? '').trim();
-  const observacionesTerreno = String(formData.get('observaciones_terreno') ?? '')
+  const resultadoRaw = String(input.resultado ?? '').trim();
+  const observacionesTerreno = String(input.observaciones_terreno ?? '')
     .trim()
     .slice(0, 2000);
-  const pdfPrevioPath = String(formData.get('pdf_previo_path') ?? '').trim() || null;
+  const asistenciaTerreno: 'PRESENTE' | 'AUSENTE' =
+    input.asistencia_terreno === 'AUSENTE' ? 'AUSENTE' : 'PRESENTE';
+  const horasPracticaTerreno =
+    asistenciaTerreno === 'AUSENTE'
+      ? 0
+      : sanitizarHorasInput(input.horas_practica_terreno, 1.5, 24);
+  const horasExtraTerreno =
+    asistenciaTerreno === 'AUSENTE'
+      ? 0
+      : sanitizarHorasInput(input.horas_extra_terreno, 0, 24);
+  const requiereHorasExtra = input.requiere_horas_extra === true;
+  const horasExtraSugeridas = requiereHorasExtra
+    ? sanitizarHorasInput(input.horas_extra_sugeridas, 2.0, 24)
+    : 0;
 
   if (!UUID_RE.test(cohorteId) || !UUID_RE.test(postulanteId)) {
     return { ok: false, error: 'Identificadores de cohorte o postulante inválidos.' };
@@ -2983,6 +3497,29 @@ export async function guardarPracticaRealAction(
     return { ok: false, error: 'Resultado de práctica en terreno inválido.' };
   }
   const resultado = resultadoRaw as ResultadoPracticaReal;
+
+  const validarEje = (v: unknown): PuntajeEje | null =>
+    typeof v === 'number' && (PUNTAJES_EJE_VALIDOS as readonly number[]).includes(v)
+      ? (v as PuntajeEje)
+      : null;
+
+  const pLat = validarEje(input.puntaje_lateralidad);
+  const pMan = validarEje(input.puntaje_tacto_mandos);
+  const pMas = validarEje(input.puntaje_mastil);
+  const pCon = validarEje(input.puntaje_control_receptividad);
+  const nivelAsistencia = esNivelAsistenciaValido(input.nivel_asistencia)
+    ? input.nivel_asistencia
+    : null;
+
+  const decisionTerreno: DecisionInstructorTerreno =
+    input.decision_instructor_terreno &&
+    DECISIONES_TERRENO_VALIDAS.includes(input.decision_instructor_terreno)
+      ? input.decision_instructor_terreno
+      : resultado === 'aprobado'
+        ? 'APROBADO_EMPRESAS'
+        : resultado === 'requiere_refuerzo'
+          ? 'REQUIERE_MAS_HORAS'
+          : 'NO_APTO';
 
   const { data: inscripcion, error: errInsc } = await supabase
     .from('cohorte_inscripciones')
@@ -3005,54 +3542,9 @@ export async function guardarPracticaRealAction(
     ? inscripcion.postulantes[0]
     : inscripcion.postulantes;
 
-  const archivoEntrada = formData.get('archivo_pdf');
-  let pdfPathFinal: string | null = pdfPrevioPath;
-
   const adminOrUser = createAdminClient() ?? supabase;
 
-  if (archivoEntrada instanceof File && archivoEntrada.size > 0) {
-    if (archivoEntrada.size > MAX_PDF_PRACTICA_BYTES) {
-      return { ok: false, error: 'El PDF excede el límite máximo permitido de 10 MB.' };
-    }
-    const nombreLower = archivoEntrada.name.toLowerCase();
-    const mimeValido =
-      archivoEntrada.type === 'application/pdf' ||
-      archivoEntrada.type === '' ||
-      nombreLower.endsWith('.pdf');
-    if (!mimeValido) {
-      return { ok: false, error: 'Solo se admiten archivos en formato PDF.' };
-    }
-
-    const buffer = await archivoEntrada.arrayBuffer();
-    const bytes = new Uint8Array(buffer);
-    if (!tieneCabeceraPdfValida(bytes)) {
-      return { ok: false, error: 'El archivo adjunto no posee una cabecera %PDF válida.' };
-    }
-
-    const nombreSeguro = sanitizarNombreArchivoPdf(archivoEntrada.name);
-    const storagePath = `${cohorteId}/${postulanteId}/${Date.now()}-${nombreSeguro}`;
-
-    const { error: errUpload } = await adminOrUser.storage
-      .from(BUCKET_PRACTICA_REAL)
-      .upload(storagePath, bytes, {
-        contentType: 'application/pdf',
-        upsert: false,
-      });
-
-    if (errUpload) {
-      console.error('[guardarPracticaRealAction] Error al subir PDF a Storage:', {
-        message: errUpload.message,
-      });
-      return {
-        ok: false,
-        error: 'No se pudo subir el comprobante PDF al bucket privado.',
-      };
-    }
-
-    pdfPathFinal = storagePath;
-  }
-
-  // Intento 1: Esquema alineado (migración 0010).
+  // Intento 1: Esquema alineado (migración 0010), costo $0 en Storage (sin subir archivos)
   const { data: existenteNuevo, error: errCheckNuevo } = await adminOrUser
     .from('practica_real')
     .select('id')
@@ -3074,8 +3566,8 @@ export async function guardarPracticaRealAction(
       resultado,
       observaciones_terreno: observacionesTerreno || null,
       observaciones: observacionesTerreno || null,
-      pdf_reporte_path: pdfPathFinal,
-      storage_pdf_path: pdfPathFinal,
+      pdf_reporte_path: null,
+      storage_pdf_path: null,
     };
 
     if (existenteNuevo?.id) {
@@ -3157,7 +3649,7 @@ export async function guardarPracticaRealAction(
         instructor_patio: instructorPatio,
         resultado: resultado === 'aprobado' ? 'aprobado' : 'desaprobado',
         observaciones: obsCodificada,
-        storage_pdf_path: pdfPathFinal,
+        storage_pdf_path: null,
       })
       .select('id')
       .single<{ id: string }>();
@@ -3172,8 +3664,65 @@ export async function guardarPracticaRealAction(
     practicaGuardadaId = legacyIns.id;
   }
 
-  const pdfUrlFirmada = await generarUrlFirmadaPractica(supabase, pdfPathFinal);
+  // Guarda metadatos de patio + 4 ejes de tablet en evaluacion_diagnostico (cero Storage)
+  const dictamenTerreno =
+    decisionTerreno === 'APROBADO_EMPRESAS'
+      ? 'APTO_DIRECTO'
+      : decisionTerreno === 'REQUIERE_MAS_HORAS'
+        ? 'CONDICIONAL'
+        : 'NO_APTO';
+  const scoreTerreno =
+    pLat !== null && pMan !== null && pMas !== null && pCon !== null
+      ? pLat + pMan + pMas + pCon
+      : null;
+
+  const { error: errMetaTerreno } = await adminOrUser
+    .from('evaluacion_diagnostico')
+    .upsert(
+      {
+        postulante_id: postulanteId,
+        etapa: 'FINAL',
+        es_mejor_diagnostico: false,
+        archivo_fuente: ARCHIVO_FUENTE_TERRENO,
+        asistencia_cabina: nivelAsistencia
+          ? mapearNivelAsistenciaACabina(nivelAsistencia)
+          : resultado === 'aprobado'
+            ? 'MINIMA_AUTONOMO'
+            : resultado === 'requiere_refuerzo'
+              ? 'MEDIA'
+              : 'ALTA',
+        nivel_asistencia: nivelAsistencia,
+        dictamen: dictamenTerreno,
+        puntaje_lateralidad: pLat,
+        puntaje_tacto_mandos: pMan,
+        puntaje_mastil: pMas,
+        puntaje_control_receptividad: pCon,
+        score_puntos: scoreTerreno,
+        instructor_evaluador: instructorPatio,
+        observaciones_detalle: observacionesTerreno || null,
+        telemetria_metricas: {
+          tipo: 'TERRENO_DETALLE',
+          cohorte_id: cohorteId,
+          asistencia_terreno: asistenciaTerreno,
+          horas_practica_terreno: horasPracticaTerreno,
+          horas_extra_terreno: horasExtraTerreno,
+          requiere_horas_extra: requiereHorasExtra,
+          horas_extra_sugeridas: horasExtraSugeridas,
+          decision_instructor_terreno: decisionTerreno,
+        },
+      },
+      { onConflict: 'postulante_id,archivo_fuente' }
+    );
+
+  if (errMetaTerreno) {
+    console.error('[guardarPracticaRealAction] Aviso al persistir detalle tablet terreno:', {
+      code: errMetaTerreno.code,
+      message: errMetaTerreno.message,
+    });
+  }
+
   revalidatePath(RUTA_PANEL);
+  revalidatePath('/cabina/evaluacion');
 
   return {
     ok: true,
@@ -3185,8 +3734,19 @@ export async function guardarPracticaRealAction(
       instructor_patio: instructorPatio,
       resultado,
       observaciones_terreno: observacionesTerreno || null,
-      pdf_reporte_path: pdfPathFinal,
-      pdf_url_firmada: pdfUrlFirmada,
+      asistencia_terreno: asistenciaTerreno,
+      horas_practica_terreno: horasPracticaTerreno,
+      horas_extra_terreno: horasExtraTerreno,
+      requiere_horas_extra: requiereHorasExtra,
+      horas_extra_sugeridas: horasExtraSugeridas,
+      puntaje_lateralidad: pLat,
+      puntaje_tacto_mandos: pMan,
+      puntaje_mastil: pMas,
+      puntaje_control_receptividad: pCon,
+      nivel_asistencia: nivelAsistencia,
+      decision_instructor_terreno: decisionTerreno,
+      pdf_reporte_path: null,
+      pdf_url_firmada: null,
     },
   };
 }
@@ -3217,19 +3777,49 @@ export async function guardarEvaluacionFinalEgresoAction(
   const cid = input.cohorte_id.trim();
   const pid = input.postulante_id.trim();
 
-  const [{ data: inscripcion }, { data: filasSesiones }] = await Promise.all([
+  const [
+    { data: inscripcion },
+    { data: filasSesiones },
+    { data: filaCohorte },
+    { data: filasMeta },
+  ] = await Promise.all([
     supabase
       .from('cohorte_inscripciones')
-      .select('id')
+      .select('id, estado')
       .eq('cohorte_id', cid)
       .eq('postulante_id', pid)
-      .maybeSingle<{ id: string }>(),
+      .maybeSingle<{ id: string; estado: string }>(),
     supabase
       .from('sesiones_practica')
       .select('estado_asistencia')
       .eq('cohorte_id', cid)
       .eq('alumno_id', pid)
       .returns<Array<{ estado_asistencia: string }>>(),
+    supabase
+      .from('cohortes')
+      .select('configuracion_cursado')
+      .eq('id', cid)
+      .maybeSingle<{ configuracion_cursado: unknown }>(),
+    supabase
+      .from('evaluacion_diagnostico')
+      .select(
+        'archivo_fuente, created_at, instructor_evaluador, nivel_asistencia, puntaje_lateralidad, puntaje_tacto_mandos, puntaje_mastil, puntaje_control_receptividad, telemetria_metricas'
+      )
+      .eq('postulante_id', pid)
+      .in('archivo_fuente', [ARCHIVO_FUENTE_TERRENO, ARCHIVO_FUENTE_DECISION])
+      .returns<
+        Array<{
+          archivo_fuente: string | null;
+          created_at: string | null;
+          instructor_evaluador: string | null;
+          nivel_asistencia: string | null;
+          puntaje_lateralidad: number | null;
+          puntaje_tacto_mandos: number | null;
+          puntaje_mastil: number | null;
+          puntaje_control_receptividad: number | null;
+          telemetria_metricas: unknown;
+        }>
+      >(),
   ]);
 
   if (!inscripcion?.id) {
@@ -3239,7 +3829,33 @@ export async function guardarEvaluacionFinalEgresoAction(
   const sesionesAsistidas = (filasSesiones ?? []).filter(
     (s) => s.estado_asistencia === 'PRESENTE'
   ).length;
-  const horasCompletadas = sesionesAsistidas;
+  const cfg = normalizarConfiguracionCursado(filaCohorte?.configuracion_cursado);
+  const metaTerreno = parsearTerrenoDetalle(
+    (filasMeta ?? []).find((f) => f.archivo_fuente === ARCHIVO_FUENTE_TERRENO) ??
+      null
+  );
+  const decInst = parsearDecisionInstructor(
+    (filasMeta ?? []).find((f) => f.archivo_fuente === ARCHIVO_FUENTE_DECISION) ??
+      null
+  );
+  const carga = calcularCargaHorariaOperador({
+    config: cfg,
+    asistioTeoria:
+      decInst?.asistio_teoria ??
+      (inscripcion.estado === 'CONFIRMADO' || sesionesAsistidas > 0),
+    sesionesPresentes: sesionesAsistidas,
+    horasRefuerzoSimulador: decInst?.horas_refuerzo_simulador ?? 0,
+    practicaReal: metaTerreno
+      ? {
+          asistencia_terreno: metaTerreno.asistencia_terreno,
+          horas_practica_terreno: metaTerreno.horas_practica_terreno,
+          horas_extra_terreno: metaTerreno.horas_extra_terreno,
+          horas_extra_sugeridas: metaTerreno.horas_extra_sugeridas,
+          resultado: 'aprobado',
+        }
+      : null,
+  });
+  const horasCompletadas = carga.totalCertificadas;
   const observacionesLimpia =
     typeof input.observaciones_egreso === 'string'
       ? input.observaciones_egreso.trim().slice(0, MAX_NOTAS_EMPLEO)
@@ -3305,4 +3921,472 @@ export async function guardarEvaluacionFinalEgresoAction(
         : fechaEvaluacion,
     },
   };
+}
+
+/**
+ * Registra la decisión manual del instructor (T0 pase a capacitación, refuerzo
+ * manual en simulador y asistencia teórica) sin dependencia de archivos en Storage.
+ */
+export async function guardarDecisionInstructorAction(
+  input: GuardarDecisionInstructorInput
+): Promise<
+  { ok: true; decisionInstructor: DecisionInstructorCohorteItem } | { ok: false; error: string }
+> {
+  if (!input || !UUID_RE.test(input.cohorte_id ?? '') || !UUID_RE.test(input.postulante_id ?? '')) {
+    return { ok: false, error: 'Identificadores de decisión inválidos.' };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: 'Sesión no válida.' };
+
+  const cid = input.cohorte_id.trim();
+  const pid = input.postulante_id.trim();
+
+  const { data: inscripcion } = await supabase
+    .from('cohorte_inscripciones')
+    .select('id, estado')
+    .eq('cohorte_id', cid)
+    .eq('postulante_id', pid)
+    .maybeSingle<{ id: string; estado: string }>();
+
+  if (!inscripcion?.id) {
+    return { ok: false, error: 'El postulante no pertenece a la cohorte indicada.' };
+  }
+
+  const decisionT0: DecisionInstructorT0 =
+    input.decision_t0 && DECISIONES_T0_VALIDAS.includes(input.decision_t0)
+      ? input.decision_t0
+      : 'PENDIENTE';
+  const horasRefuerzo = sanitizarHorasInput(input.horas_refuerzo_simulador, 0, 40);
+  const asistioTeoria = input.asistio_teoria !== false;
+  const obsDecision =
+    typeof input.observacion_decision_t0 === 'string'
+      ? input.observacion_decision_t0.trim().slice(0, 1000) || null
+      : null;
+
+  const dictamenMap =
+    decisionT0 === 'RECHAZADO'
+      ? 'NO_APTO'
+      : decisionT0 === 'PENDIENTE'
+        ? 'CONDICIONAL'
+        : 'APTO_DIRECTO';
+
+  const adminOrUser = createAdminClient() ?? supabase;
+  const instructor = user.email?.slice(0, 120) ?? 'Instructor';
+
+  const { error: errUpsert } = await adminOrUser
+    .from('evaluacion_diagnostico')
+    .upsert(
+      {
+        postulante_id: pid,
+        etapa: 'DIAG_INTENTO_1',
+        es_mejor_diagnostico: false,
+        archivo_fuente: ARCHIVO_FUENTE_DECISION,
+        asistencia_cabina: 'MINIMA_AUTONOMO',
+        dictamen: dictamenMap,
+        instructor_evaluador: instructor,
+        observaciones_detalle: obsDecision,
+        telemetria_metricas: {
+          tipo: 'DECISION_INSTRUCTOR',
+          cohorte_id: cid,
+          decision_t0: decisionT0,
+          observacion_decision_t0: obsDecision,
+          horas_refuerzo_simulador: horasRefuerzo,
+          asistio_teoria: asistioTeoria,
+        },
+      },
+      { onConflict: 'postulante_id,archivo_fuente' }
+    );
+
+  if (errUpsert) {
+    console.error('[guardarDecisionInstructorAction] Error al persistir decisión:', {
+      code: errUpsert.code,
+      message: errUpsert.message,
+    });
+    return { ok: false, error: 'No se pudo guardar la decisión del instructor.' };
+  }
+
+  const ahoraIso = new Date().toISOString();
+  if (decisionT0 === 'RECHAZADO') {
+    await adminOrUser
+      .from('cohorte_inscripciones')
+      .update({
+        estado: 'DESCARTADO',
+        motivo_baja: obsDecision
+          ? `Decisión manual T0: ${obsDecision}`.slice(0, MAX_MOTIVO_BAJA)
+          : 'Rechazado en decisión manual de diagnóstico (T0)',
+        franja_id: null,
+        updated_at: ahoraIso,
+      })
+      .eq('id', inscripcion.id)
+      .eq('postulante_id', pid);
+  } else if (
+    decisionT0 === 'APROBADO_A_CAPACITACION' &&
+    inscripcion.estado === 'DESCARTADO'
+  ) {
+    await adminOrUser
+      .from('cohorte_inscripciones')
+      .update({
+        estado: 'DISPONIBLE',
+        motivo_baja: null,
+        updated_at: ahoraIso,
+      })
+      .eq('id', inscripcion.id)
+      .eq('postulante_id', pid);
+  }
+
+  revalidatePath(RUTA_PANEL);
+  revalidatePath('/cabina/evaluacion');
+  return {
+    ok: true,
+    decisionInstructor: {
+      decision_t0: decisionT0,
+      observacion_decision_t0: obsDecision,
+      horas_refuerzo_simulador: horasRefuerzo,
+      asistio_teoria: asistioTeoria,
+      instructor_decision: instructor,
+      fecha_decision: obtenerFechaBaseCalendarioHoy(),
+    },
+  };
+}
+
+function mapearRiesgoTitanADB(riesgo: string | null): 'MINIMA_AUTONOMO' | 'MEDIA' | 'ALTA' {
+  if (riesgo === 'Mínima (Autónomo)') return 'MINIMA_AUTONOMO';
+  if (riesgo === 'Media') return 'MEDIA';
+  return 'ALTA';
+}
+
+function mapearAptitudTitanADB(
+  aptitud: string | null
+): 'APTO_DIRECTO' | 'APTO_OBSERVACION' | 'NO_APTO' | 'CONDICIONAL' {
+  if (aptitud === 'Apto Directo') return 'APTO_DIRECTO';
+  if (aptitud === 'Apto / Observación') return 'APTO_OBSERVACION';
+  if (aptitud === 'No Apto') return 'NO_APTO';
+  return 'CONDICIONAL';
+}
+
+function extraerFechaCalendarioDeMetricas(
+  startTime: string | null | undefined,
+  createdAt?: string | null
+): string {
+  if (typeof startTime === 'string') {
+    const m = startTime.match(/(\d{4}-\d{2}-\d{2})/);
+    if (m) return m[1];
+  }
+  if (typeof createdAt === 'string') {
+    const m = createdAt.match(/(\d{4}-\d{2}-\d{2})/);
+    if (m) return m[1];
+  }
+  return '9999-99-99';
+}
+
+/**
+ * Importa en batch múltiples reportes PDF/JSON parseados en el navegador
+ * (CERO Storage), asignando T0 (DIAG_INTENTO_1/2) vs T1 (FINAL) por fecha y
+ * recalculando deltas cronológicos en `public.evaluacion_diagnostico`.
+ */
+export async function importarLoteTelemetriaCohorteAction(
+  cohorteId: string,
+  items: ItemLoteTelemetriaInput[]
+): Promise<ResultadoImportarLoteTelemetria> {
+  if (!UUID_RE.test(cohorteId ?? '')) {
+    return { ok: false, error: 'Cohorte inválida.' };
+  }
+  if (!Array.isArray(items) || items.length === 0 || items.length > 150) {
+    return { ok: false, error: 'El lote debe contener entre 1 y 150 reportes.' };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: 'Sesión no válida.' };
+
+  const cid = cohorteId.trim();
+  const db = createAdminClient() ?? supabase;
+
+  const { data: inscritos } = await db
+    .from('cohorte_inscripciones')
+    .select('postulante_id')
+    .eq('cohorte_id', cid)
+    .returns<Array<{ postulante_id: string | null }>>();
+
+  const validPostulantes = new Set(
+    (inscritos ?? [])
+      .map((i) => i.postulante_id)
+      .filter((id): id is string => typeof id === 'string')
+  );
+
+  // Agrupa reportes válidos del lote por postulante
+  const porPostulante = new Map<
+    string,
+    Array<{ archivo_nombre: string; metricas: MetricasSimulador }>
+  >();
+  const detalles: ResultadoLoteTelemetriaItem[] = [];
+  let errores = 0;
+
+  for (const item of items) {
+    const pid = typeof item?.postulante_id === 'string' ? item.postulante_id.trim() : '';
+    const archivo =
+      typeof item?.archivo_nombre === 'string' && item.archivo_nombre.trim()
+        ? item.archivo_nombre.trim().slice(0, 160)
+        : 'reporte.pdf';
+    const metricas = normalizarMetricasInput(item?.metricas);
+
+    if (!UUID_RE.test(pid) || !validPostulantes.has(pid)) {
+      errores++;
+      detalles.push({
+        archivo_nombre: archivo,
+        postulante_id: pid,
+        etapa: 'DIAG_INTENTO_1',
+        perfil_operador: 'INEFICIENTE',
+        es_mejor_diagnostico: false,
+        delta_score: null,
+        ok: false,
+        error: 'El postulante no pertenece a la cohorte activa.',
+      });
+      continue;
+    }
+
+    if (!metricas) {
+      errores++;
+      detalles.push({
+        archivo_nombre: archivo,
+        postulante_id: pid,
+        etapa: 'DIAG_INTENTO_1',
+        perfil_operador: 'INEFICIENTE',
+        es_mejor_diagnostico: false,
+        delta_score: null,
+        ok: false,
+        error: 'Métricas de telemetría inválidas.',
+      });
+      continue;
+    }
+
+    const lista = porPostulante.get(pid) ?? [];
+    // Evita colisión si en el mismo lote viene duplicado el mismo archivo_nombre
+    const idxPrev = lista.findIndex((x) => x.archivo_nombre === archivo);
+    if (idxPrev >= 0) lista[idxPrev] = { archivo_nombre: archivo, metricas };
+    else lista.push({ archivo_nombre: archivo, metricas });
+    porPostulante.set(pid, lista);
+  }
+
+  let guardados = 0;
+
+  for (const [pid, nuevosItems] of porPostulante.entries()) {
+    const { data: existentesRaw } = await db
+      .from('evaluacion_diagnostico')
+      .select(
+        'id, archivo_fuente, created_at, tiempo_vuelta_seg, colisiones, score_puntos, eje_lateralidad, telemetria_metricas'
+      )
+      .eq('postulante_id', pid)
+      .returns<
+        Array<{
+          id: string;
+          archivo_fuente: string | null;
+          created_at: string | null;
+          tiempo_vuelta_seg: number | null;
+          colisiones: number | null;
+          score_puntos: number | string | null;
+          eje_lateralidad: string | null;
+          telemetria_metricas: unknown;
+        }>
+      >();
+
+    const existentesTitan = (existentesRaw ?? []).filter((f) =>
+      esArchivoTitan(f.archivo_fuente)
+    );
+
+    interface CandidatoOrdenado {
+      archivo_fuente: string;
+      fechaSort: string;
+      fechaCal: string;
+      scorePuntos: number | null;
+      tiempoDuracionSeg: number | null;
+      colisiones: number;
+      serrucho: number | null;
+      esNuevo: boolean;
+      metricas?: MetricasSimulador;
+    }
+
+    const mapaUnificado = new Map<string, CandidatoOrdenado>();
+
+    for (const ex of existentesTitan) {
+      const af = ex.archivo_fuente ?? '';
+      if (!af) continue;
+      const mGuard = normalizarMetricasGuardadas(ex.telemetria_metricas);
+      const lat = parsearTelemetriaLateralidad(ex.eje_lateralidad);
+      const startIso = mGuard?.exerciseStartTime ?? ex.created_at ?? '';
+      const fechaCal = extraerFechaCalendarioDeMetricas(startIso, ex.created_at);
+      mapaUnificado.set(af, {
+        archivo_fuente: af,
+        fechaSort: startIso || `${fechaCal}T00:00:00`,
+        fechaCal,
+        scorePuntos: mGuard?.scorePuntos ?? numeroOrNull(ex.score_puntos),
+        tiempoDuracionSeg:
+          mGuard?.tiempoDuracionSeg ?? numeroOrNull(ex.tiempo_vuelta_seg),
+        colisiones: mGuard?.colisionesReales ?? numeroOrNull(ex.colisiones) ?? 0,
+        serrucho: mGuard?.indiceSerrucho ?? lat.indice_serrucho,
+        esNuevo: false,
+      });
+    }
+
+    for (const nv of nuevosItems) {
+      const fechaCal = extraerFechaCalendarioDeMetricas(nv.metricas.exerciseStartTime);
+      mapaUnificado.set(nv.archivo_nombre, {
+        archivo_fuente: nv.archivo_nombre,
+        fechaSort: nv.metricas.exerciseStartTime ?? `${fechaCal}T00:00:00`,
+        fechaCal,
+        scorePuntos: nv.metricas.scorePuntos,
+        tiempoDuracionSeg: nv.metricas.tiempoDuracionSeg,
+        colisiones: nv.metricas.colisionesReales,
+        serrucho: nv.metricas.indiceSerrucho,
+        esNuevo: true,
+        metricas: nv.metricas,
+      });
+    }
+
+    const todos = Array.from(mapaUnificado.values()).sort((a, b) =>
+      a.fechaSort !== b.fechaSort
+        ? a.fechaSort.localeCompare(b.fechaSort)
+        : a.archivo_fuente.localeCompare(b.archivo_fuente)
+    );
+    if (todos.length === 0) continue;
+
+    const fechasConocidas = todos
+      .map((t) => t.fechaCal)
+      .filter((f) => f !== '9999-99-99');
+    const fechaDiag = fechasConocidas[0] ?? todos[0].fechaCal;
+
+    const primerDia = todos.filter(
+      (t) => t.fechaCal === fechaDiag || t.fechaCal === '9999-99-99'
+    );
+
+    const mejorT0 =
+      primerDia.length > 0
+        ? [...primerDia].sort((a, b) => {
+            const diffScore = (b.scorePuntos ?? -999) - (a.scorePuntos ?? -999);
+            if (diffScore !== 0) return diffScore;
+            if (a.colisiones !== b.colisiones) return a.colisiones - b.colisiones;
+            return (a.tiempoDuracionSeg ?? 999999) - (b.tiempoDuracionSeg ?? 999999);
+          })[0]
+        : null;
+
+    // Resetea bandera mejor diagnóstico previa antes del upsert para evitar conflicto 23505
+    await db
+      .from('evaluacion_diagnostico')
+      .update({ es_mejor_diagnostico: false })
+      .eq('postulante_id', pid)
+      .not('archivo_fuente', 'like', 'CABINA_TABLET%')
+      .not('archivo_fuente', 'like', 'DECISION_%');
+
+    if (mejorT0 && !mejorT0.esNuevo) {
+      await db
+        .from('evaluacion_diagnostico')
+        .update({ es_mejor_diagnostico: true })
+        .eq('postulante_id', pid)
+        .eq('archivo_fuente', mejorT0.archivo_fuente);
+    }
+
+    const refV1 = primerDia[0] ?? null;
+
+    for (const cand of todos) {
+      if (!cand.esNuevo || !cand.metricas) continue;
+      const m = cand.metricas;
+      const esPrimerDia = primerDia.includes(cand);
+      const etapa: EtapaEvaluacion = esPrimerDia
+        ? primerDia.indexOf(cand) === 0
+          ? 'DIAG_INTENTO_1'
+          : 'DIAG_INTENTO_2'
+        : 'FINAL';
+      const ref =
+        etapa === 'DIAG_INTENTO_2'
+          ? refV1
+          : etapa === 'FINAL'
+            ? (mejorT0 ?? refV1)
+            : null;
+
+      const deltaScore =
+        ref && m.scorePuntos !== null && ref.scorePuntos !== null
+          ? Math.round((m.scorePuntos - ref.scorePuntos) * 100) / 100
+          : null;
+      const deltaTiempo =
+        ref && m.tiempoDuracionSeg !== null && ref.tiempoDuracionSeg !== null
+          ? Math.trunc(m.tiempoDuracionSeg) - Math.trunc(ref.tiempoDuracionSeg)
+          : null;
+      const deltaColisiones = ref ? m.colisionesReales - ref.colisiones : null;
+      const deltaSerrucho =
+        ref && m.indiceSerrucho !== null && ref.serrucho !== null
+          ? Math.round((m.indiceSerrucho - ref.serrucho) * 1000) / 1000
+          : null;
+
+      const clasif = clasificarPerfilOperador(m);
+      const esMejor = mejorT0?.archivo_fuente === cand.archivo_fuente;
+      const tiempoInt =
+        typeof m.tiempoDuracionSeg === 'number' && Number.isFinite(m.tiempoDuracionSeg)
+          ? Math.max(0, Math.round(m.tiempoDuracionSeg))
+          : null;
+
+      const { error: errUpsert } = await db
+        .from('evaluacion_diagnostico')
+        .upsert(
+          {
+            postulante_id: pid,
+            archivo_fuente: cand.archivo_fuente,
+            telemetria_archivo_nombre: cand.archivo_fuente,
+            telemetria_metricas: m,
+            etapa,
+            es_mejor_diagnostico: esMejor,
+            asistencia_cabina: mapearRiesgoTitanADB(m.clasificacionRiesgo),
+            dictamen: mapearAptitudTitanADB(m.clasificacionAptitud),
+            eje_lateralidad: `serrucho=${m.indiceSerrucho}; volantazos_extremos=${m.volantazosExtremos}`,
+            eje_tacto_mandos: `frenadas_panico=${m.frenadasPanico}; speed_max_estimada_kmh=${m.velocidadMaxKmh}`,
+            eje_mastil: m.hallazgosMastil.slice(0, 5).join('; ') || null,
+            tiempo_vuelta_seg: tiempoInt,
+            colisiones: m.colisionesReales,
+            colisiones_descartadas: m.colisionesDescartadas,
+            score_puntos: m.scorePuntos,
+            delta_tiempo_seg: deltaTiempo,
+            delta_colisiones: deltaColisiones,
+            delta_score: deltaScore,
+            delta_serrucho: deltaSerrucho,
+            perfil_operador: clasif.perfilOperador,
+            horas_recomendadas: clasif.horasRecomendadas,
+            modulos_recomendados: clasif.modulosRecomendados,
+          },
+          { onConflict: 'postulante_id,archivo_fuente' }
+        );
+
+      if (errUpsert) {
+        errores++;
+        detalles.push({
+          archivo_nombre: cand.archivo_fuente,
+          postulante_id: pid,
+          etapa,
+          perfil_operador: clasif.perfilOperador,
+          es_mejor_diagnostico: esMejor,
+          delta_score: deltaScore,
+          ok: false,
+          error: errUpsert.message,
+        });
+      } else {
+        guardados++;
+        detalles.push({
+          archivo_nombre: cand.archivo_fuente,
+          postulante_id: pid,
+          etapa,
+          perfil_operador: clasif.perfilOperador,
+          es_mejor_diagnostico: esMejor,
+          delta_score: deltaScore,
+          ok: true,
+        });
+      }
+    }
+  }
+
+  revalidatePath(RUTA_PANEL);
+  return { ok: true, guardados, errores, detalles };
 }

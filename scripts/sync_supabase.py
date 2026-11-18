@@ -1,411 +1,100 @@
-"""Sincroniza la cohorte AUTO-2026-C1 y su telemetría con Supabase."""
-import json
+"""Sincroniza el lote real de PDFs del simulador Titán con Supabase Cloud."""
+import argparse
 import os
 import re
-import subprocess
 import sys
 import unicodedata
-from datetime import datetime
-from difflib import SequenceMatcher
 from pathlib import Path
 
-try:
-    from dotenv import load_dotenv
-    from supabase import create_client
-except ImportError:
-    subprocess.check_call([sys.executable, "-m", "pip", "install", "supabase", "python-dotenv"])
-    from dotenv import load_dotenv
-    from supabase import create_client
+from dotenv import load_dotenv
+from supabase import create_client
 
-ROOT = Path(__file__).resolve().parents[1]
-CODIGO = "AUTO-2026-C1"
-NOMINA = [
-    (1, "Postulante Test 01", "20000001", "TM"),
-    (2, "Postulante Test 02", "20000002", "TT"),
-    (3, "Postulante Test 03", "20000003", "TT"),
-    (4, "Postulante Test 04", "20000004", "TM"),
-    (5, "Postulante Test 05", "20000005", "TM"),
-    (6, "Postulante Test 06", "20000006", "TT"),
-    (7, "Postulante Test 07", "20000007", "TT"),
-    (8, "Postulante Test 08", "20000008", "TM"),
-    (9, "Postulante Test 09", "20000009", "TT"),
-    (10, "Postulante Test 10", "20000010", "TT"),
-    (11, "Postulante Test 11", "20000011", "TT"),
-    (12, "Postulante Test 12", "20000012", "TM"),
-    (13, "Postulante Test 13", "20000013", "TT"),
-    (14, "Postulante Test 14", "20000014", "TT"),
-    (15, "Postulante Test 15", "20000015", "TT"),
-    (16, "Postulante Test 16", "20000016", "TT"),
-    (17, "Postulante Test 17", "20000017", "TM"),
-    (18, "Postulante Test 18", "20000018", "TM"),
-    (19, "Postulante Test 19", "20000019", "TM"),
-    (20, "Postulante Test 20", "20000020", "TT"),
-    (21, "Postulante Test 21", "20000021", "TT"),
-    (22, "Postulante Test 22", "20000022", "TM"),
-    (23, "Postulante Test 23", "20000023", "TM"),
-    (24, "Postulante Test 24", "20000024", "TM"),
-    (25, "Postulante Test 25", "20000025", "TM"),
-    (26, "Postulante Test 26", "20000026", "TM"),
-    (27, "Postulante Test 27", "20000027", "TM"),
-    (28, "Postulante Test 28", "20000028", "TM"),
-    (29, "Postulante Test 29", "20000029", "TM"),
-    (30, "Postulante Test 30", "20000030", "TM"),
-]
-FRANJAS = [
-    ("Mañana", "08:00 - 09:00", "08:00:00", "09:00:00"),
-    ("Mañana", "09:00 - 10:00", "09:00:00", "10:00:00"),
-    ("Mañana", "10:00 - 11:00", "10:00:00", "11:00:00"),
-    ("Mañana", "11:00 - 12:00", "11:00:00", "12:00:00"),
-    ("Tarde", "16:00 - 17:00", "16:00:00", "17:00:00"),
-    ("Tarde", "17:00 - 18:00", "17:00:00", "18:00:00"),
-    ("Tarde", "18:00 - 19:00", "18:00:00", "19:00:00"),
-]
-RIESGO = {"Mínima (Autónomo)": "MINIMA_AUTONOMO", "Media": "MEDIA", "Alta": "ALTA"}
+SCRIPT_DIR = Path(__file__).resolve().parent
+ROOT = SCRIPT_DIR.parent
+if str(SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPT_DIR))
+
+import parse_simuladores as ps  # noqa: E402
+
+CODIGO_COHORTE_DEFECTO = "AUTO-2026-C1"
+DEFAULT_INPUT_DIR = r"D:\descargas google\Reportes diagnostico nov"
+
+RIESGO = {
+    "Mínima (Autónomo)": "MINIMA_AUTONOMO",
+    "Media": "MEDIA",
+    "Alta": "ALTA",
+}
 DICTAMEN = {
     "Apto Directo": "APTO_DIRECTO",
     "Apto / Observación": "APTO_OBSERVACION",
     "No Apto": "NO_APTO",
     "Condicional": "CONDICIONAL",
 }
-MESES = {
-    "january": 1, "february": 2, "march": 3, "april": 4, "may": 5, "june": 6,
-    "july": 7, "august": 8, "september": 9, "october": 10, "november": 11, "december": 12,
+
+RECETA_POR_PERFIL = {
+    "NOVATO": {
+        "horas": 8.0,
+        "modulos": [
+            "Familiarización integral de mandos, pedales y ergonomía de cabina",
+            "Circuitos básicos de avance, detención controlada y marcha atrás sin carga",
+            "Procedimiento guiado de horquillas e inclinación de mástil paso a paso",
+        ],
+    },
+    "SIN_NOCION_ESPACIO": {
+        "horas": 8.0,
+        "modulos": [
+            "Geometría de giro con dirección trasera (barrido de contrapeso)",
+            "Circulación y giro en pasillos estrechos con referencias visuales/espejos",
+            "Control de cota segura de horquillas e inclinación de mástil con pallet",
+        ],
+    },
+    "APURADO": {
+        "horas": 6.0,
+        "modulos": [
+            "Control progresivo de acelerador y velocidad máxima en depósito",
+            "Anticipación de frenado y reducción de volantazos en aproximación a racks",
+            "Maniobras de estiba cadenciadas con verificación previa de entorno",
+        ],
+    },
+    "INEFICIENTE": {
+        "horas": 7.0,
+        "modulos": [
+            "Fluidez operativa y encadenamiento continuo de toma, traslado y descarga",
+            "Reducción de tiempos muertos con seguridad e independencia de guía verbal",
+            "Práctica cronometrada Split 30/30 orientada a ritmo estándar de planta",
+        ],
+    },
+    "EFICIENTE": {
+        "horas": 4.0,
+        "modulos": [
+            "Consolidación operativa en estiba multinivel y rampas con carga completa",
+            "Evaluación integradora final orientada a pase directo a máquina real",
+        ],
+    },
 }
-STOP = {"de", "del", "la", "el"}
-
-# Etapas del flujo de doble pasada (migración 0008).
-ETAPA_INTENTO_1 = "DIAG_INTENTO_1"
-ETAPA_INTENTO_2 = "DIAG_INTENTO_2"
-ETAPA_FINAL = "FINAL"
-
-# Grafías de portada alternativas aceptadas por ranking, para apellidos que el
-# umbral fuzzy no alcanza (OCR, apóstrofos raros u orden invertido). Cada alias
-# se compara con el mismo compatible(); la normalización de tokens() YA neutraliza
-# apóstrofes (' ’ ` ´) y acentos, así "O'Connell"/"O`Connell"/"O Connell" vinculan
-# solos si el reporte existe.
-#
-# AUDITORÍA nov/2026 sobre el corpus real (71 PDF + 87 TraineeName de los 363
-# metadatos de grabación): NO existe ningún reporte de #4 Robledo Daniel ni de
-# #28 O`Connell Daniel bajo NINGUNA grafía. Ambos quedan legítimamente SIN
-# TELEMETRÍA (el script nunca inventa datos). Cuando se incorpore su PDF, cargar
-# acá la grafía exacta de portada, p.ej.: 4: ["Robledo Daniel E"], 28: ["OConnell"].
-ALIASES = {}
 
 
 class SyncError(Exception):
     pass
 
 
-def tokens(texto):
-    plano = unicodedata.normalize("NFKD", texto or "")
-    plano = plano.encode("ascii", "ignore").decode().casefold()
-    return [t for t in re.split(r"[^a-z0-9]+", plano) if len(t) > 2 and t not in STOP]
+def es_registro_test(rep: dict) -> bool:
+    """Excluye reportes de prueba (`Test [id=Test]`)."""
+    nombre = ps.clave_normalizada_ascii(rep.get("student_name") or "")
+    sid = str(rep.get("student_id") or "").strip().casefold()
+    return nombre == "test" or sid == "test"
 
 
-def compatible(oficial, reporte):
-    base = tokens(oficial)
-    candidatos = tokens(reporte)
-    if not base or not candidatos:
-        return False
-    for t in candidatos:
-        if max(SequenceMatcher(None, t, o).ratio() for o in base) < 0.72:
-            return False
-    return True
+def dni_sintetico_para(student_id: str | None, nombre: str) -> str:
+    """Genera un identificador único determinista para altas sin DNI en portada."""
+    sid_limpio = re.sub(r"[^A-Za-z0-9]+", "", str(student_id or "").strip())
+    if sid_limpio:
+        return f"SIM-ID-{sid_limpio.zfill(3)}"
+    slug = re.sub(r"[^a-z0-9]+", "", ps.clave_normalizada_ascii(nombre))[:10]
+    return f"SIM-{slug.upper() or 'SINID'}"
 
 
-def fecha_reporte(rep):
-    texto = rep.get("exercise_start_time") or ""
-    m = re.search(r"(\d{1,2}) (\w+) (\d{4}) at (\d{1,2}):(\d{2}) (am|pm)", texto, re.I)
-    if not m:
-        return datetime.min
-    dia, mes, anio, hora, minuto, ampm = m.groups()
-    if mes.casefold() not in MESES:
-        return datetime.min
-    hora = int(hora) % 12 + (12 if ampm.casefold() == "pm" else 0)
-    return datetime(int(anio), MESES[mes.casefold()], int(dia), hora, int(minuto))
-
-
-def es_final(rep):
-    """Un reporte es Prueba Final si su Exercise Name (o el nombre base del
-    archivo, sin extensión) lo rotula. Se excluye la extensión para que
-    '71.pdf' no calce por el substring '1f'."""
-    nombre = rep.get("exercise_name") or ""
-    if "final" in nombre.casefold():
-        return True
-    base = (rep.get("archivo") or "")
-    return "final" in os.path.splitext(base)[0].casefold()
-
-
-def vincular():
-    """Agrupa TODOS los reportes de cada postulante de la nómina, ordenados
-    cronológicamente por timestamp_inicio (ya no se descarta por max(fecha))."""
-    with open(ROOT / "telemetria_cohortes.json", encoding="utf-8") as fh:
-        reportes = json.load(fh)
-    if not isinstance(reportes, list):
-        raise SyncError("telemetria_cohortes.json debe contener una lista")
-    links = []
-    usados = []
-    for ranking, nombre, dni, turno in NOMINA:
-        aceptados = [nombre, *ALIASES.get(ranking, [])]
-        candidatos = [r for r in reportes
-                      if any(compatible(a, r.get("student_name")) for a in aceptados)]
-        ordenados = sorted(candidatos, key=lambda r: (fecha_reporte(r), r.get("archivo") or ""))
-        usados += [r.get("archivo") for r in ordenados]
-        links.append({"ranking": ranking, "nombre": nombre, "dni": dni,
-                      "turno": turno, "reportes": ordenados})
-    if len(usados) != len(set(usados)):
-        raise SyncError("Un mismo reporte quedó asignado a más de un postulante")
-    return links
-
-
-def plan_evaluaciones(links):
-    """Asigna etapa a cada reporte (FINAL rotulado; el resto DIAG_INTENTO_1/2
-    por orden cronológico), marca el mejor diagnóstico y calcula deltas.
-
-    Criterio 'Mejor Diagnóstico' entre V1 y V2:
-      1. menor colisiones reales; 2. empate -> menor serrucho; 3. empate ->
-      menor duración. Con un único diagnóstico, ese resulta el mejor.
-    Los deltas de INTENTO_2 se calculan contra INTENTO_1; los de FINAL contra
-    el mejor diagnóstico.
-    """
-    plan = []
-    for x in links:
-        reps = x["reportes"]
-        if not reps:
-            continue
-        finales = [r for r in reps if es_final(r)]
-        diagnosticos = [r for r in reps if not es_final(r)]
-        etapas = {}
-        for i, r in enumerate(diagnosticos[:2]):
-            etapas[r["archivo"]] = ETAPA_INTENTO_1 if i == 0 else ETAPA_INTENTO_2
-        for r in finales[:1]:
-            etapas[r["archivo"]] = ETAPA_FINAL
-        if len(diagnosticos) > 2:
-            print(f"AVISO: #{x['ranking']} {x['nombre']} tiene {len(diagnosticos)} "
-                  f"diagnósticos; se toman los 2 más tempranos y el resto no se sincroniza.")
-
-        base = {ETAPA_INTENTO_1: diagnosticos[0] if diagnosticos else None,
-                ETAPA_INTENTO_2: diagnosticos[1] if len(diagnosticos) > 1 else None}
-        vigentes = {k: v for k, v in base.items() if v}
-        mejor_etapa = min(vigentes, key=lambda e: clave_mejor(vigentes[e])) if vigentes else None
-
-        for archivo, etapa in etapas.items():
-            rep = next(r for r in reps if r["archivo"] == archivo)
-            ref = None
-            if etapa == ETAPA_INTENTO_2:
-                ref = base.get(ETAPA_INTENTO_1)
-            elif etapa == ETAPA_FINAL and mejor_etapa:
-                ref = base[mejor_etapa]
-            plan.append({
-                "dni": x["dni"],
-                "rep": rep,
-                "etapa": etapa,
-                "es_mejor": etapa == mejor_etapa,
-                "ref": ref,
-            })
-    return plan
-
-
-def clave_mejor(rep):
-    """Tupla de orden del 'Mejor Diagnóstico' (menor es mejor)."""
-    san = rep.get("metricas_sanitizadas") or rep.get("telemetria") or {}
-    colisiones = entero(rep.get("n_colisiones"), "n_colisiones") or 0
-    serrucho = san.get("steering_serrucho_index")
-    dur = entero(rep.get("exercise_duration_seg"), "exercise_duration_seg")
-    return (colisiones,
-            serrucho if serrucho is not None else float("inf"),
-            dur if dur is not None else float("inf"))
-
-
-def flotar(valor):
-    if valor is None:
-        return None
-    try:
-        return float(valor)
-    except (TypeError, ValueError):
-        return None
-
-
-def deltas(rep, ref):
-    """Deltas del intento respecto de su referencia (rep - ref)."""
-    if not ref:
-        return {"delta_tiempo_seg": None, "delta_colisiones": None,
-                "delta_score": None, "delta_serrucho": None}
-    tel = rep.get("metricas_sanitizadas") or rep.get("telemetria") or {}
-    tel_ref = ref.get("metricas_sanitizadas") or ref.get("telemetria") or {}
-
-    def resta(a, b):
-        return None if a is None or b is None else a - b
-
-    delta_score = resta(flotar(rep.get("score")), flotar(ref.get("score")))
-    delta_serrucho = resta(
-        flotar(tel.get("steering_serrucho_index")),
-        flotar(tel_ref.get("steering_serrucho_index")),
-    )
-
-    return {
-        "delta_tiempo_seg": resta(entero(rep.get("exercise_duration_seg"), "t"),
-                                  entero(ref.get("exercise_duration_seg"), "t")),
-        "delta_colisiones": resta(entero(rep.get("n_colisiones"), "c"),
-                                  entero(ref.get("n_colisiones"), "c")),
-        "delta_score": round(delta_score, 2) if delta_score is not None else None,
-        "delta_serrucho": round(delta_serrucho, 3) if delta_serrucho is not None else None,
-    }
-
-
-def entero(valor, campo):
-    if valor is None:
-        return None
-    try:
-        return int(valor)
-    except (TypeError, ValueError) as exc:
-        raise SyncError(f"{campo} debe ser entero o null") from exc
-
-
-def evaluacion(postulante_id, rep, etapa, es_mejor, ref):
-    archivo_fuente = (rep.get("archivo") or "").strip()
-    if not archivo_fuente or archivo_fuente.upper().startswith("CABINA_TABLET"):
-        raise SyncError(
-            f"archivo_fuente inválido para telemetría TITAN: {archivo_fuente!r}"
-        )
-    tel = rep.get("metricas_sanitizadas") or rep.get("telemetria") or {}
-    clasi = rep.get("clasificacion") or {}
-    riesgo = clasi.get("riesgo")
-    dictamen = clasi.get("aptitud")
-    if riesgo not in RIESGO or dictamen not in DICTAMEN:
-        raise SyncError(f"Clasificación inválida en {archivo_fuente}")
-    try:
-        score = round(float(rep["score"]), 2) if rep.get("score") is not None else None
-    except (TypeError, ValueError) as exc:
-        raise SyncError(f"Score inválido en {archivo_fuente}") from exc
-    serrucho = tel.get("steering_serrucho_index")
-    volantazos = tel.get("steering_volantazos_extremos")
-    frenadas = tel.get("frenadas_panico_count")
-    speed = tel.get("speed_max_estimada_kmh")
-    mastil = [
-        x["descripcion"] for x in rep.get("infracciones_conduccion", [])
-        if "fork" in x.get("descripcion", "").casefold() or "mastil" in x.get("descripcion", "").casefold()
-    ]
-    payload = {
-        "postulante_id": postulante_id,
-        "asistencia_cabina": RIESGO[riesgo],
-        "dictamen": DICTAMEN[dictamen],
-        "eje_lateralidad": f"serrucho={serrucho}; volantazos_extremos={volantazos}",
-        "eje_tacto_mandos": f"frenadas_panico={frenadas}; speed_max_estimada_kmh={speed}",
-        "eje_mastil": "; ".join(mastil) or None,
-        "eje_control_receptividad": None,
-        "tiempo_vuelta_seg": entero(rep.get("exercise_duration_seg"), "exercise_duration_seg"),
-        "colisiones": entero(rep.get("n_colisiones"), "n_colisiones") or 0,
-        "score_puntos": score,
-        "archivo_fuente": archivo_fuente,
-        # Columnas multi-intento (migración 0008)
-        "etapa": etapa,
-        "es_mejor_diagnostico": es_mejor,
-        "colisiones_descartadas": entero(
-            rep.get("metricas_sanitizadas", {}).get("colisiones_descartadas")
-            if rep.get("metricas_sanitizadas") else len(rep.get("descartes_sanitizados") or []),
-            "colisiones_descartadas") or 0,
-    }
-    payload.update(deltas(rep, ref))
-    return payload
-
-
-def uno(res, descripcion):
-    if not res.data:
-        raise SyncError(f"No se pudo recuperar {descripcion}")
-    return res.data[0]
-
-
-def sincronizar(db, links):
-    db.table("cohortes").upsert({
-        "codigo": CODIGO,
-        "nombre": "Autoelevador Nivel Inicial - Cohorte 1",
-        "cant_dias_sim": 6,
-        "max_titulares": 20,
-        "estado": "activa",
-    }, on_conflict="codigo").execute()
-    cohorte = uno(db.table("cohortes").select("id").eq("codigo", CODIGO).limit(1).execute(), "la cohorte")
-    cid = cohorte["id"]
-
-    actuales = db.table("franjas_cabina").select(
-        "turno,horario_label,hora_inicio,hora_fin"
-    ).eq("cohorte_id", cid).execute().data or []
-    existentes = {(x["turno"], x["horario_label"], x["hora_inicio"], x["hora_fin"]) for x in actuales}
-    nuevas = [
-        {"cohorte_id": cid, "turno": t, "horario_label": label,
-         "hora_inicio": ini, "hora_fin": fin, "cupo_maximo": 3}
-        for t, label, ini, fin in FRANJAS
-        if (t, label, ini, fin) not in existentes
-    ]
-    if nuevas:
-        db.table("franjas_cabina").insert(nuevas).execute()
-
-    db.table("postulantes").upsert([
-        {"dni": x["dni"], "nombre_completo": x["nombre"], "origen_turno": x["turno"]}
-        for x in links
-    ], on_conflict="dni").execute()
-    dnis = [x["dni"] for x in links]
-    filas = db.table("postulantes").select("id,dni").in_("dni", dnis).execute().data or []
-    por_dni = {x["dni"]: x["id"] for x in filas}
-    if len(por_dni) != 30:
-        raise SyncError(f"Verificación de postulantes: {len(por_dni)}/30")
-
-    db.table("cohorte_inscripciones").upsert([
-        {"cohorte_id": cid, "postulante_id": por_dni[x["dni"]], "ranking_orden": x["ranking"]}
-        for x in links
-    ], on_conflict="cohorte_id,postulante_id").execute()
-
-    plan = plan_evaluaciones(links)
-    ids = sorted({por_dni[e["dni"]] for e in plan})
-    if ids:
-        # Idempotencia: apagar las banderas de mejor diagnóstico solo en filas
-        # TITAN de los postulantes del lote ANTES de reescribir (no toca
-        # evaluaciones de CABINA_TABLET*). Garantiza que uq_mejor_diagnostico_por_postulante
-        # nunca observe dos TRUE en re-ejecuciones.
-        db.table("evaluacion_diagnostico").update(
-            {"es_mejor_diagnostico": False}
-        ).in_("postulante_id", ids).not_.like(
-            "archivo_fuente", "CABINA_TABLET%"
-        ).execute()
-
-    payloads = [
-        evaluacion(por_dni[e["dni"]], e["rep"], e["etapa"], e["es_mejor"], e["ref"])
-        for e in plan
-    ]
-    plan_claves = {(p["postulante_id"], p["archivo_fuente"]) for p in payloads}
-
-    # UPSERT directo sobre la clave natural (postulante_id, archivo_fuente) de
-    # `public.evaluacion_diagnostico` (migración 0008 uq_postulante_archivo).
-    if payloads:
-        db.table("evaluacion_diagnostico").upsert(
-            payloads, on_conflict="postulante_id,archivo_fuente"
-        ).execute()
-
-    insc = db.table("cohorte_inscripciones").select(
-        "postulante_id,ranking_orden"
-    ).eq("cohorte_id", cid).execute().data or []
-    if len(insc) != 30 or {x["ranking_orden"] for x in insc} != set(range(1, 31)):
-        raise SyncError(f"Verificación de inscripciones: {len(insc)}/30")
-    franjas = db.table("franjas_cabina").select("id").eq("cohorte_id", cid).execute().data or []
-    if len(franjas) != 7:
-        raise SyncError(f"Verificación de franjas: {len(franjas)}/7")
-    evals = db.table("evaluacion_diagnostico").select(
-        "postulante_id,archivo_fuente"
-    ).in_("postulante_id", ids).execute().data or [] if ids else []
-    presentes = {(x["postulante_id"], x["archivo_fuente"]) for x in evals}
-    esperadas = plan_claves
-    if not esperadas.issubset(presentes):
-        raise SyncError(f"Verificación de evaluaciones: {len(presentes & esperadas)}/{len(esperadas)}")
-    por_etapa = {}
-    for e in plan:
-        por_etapa[e["etapa"]] = por_etapa.get(e["etapa"], 0) + 1
-    return {"cohorte": cid, "franjas": len(franjas), "postulantes": len(por_dni),
-            "inscripciones": len(insc), "evaluaciones": len(esperadas),
-            "por_etapa": por_etapa,
-            "mejores": sum(1 for e in plan if e["es_mejor"])}
-
-
-def cliente():
+def cliente_supabase():
     load_dotenv(ROOT / ".env.local")
     url = (os.getenv("NEXT_PUBLIC_SUPABASE_URL") or "").strip().rstrip("/")
     url = re.sub(r"/rest/v1$", "", url)
@@ -413,59 +102,467 @@ def cliente():
     anon = (os.getenv("NEXT_PUBLIC_SUPABASE_ANON_KEY") or "").strip()
     key = service or anon
     if not url.startswith("https://") or not key:
-        raise SyncError("Faltan NEXT_PUBLIC_SUPABASE_URL y una clave Supabase válida")
+        raise SyncError("Faltan NEXT_PUBLIC_SUPABASE_URL y una clave Supabase válida.")
     if not service:
-        print("ADVERTENCIA: usando clave anon; RLS puede exigir SUPABASE_SERVICE_ROLE_KEY.")
+        raise SyncError("La sincronización real requiere SUPABASE_SERVICE_ROLE_KEY en .env.local.")
     return create_client(url, key)
 
 
-def main():
-    links = vincular()
-    con_rep = [x for x in links if x["reportes"]]
-    sin_rep = [x for x in links if not x["reportes"]]
-    if "--dry-run" in sys.argv:
-        plan = plan_evaluaciones(links)
-        for x in links:
-            if not x["reportes"]:
-                print(f"#{x['ranking']:02d} {x['nombre']} -> SIN REPORTE IDENTIFICABLE")
-                continue
-            entradas = [e for e in plan if e["dni"] == x["dni"]]
-            detalle = ", ".join(
-                f"{e['etapa']}={e['rep']['archivo']}" + ("*" if e["es_mejor"] else "")
-                for e in sorted(entradas, key=lambda e: e["etapa"]))
-            print(f"#{x['ranking']:02d} {x['nombre']} -> {detalle}")
-        etapas = {}
-        for e in plan:
-            etapas[e["etapa"]] = etapas.get(e["etapa"], 0) + 1
-        print(f"RESUMEN: {len(con_rep)} postulantes con telemetría, "
-              f"{len(sin_rep)} sin telemetría, {len(plan)} evaluaciones {etapas}")
-        print("(*) = es_mejor_diagnostico")
+def obtener_cohorte_activa(db) -> dict:
+    res = (
+        db.table("cohortes")
+        .select("id,codigo,nombre,estado")
+        .eq("estado", "activa")
+        .order("created_at", desc=True)
+        .limit(1)
+        .execute()
+        .data
+        or []
+    )
+    if not res:
+        res = (
+            db.table("cohortes")
+            .select("id,codigo,nombre,estado")
+            .eq("codigo", CODIGO_COHORTE_DEFECTO)
+            .limit(1)
+            .execute()
+            .data
+            or []
+        )
+    if not res:
+        raise SyncError("No se encontró ninguna cohorte activa en Supabase.")
+    return res[0]
+
+
+def construir_infracciones_consola(rep: dict) -> list[dict]:
+    """Combina conducción del log + eventos críticos de consola (cinturón/palancas)."""
+    salida = [
+        {
+            "timestamp": inf.get("timestamp"),
+            "descripcion": inf.get("descripcion") or "",
+            "tipo": "Driving",
+        }
+        for inf in (rep.get("infracciones_conduccion") or [])
+        if inf.get("descripcion")
+    ]
+    console = rep.get("console_events") or {}
+    for ev in console.get("desconexiones_cinturon_detalle") or []:
+        salida.append(
+            {
+                "timestamp": ev.get("timestamp"),
+                "descripcion": "Desconexión de cinturón de seguridad en movimiento (Seat Belt OFF)",
+                "tipo": "DESCONEXION_CINTURON_MOVIMIENTO",
+            }
+        )
+    sats = console.get("saturaciones_palancas") or {}
+    if (sats.get("total") or 0) > 0:
+        salida.append(
+            {
+                "timestamp": None,
+                "descripcion": (
+                    f"Saturaciones máximas de palanca hidráulica: total={sats.get('total', 0)} "
+                    f"(Up/Down={sats.get('fork_up_down', 0)}, "
+                    f"Tilt={sats.get('fork_tilt', 0)}, "
+                    f"Left/Right={sats.get('fork_left_right', 0)})"
+                ),
+                "tipo": "SATURACION_PALANCA",
+            }
+        )
+    return salida
+
+
+def construir_metricas_camel(rep: dict) -> dict:
+    """Genera el objeto `MetricasSimulador` compatible 1:1 con TypeScript."""
+    tel = rep.get("telemetria") or {}
+    clasi = rep.get("clasificacion") or {}
+    colisiones_det = [
+        {
+            "timestamp": c.get("timestamp"),
+            "descripcion": c.get("descripcion") or "",
+            "tipo": "Collision",
+        }
+        for c in (rep.get("colisiones") or [])
+    ]
+    descartes_det = [
+        {
+            "timestamp": d.get("timestamp"),
+            "descripcion": d.get("descripcion") or "",
+            "tipo": "ARTEFACTO_SUELO",
+        }
+        for d in (rep.get("descartes_sanitizados") or [])
+    ]
+    infracciones = construir_infracciones_consola(rep)
+
+    hallazgos_mastil = []
+    vistos_mastil = set()
+    for ev in colisiones_det + infracciones:
+        desc = ev.get("descripcion") or ""
+        if re.search(r"fork|mastil|mástil|tilt|pallet", desc, re.I) and desc not in vistos_mastil:
+            vistos_mastil.add(desc)
+            hallazgos_mastil.append(desc)
+        if len(hallazgos_mastil) >= 8:
+            break
+
+    return {
+        "archivoFuente": rep.get("archivo"),
+        "studentName": rep.get("student_name"),
+        "studentId": rep.get("student_id"),
+        "exerciseName": rep.get("exercise_name"),
+        "exerciseStartTime": rep.get("exercise_start_time_iso") or rep.get("exercise_start_time"),
+        "scorePuntos": rep.get("score_depurado"),
+        "tiempoDuracionSeg": rep.get("exercise_duration_seg"),
+        "colisionesReales": int(rep.get("n_colisiones") or 0),
+        "colisionesDescartadas": len(descartes_det),
+        "colisionesDetalle": colisiones_det,
+        "descartesDetalle": descartes_det,
+        "infraccionesConduccion": infracciones,
+        "indiceSerrucho": tel.get("steering_serrucho_index"),
+        "volantazosExtremos": tel.get("steering_volantazos_extremos"),
+        "velocidadMaxKmh": tel.get("speed_max_estimada_kmh"),
+        "frenadasPanico": tel.get("frenadas_panico_count"),
+        "picosAceleracion": tel.get("accel_pad_picos_count"),
+        "porcentajeAceleradorFondo": tel.get("accel_pad_fondo_pct"),
+        "muestrasHorquillaElevada": tel.get("fork_height_muestras_elevadas"),
+        "porcentajeCirculacionHorquillaAlta": tel.get("fork_height_elevada_pct"),
+        "alturaMaximaHorquillaM": tel.get("fork_height_max_m"),
+        "oscilacionesMastil": tel.get("tilt_oscilaciones_count"),
+        "indiceInestabilidadTilt": tel.get("tilt_inestabilidad_index"),
+        "clasificacionRiesgo": clasi.get("riesgo"),
+        "clasificacionAptitud": clasi.get("aptitud"),
+        "hallazgosMastil": hallazgos_mastil,
+        "alertaFalsoPositivoSuelo": len(descartes_det) > 0,
+    }
+
+
+def deltas_payload(rep: dict, ref: dict | None) -> dict:
+    if not ref:
+        return {
+            "delta_tiempo_seg": None,
+            "delta_colisiones": None,
+            "delta_score": None,
+            "delta_serrucho": None,
+        }
+    tel = rep.get("telemetria") or {}
+    tel_ref = ref.get("telemetria") or {}
+
+    def diff_int(a, b):
+        return None if a is None or b is None else int(a) - int(b)
+
+    def diff_flt(a, b, dec):
+        return None if a is None or b is None else round(float(a) - float(b), dec)
+
+    return {
+        "delta_tiempo_seg": diff_int(
+            rep.get("exercise_duration_seg"), ref.get("exercise_duration_seg")
+        ),
+        "delta_colisiones": diff_int(rep.get("n_colisiones"), ref.get("n_colisiones")),
+        "delta_score": diff_flt(rep.get("score_depurado"), ref.get("score_depurado"), 2),
+        "delta_serrucho": diff_flt(
+            tel.get("steering_serrucho_index"), tel_ref.get("steering_serrucho_index"), 3
+        ),
+    }
+
+
+def construir_evaluacion_row(postulante_id: str, rep: dict, etapa: str, es_mejor: bool, ref: dict | None) -> dict:
+    tel = rep.get("telemetria") or {}
+    clasi = rep.get("clasificacion") or {}
+    riesgo = clasi.get("riesgo")
+    dictamen = clasi.get("aptitud")
+    if riesgo not in RIESGO or dictamen not in DICTAMEN:
+        raise SyncError(f"Clasificación inválida en {rep.get('archivo')}")
+
+    perfil = rep.get("perfil_operador") or "INEFICIENTE"
+    receta = RECETA_POR_PERFIL.get(perfil, RECETA_POR_PERFIL["INEFICIENTE"])
+    console = rep.get("console_events") or {}
+    cinturon_mov = int(console.get("desconexiones_cinturon_movimiento") or 0)
+    sats_total = (console.get("saturaciones_palancas") or {}).get("total", 0)
+    prechecks = int(rep.get("n_prechecks_violation") or 0)
+
+    metricas_camel = construir_metricas_camel(rep)
+    mastil_desc = [
+        ev["descripcion"]
+        for ev in metricas_camel["infraccionesConduccion"]
+        if re.search(r"fork|mastil|mástil|tilt", ev.get("descripcion", ""), re.I)
+    ]
+
+    archivo_fuente = (rep.get("archivo") or "").strip()
+    if not archivo_fuente or archivo_fuente.upper().startswith("CABINA_TABLET"):
+        raise SyncError(f"archivo_fuente inválido para telemetría TITAN: {archivo_fuente!r}")
+
+    payload = {
+        "postulante_id": postulante_id,
+        "asistencia_cabina": RIESGO[riesgo],
+        "dictamen": DICTAMEN[dictamen],
+        "eje_lateralidad": (
+            f"serrucho={tel.get('steering_serrucho_index')}; "
+            f"volantazos_extremos={tel.get('steering_volantazos_extremos')}"
+        ),
+        "eje_tacto_mandos": (
+            f"frenadas_panico={tel.get('frenadas_panico_count')}; "
+            f"speed_max_estimada_kmh={tel.get('speed_max_estimada_kmh')}; "
+            f"accel_fondo_pct={tel.get('accel_pad_fondo_pct')}"
+        ),
+        "eje_mastil": "; ".join(mastil_desc[:5]) or None,
+        "eje_control_receptividad": (
+            f"prechecks={prechecks}; cinturon_mov_off={cinturon_mov}; "
+            f"palancas_saturadas={sats_total}"
+        ),
+        "tiempo_vuelta_seg": rep.get("exercise_duration_seg"),
+        "colisiones": int(rep.get("n_colisiones") or 0),
+        "score_puntos": rep.get("score_depurado"),
+        "archivo_fuente": archivo_fuente,
+        "etapa": etapa,
+        "es_mejor_diagnostico": bool(es_mejor),
+        "colisiones_descartadas": len(rep.get("descartes_sanitizados") or []),
+        "telemetria_archivo_nombre": archivo_fuente,
+        "telemetria_metricas": metricas_camel,
+        "perfil_operador": perfil,
+        "horas_recomendadas": receta["horas"],
+        "modulos_recomendados": receta["modulos"],
+    }
+    payload.update(deltas_payload(rep, ref))
+    return payload
+
+
+def resolver_o_crear_postulante(db, cohorte_id: str, grupo_items: list[dict], postulantes_db: list[dict], next_ranking: list[int]) -> tuple[dict, bool]:
+    """Busca postulante existente sin fusionar casos homónimos/similares; crea si falta."""
+    nombre_portada = ps.normalizar_nombre_alumno(grupo_items[0].get("student_name"))
+    sid = grupo_items[0].get("student_id")
+    dni_cand = dni_sintetico_para(sid, nombre_portada)
+
+    # 1. Buscar primero por DNI sintético exacto si ya se creó en una corrida previa
+    for p in postulantes_db:
+        if p.get("dni") == dni_cand:
+            return p, False
+
+    # 2. Match exacto o fuzzy SOLO contra postulantes con DNI real de nómina
+    #    (evita fusionar personas nuevas distintas como Acosta Joana vs Acosta Juana)
+    candidatos_nomina = [
+        p for p in postulantes_db if not str(p.get("dni") or "").startswith("SIM-ID-")
+    ]
+    match = ps.buscar_postulante_match(nombre_portada, candidatos_nomina)
+    if match:
+        return match, False
+
+    # 3. Alta nueva en public.postulantes + inscripción en cohorte activa
+    creado = (
+        db.table("postulantes")
+        .insert(
+            {
+                "nombre_completo": nombre_portada,
+                "dni": dni_cand,
+                "origen_turno": "INDEFINIDO",
+            }
+        )
+        .execute()
+        .data
+    )
+    if not creado:
+        raise SyncError(f"No se pudo crear postulante para {nombre_portada} ({dni_cand})")
+    nuevo_p = creado[0]
+    postulantes_db.append(nuevo_p)
+
+    ranking = next_ranking[0]
+    next_ranking[0] += 1
+    db.table("cohorte_inscripciones").upsert(
+        {
+            "cohorte_id": cohorte_id,
+            "postulante_id": nuevo_p["id"],
+            "ranking_orden": ranking,
+            "estado": "DISPONIBLE",
+        },
+        on_conflict="cohorte_id,postulante_id",
+    ).execute()
+    return nuevo_p, True
+
+
+def ejecutar_sync(input_dir: str, dry_run: bool = False):
+    rutas_pdf = sorted(
+        str(p) for p in Path(input_dir).rglob("*.pdf") if p.is_file()
+    )
+    if not rutas_pdf:
+        raise SyncError(f"No se encontraron archivos PDF en {input_dir}")
+
+    crudos = []
+    excluidos_test = 0
+    for ruta in rutas_pdf:
+        rep = ps.procesar_pdf(ruta, root_dir=input_dir)
+        if es_registro_test(rep):
+            excluidos_test += 1
+            continue
+        crudos.append(rep)
+
+    db = cliente_supabase()
+    cohorte = obtener_cohorte_activa(db)
+    cid = cohorte["id"]
+
+    postulantes_db = (
+        db.table("postulantes")
+        .select("id,nombre_completo,dni,origen_turno")
+        .execute()
+        .data
+        or []
+    )
+    inscripciones_db = (
+        db.table("cohorte_inscripciones")
+        .select("postulante_id,ranking_orden")
+        .eq("cohorte_id", cid)
+        .execute()
+        .data
+        or []
+    )
+    inscritos_ids = {r["postulante_id"] for r in inscripciones_db if r.get("postulante_id")}
+    max_ranking = max((r.get("ranking_orden") or 0 for r in inscripciones_db), default=0)
+    next_ranking = [max_ranking + 1]
+
+    # Agrupar por (nombre normalizado, student_id) para mantener Acosta Joana y Acosta Juana separadas
+    grupos = {}
+    for rep in crudos:
+        clave = (
+            ps.clave_normalizada_ascii(rep.get("student_name")),
+            str(rep.get("student_id") or "").strip().lower(),
+        )
+        grupos.setdefault(clave, []).append(rep)
+
+    # Clasificar cronológicamente y preparar payloads
+    nuevos_creados = []
+    postulantes_tocar = set()
+    filas_upsert = []
+    deltas_v1_v2 = 0
+    deltas_t0_t1 = 0
+
+    for _clave, items in sorted(grupos.items(), key=lambda kv: kv[1][0]["student_name"]):
+        items.sort(
+            key=lambda x: (
+                x.get("exercise_start_time_iso") or "9999-99-99T99:99:99",
+                x["archivo"],
+            )
+        )
+        validos = [it for it in items if not it.get("intento_abortado")]
+        if not validos:
+            continue
+
+        if dry_run:
+            match = ps.buscar_postulante_match(validos[0]["student_name"], postulantes_db)
+            pid = match["id"] if match else f"NEW:{validos[0]['student_id']}"
+            if not match:
+                nuevos_creados.append(
+                    f"{validos[0]['student_name']} ({dni_sintetico_para(validos[0].get('student_id'), validos[0]['student_name'])})"
+                )
+        else:
+            p_row, fue_creado = resolver_o_crear_postulante(
+                db, cid, validos, postulantes_db, next_ranking
+            )
+            pid = p_row["id"]
+            if fue_creado:
+                nuevos_creados.append(f"{p_row['nombre_completo']} (dni={p_row['dni']})")
+            elif pid not in inscritos_ids:
+                db.table("cohorte_inscripciones").upsert(
+                    {
+                        "cohorte_id": cid,
+                        "postulante_id": pid,
+                        "ranking_orden": next_ranking[0],
+                        "estado": "DISPONIBLE",
+                    },
+                    on_conflict="cohorte_id,postulante_id",
+                ).execute()
+                next_ranking[0] += 1
+                inscritos_ids.add(pid)
+
+        postulantes_tocar.add(pid)
+
+        fecha_diag = validos[0].get("fecha_calendario") or "SIN_FECHA"
+        primer_dia = [x for x in validos if (x.get("fecha_calendario") or "SIN_FECHA") == fecha_diag]
+        posteriores = [x for x in validos if (x.get("fecha_calendario") or "SIN_FECHA") != fecha_diag]
+
+        mejor_t0 = min(
+            primer_dia,
+            key=lambda x: (
+                -(x.get("score_depurado") if x.get("score_depurado") is not None else -999),
+                x.get("n_colisiones", 999),
+                x.get("exercise_duration_seg") or 999999,
+            ),
+        )
+
+        if len(primer_dia) >= 2:
+            deltas_v1_v2 += 1
+        if posteriores:
+            deltas_t0_t1 += 1
+
+        for idx, rep in enumerate(primer_dia):
+            etapa = "DIAG_INTENTO_1" if idx == 0 else "DIAG_INTENTO_2"
+            ref = None if idx == 0 else primer_dia[0]
+            es_mejor = rep is mejor_t0
+            filas_upsert.append(
+                construir_evaluacion_row(pid, rep, etapa, es_mejor, ref)
+            )
+
+        for rep in posteriores:
+            filas_upsert.append(
+                construir_evaluacion_row(pid, rep, "FINAL", False, mejor_t0)
+            )
+
+    if dry_run:
+        print(
+            f"[DRY-RUN] PDFs leídos={len(rutas_pdf)}, Excluidos Test={excluidos_test}, "
+            f"Reportes reales a persistir={len(filas_upsert)}, "
+            f"Altas nuevas={len(nuevos_creados)} {nuevos_creados}, "
+            f"Deltas V1->V2={deltas_v1_v2}, Deltas T0->T1={deltas_t0_t1}"
+        )
         return
-    res = sincronizar(cliente(), links)
-    print("=" * 58)
-    print(f"Cohorte activa: {CODIGO}")
-    print(f"Franjas verificadas: {res['franjas']}/7")
-    print(f"Postulantes cargados: {res['postulantes']}/30")
-    print(f"Inscripciones enlazadas (ranking 1-30): {res['inscripciones']}/30")
-    print(f"Evaluaciones sincronizadas: {res['evaluaciones']} {res['por_etapa']}")
-    print(f"Marcadas como mejor diagnóstico: {res['mejores']}")
-    for x in sin_rep:
-        print(f"SIN TELEMETRÍA: #{x['ranking']} {x['nombre']} (DNI {x['dni']})")
-    print("=" * 58)
+
+    ids_lista = sorted(postulantes_tocar)
+    if ids_lista:
+        # Limpia flags previos solo en filas TITAN (preserva CABINA_TABLET* y DECISION_*)
+        db.table("evaluacion_diagnostico").update({"es_mejor_diagnostico": False}).in_(
+            "postulante_id", ids_lista
+        ).not_.like("archivo_fuente", "CABINA_TABLET%").not_.like(
+            "archivo_fuente", "DECISION_%"
+        ).execute()
+
+    # Upsert por lotes para respetar límites de payload PostgREST
+    for i in range(0, len(filas_upsert), 20):
+        lote = filas_upsert[i : i + 20]
+        db.table("evaluacion_diagnostico").upsert(
+            lote, on_conflict="postulante_id,archivo_fuente"
+        ).execute()
+
+    total_post = db.table("postulantes").select("id", count="exact").limit(1).execute().count
+    total_insc = (
+        db.table("cohorte_inscripciones")
+        .select("id", count="exact")
+        .eq("cohorte_id", cid)
+        .limit(1)
+        .execute()
+        .count
+    )
+    total_eval = (
+        db.table("evaluacion_diagnostico").select("id", count="exact").limit(1).execute().count
+    )
+
+    print("=" * 68)
+    print(f"SYNC SUPABASE COMPLETADO · Cohorte {cohorte['codigo']} ({cid})")
+    print(f"PDFs totales escaneados    : {len(rutas_pdf)}")
+    print(f"Excluidos Test [id=Test]   : {excluidos_test}")
+    print(f"Reportes reales persistidos: {len(filas_upsert)}")
+    print(f"Altas nuevas creadas       : {len(nuevos_creados)} -> {nuevos_creados}")
+    print(f"Alumnos con Delta V1->V2   : {deltas_v1_v2}")
+    print(f"Alumnos con Delta T0->T1   : {deltas_t0_t1}")
+    print(f"Conteo final DB postulantes: {total_post}")
+    print(f"Conteo final DB inscripc.  : {total_insc}")
+    print(f"Conteo final DB evaluacion : {total_eval}")
+    print("=" * 68)
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="Sincroniza reportes PDF reales de Titán con Supabase."
+    )
+    parser.add_argument("--input-dir", default=DEFAULT_INPUT_DIR)
+    parser.add_argument("--dry-run", action="store_true")
+    args = parser.parse_args()
+    ejecutar_sync(args.input_dir, dry_run=args.dry_run)
 
 
 if __name__ == "__main__":
-    try:
-        main()
-    except Exception as exc:
-        print(f"ERROR: {exc}", file=sys.stderr)
-        detalle = str(exc).casefold()
-        if "row-level security" in detalle or "permission denied" in detalle:
-            print("La ingesta requiere SUPABASE_SERVICE_ROLE_KEY en .env.local.", file=sys.stderr)
-        elif "could not find" in detalle or "pgrst" in detalle:
-            print("Aplicá primero supabase/migrations/0005_gestion_empleo_sheets.sql "
-                  "y 0008_evaluacion_multi_intento.sql.", file=sys.stderr)
-        elif "23505" in detalle or "uq_postulante_archivo" in detalle:
-            print("Quedó más de una fila por (postulante_id, archivo_fuente): "
-                  "deduplicá antes de aplicar 0008.", file=sys.stderr)
-        sys.exit(1)
+    main()
