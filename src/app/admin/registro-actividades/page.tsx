@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { createClient } from '@/lib/supabase/server';
+import { obtenerPerfilUsuarioActual, puedeAccederRuta } from '@/lib/auth/permisos';
 import { obtenerEstadisticasGlobalesCentro } from '@/services/estadisticas-centro';
 import RackSimuladores from '@/components/admin/actividades/RackSimuladores';
 import TablaActividades from '@/components/admin/actividades/TablaActividades';
@@ -154,21 +155,27 @@ const SELECT_ACTIVIDADES =
 export default async function RegistroActividadesPage() {
   const supabase = await createClient();
 
-  const [respuestaSimuladores, respuestaActividades, estadisticas] =
-    await Promise.all([
-      supabase
-        .from('simuladores')
-        .select('*')
-        .order('nombre', { ascending: true })
-        .returns<FilaSimulador[]>(),
-      supabase
-        .from('actividades')
-        .select(SELECT_ACTIVIDADES)
-        .order('fecha_actividad', { ascending: false })
-        .limit(50)
-        .returns<FilaActividad[]>(),
-      obtenerEstadisticasGlobalesCentro(),
-    ]);
+  const [
+    respuestaSimuladores,
+    respuestaActividades,
+    estadisticas,
+    perfil,
+  ] = await Promise.all([
+    supabase
+      .from('simuladores')
+      .select('*')
+      .order('nombre', { ascending: true })
+      .returns<FilaSimulador[]>(),
+    supabase
+      .from('actividades')
+      .select(SELECT_ACTIVIDADES)
+      .order('fecha_actividad', { ascending: false })
+      .limit(50)
+      .returns<FilaActividad[]>(),
+    obtenerEstadisticasGlobalesCentro(),
+    obtenerPerfilUsuarioActual(),
+  ]);
+  const puedeVolverAdmin = perfil ? puedeAccederRuta(perfil.rol, '/admin') : true;
 
   // Fallos de lectura no bloquean la página: se renderiza vacío y el operador
   // puede reintentar con el botón REFRESCAR del toolbar.
@@ -208,7 +215,11 @@ export default async function RegistroActividadesPage() {
             /ADMIN/REGISTRO-ACTIVIDADES · RACK EN VIVO + HISTORIAL
           </p>
         </div>
-        <BotonVolver href="/admin" etiqueta="Volver al Panel" />
+        {puedeVolverAdmin ? (
+          <BotonVolver href="/admin" etiqueta="Volver al Panel" />
+        ) : (
+          <BotonVolver href="/cabina/evaluacion" etiqueta="Consola de Cabina" />
+        )}
       </header>
 
       {/* ── Rack SCADA en vivo ────────────────────────────────── */}

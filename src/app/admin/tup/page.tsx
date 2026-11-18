@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
+import { obtenerPerfilUsuarioActual, puedeAccederRuta } from '@/lib/auth/permisos';
 import PanelLogisticaTup from '@/components/admin/tup/PanelLogisticaTup';
 import BotonVolver from '@/components/ui/BotonVolver';
 import type { EstadoTrasladoTup, TrasladoTupItem } from '@/types/tup';
@@ -192,6 +193,9 @@ export default async function TupPage() {
     .map(mapearTraslado)
     .sort(ordenarCronologicamente);
 
+  const perfil = await obtenerPerfilUsuarioActual();
+  const puedeVolverAdmin = perfil ? puedeAccederRuta(perfil.rol, '/admin') : true;
+
   return (
     <div className="mx-auto w-full max-w-lg">
       {/* ── Cabecera de la página ───────────────────────────────── */}
@@ -208,7 +212,7 @@ export default async function TupPage() {
             PANEL TÁCTIL DE DESPACHO · CHOFERES TUP · HOY {hoyISO}
           </p>
         </div>
-        <BotonVolver href="/admin" etiqueta="Volver al Panel" />
+        {puedeVolverAdmin && <BotonVolver href="/admin" etiqueta="Volver al Panel" />}
       </header>
 
       <PanelLogisticaTup

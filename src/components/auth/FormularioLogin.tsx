@@ -3,6 +3,7 @@
 import { useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { resolverDestinoPostLoginAction } from '@/actions/rbac';
 
 const LABEL_CLASS =
   'mb-1.5 block font-mono text-[10px] uppercase tracking-[0.1em] text-zinc-500';
@@ -41,7 +42,8 @@ export default function FormularioLogin() {
         return;
       }
 
-      router.push('/admin');
+      const destino = await resolverDestinoPostLoginAction();
+      router.push(destino);
       router.refresh();
     } catch {
       setError('No se pudo iniciar la sesión. Verifique sus credenciales.');

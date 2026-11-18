@@ -18,6 +18,13 @@ import {
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import {
+  listarUsuariosConRolesParaSuperadmin,
+  obtenerPerfilUsuarioActual,
+  type PerfilUsuario,
+} from '@/lib/auth/permisos';
+import VisorNave3D from '@/components/gemelo/VisorNave3D';
+import PanelGestionRoles from '@/components/admin/PanelGestionRoles';
+import {
   esSimuladorSlug,
   mapearSimuladorDesdeDB,
   METADATA_BAHIAS,
@@ -401,38 +408,50 @@ export default async function AdminDashboardPage() {
   let visitasProximas: VisitaProximaResumen[] = [];
   let totalVisitasAgenda = 0;
   let insumosEnAlerta = 0;
+  let perfilActual: PerfilUsuario | null = null;
+  let usuariosRoles: PerfilUsuario[] = [];
 
   try {
     const supabase = await createClient();
 
-    const [respSimuladores, respCohortes, respVisitas, respStock] =
-      await Promise.all([
-        supabase
-          .from('simuladores')
-          .select(
-            'id, nombre, estado, horas_uso_totales, ultimo_mantenimiento, actualizado_el, actividad_actual_id'
-          )
-          .order('id', { ascending: true })
-          .returns<SimuladorRowDB[]>(),
-        supabase
-          .from('cohortes')
-          .select('*')
-          .order('created_at', { ascending: false })
-          .limit(25)
-          .returns<FilaCohorteRaw[]>(),
-        supabase
-          .from('visitas_educativas')
-          .select(SELECT_PROXIMAS_VISITAS, { count: 'exact' })
-          .gte('fecha_visita', hoyISO)
-          .neq('estado_visita', 'Cancelada')
-          .order('fecha_visita', { ascending: true })
-          .limit(5)
-          .returns<FilaVisitaProximaRaw[]>(),
-        supabase
-          .from('stock_insumos')
-          .select('id, codigo, cantidad_disponible, cantidad_minima_alerta')
-          .returns<FilaInsumoAlertaRaw[]>(),
-      ]);
+    const [
+      respSimuladores,
+      respCohortes,
+      respVisitas,
+      respStock,
+      perfilRes,
+      rolesRes,
+    ] = await Promise.all([
+      supabase
+        .from('simuladores')
+        .select(
+          'id, nombre, estado, horas_uso_totales, ultimo_mantenimiento, actualizado_el, actividad_actual_id'
+        )
+        .order('id', { ascending: true })
+        .returns<SimuladorRowDB[]>(),
+      supabase
+        .from('cohortes')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(25)
+        .returns<FilaCohorteRaw[]>(),
+      supabase
+        .from('visitas_educativas')
+        .select(SELECT_PROXIMAS_VISITAS, { count: 'exact' })
+        .gte('fecha_visita', hoyISO)
+        .neq('estado_visita', 'Cancelada')
+        .order('fecha_visita', { ascending: true })
+        .limit(5)
+        .returns<FilaVisitaProximaRaw[]>(),
+      supabase
+        .from('stock_insumos')
+        .select('id, codigo, cantidad_disponible, cantidad_minima_alerta')
+        .returns<FilaInsumoAlertaRaw[]>(),
+      obtenerPerfilUsuarioActual(),
+      listarUsuariosConRolesParaSuperadmin(),
+    ]);
+    perfilActual = perfilRes;
+    usuariosRoles = rolesRes;
 
     if (respSimuladores.error) {
       errorSimuladores = true;
@@ -1026,6 +1045,50 @@ export default async function AdminDashboardPage() {
           )}
         </section>
       </div>
+
+      {/* ── Gemelo Digital 3D en Vivo (Nave de Simuladores) ───────────── */}
+      <section
+        aria-label="Gemelo Digital 3D en Vivo"
+        className={`${PANEL_CLASS} overflow-hidden`}
+      >
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-zinc-800 px-4 py-3">
+          <div>
+            <h2 className="font-mono text-xs font-semibold uppercase tracking-[0.14em] text-zinc-100">
+              GEMELO DIGITAL 3D EN VIVO · GALPÓN DE SIMULADORES
+            </h2>
+            <p className="mt-0.5 font-mono text-[10px] tracking-[0.1em] text-zinc-500">
+              SUPERVISIÓN VISUAL EN TIEMPO REAL DE LAS 7 BAHÍAS Y TELEMETRÍA
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <Link
+              href="/admin/registro-actividades"
+              className="inline-flex items-center gap-1 rounded-sm border border-emerald-500/50 bg-emerald-950/35 px-3 py-1.5 font-mono text-[10px] font-semibold tracking-[0.1em] text-emerald-300 transition-colors hover:bg-emerald-500/20"
+            >
+              BITÁCORA EXPRÉS / RACK SCADA
+              <ArrowUpRight size={12} aria-hidden />
+            </Link>
+            <Link
+              href="/cabina/evaluacion"
+              className="inline-flex items-center gap-1 rounded-sm border border-zinc-700 bg-zinc-900 px-3 py-1.5 font-mono text-[10px] tracking-[0.1em] text-zinc-300 transition-colors hover:border-zinc-500 hover:text-white"
+            >
+              CONSOLA CABINA
+              <ArrowUpRight size={12} aria-hidden />
+            </Link>
+          </div>
+        </div>
+        <div className="h-[460px] w-full bg-zinc-950">
+          <VisorNave3D simuladoresIniciales={bahiasMostradas} />
+        </div>
+      </section>
+
+      {/* ── Gestión Rápida de Roles (exclusivo SUPERADMIN) ───────────── */}
+      {perfilActual?.rol === 'superadmin' && (
+        <PanelGestionRoles
+          usuariosIniciales={usuariosRoles}
+          usuarioActualId={perfilActual.id}
+        />
+      )}
     </div>
   );
 }

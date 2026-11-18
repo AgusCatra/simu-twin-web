@@ -51,6 +51,7 @@ capturas/
 
 # cloudflare / opennext
 .open-next/
+.wrangler/
 .dev.vars*
 temp_tunnel.log
 

@@ -1,16 +1,14 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
+import {
+  normalizarRolSistema,
+  obtenerRutaInicialPorRol,
+  puedeAccederRuta,
+} from '@/lib/auth/matriz-permisos';
 
 /**
- * Refresca/protege la sesión solo en las rutas que de verdad la necesitan.
- * - /admin/*, /cabina/* y /login: validación dura contra el servidor (getUser, round-trip de red).
- * - /visitas (pública dentro del matcher): solo lectura de cookie (getSession), sin red.
- *
- * Robustez: si faltan las variables de entorno en el borde, NO se lanza Error
- * (evita un 500 en todo el sitio). Las rutas públicas pasan con next(); /admin/*
- * y /cabina/* se redirigen de forma controlada a /login. La validación dura de
- * env vive en lib/supabase/client.ts y server.ts, que sí lanzan un Error claro
- * en español.
+ * Refresca/protege la sesión solo en las rutas que de verdad la necesitan y
+ * aplica control RBAC por rol de `public.perfiles_usuarios`.
  */
 async function updateSession(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -74,11 +72,41 @@ async function updateSession(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  if (user && esRutaLogin) {
-    const adminUrl = request.nextUrl.clone();
-    adminUrl.pathname = '/admin';
-    adminUrl.search = '';
-    return NextResponse.redirect(adminUrl);
+  if (user && esRutaProtegida) {
+    const { data: filaPerfil } = await supabase
+      .from('perfiles_usuarios')
+      .select('rol')
+      .eq('id', user.id)
+      .maybeSingle<{ rol: string | null }>();
+
+    // Fail-Safe: usuario autenticado sin fila en perfiles_usuarios se trata como superadmin.
+    const rol = normalizarRolSistema(filaPerfil?.rol);
+    const rutaInicial = obtenerRutaInicialPorRol(rol);
+
+    if (esRutaLogin) {
+      const targetUrl = request.nextUrl.clone();
+      targetUrl.pathname = rutaInicial;
+      targetUrl.search = '';
+      const redirectRes = NextResponse.redirect(targetUrl);
+      supabaseResponse.cookies.getAll().forEach((c) => {
+        redirectRes.cookies.set(c.name, c.value, c);
+      });
+      return redirectRes;
+    }
+
+    if (
+      (esRutaAdmin || esRutaCabina || esRutaGestion) &&
+      !puedeAccederRuta(rol, pathname)
+    ) {
+      const fallbackUrl = request.nextUrl.clone();
+      fallbackUrl.pathname = rutaInicial;
+      fallbackUrl.search = '';
+      const redirectRes = NextResponse.redirect(fallbackUrl);
+      supabaseResponse.cookies.getAll().forEach((c) => {
+        redirectRes.cookies.set(c.name, c.value, c);
+      });
+      return redirectRes;
+    }
   }
 
   return supabaseResponse;

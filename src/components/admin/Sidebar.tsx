@@ -7,12 +7,19 @@ import {
   BookOpen,
   ClipboardList,
   ExternalLink,
+  Gauge,
   Package,
   Server,
+  ShieldCheck,
   Truck,
   UsersRound,
   type LucideIcon,
 } from 'lucide-react';
+import {
+  ETIQUETA_ROL,
+  puedeAccederRuta,
+  type RolSistema,
+} from '@/lib/auth/matriz-permisos';
 
 export interface RutaAdmin {
   href: string;
@@ -21,8 +28,8 @@ export interface RutaAdmin {
 }
 
 /**
- * Mapa de navegación único del panel. Se comparte con el Topbar para
- * resolver el breadcrumb de la sección activa sin duplicar definiciones.
+ * Mapa de navegación único del panel. Se comparte con el Topbar y se filtra
+ * según el rol RBAC activo en sesión.
  */
 export const RUTAS_ADMIN: readonly RutaAdmin[] = [
   { href: '/admin', label: 'Dashboard (En vivo)', icono: Activity },
@@ -31,7 +38,12 @@ export const RUTAS_ADMIN: readonly RutaAdmin[] = [
   { href: '/admin/tup', label: 'Logística TUP', icono: Truck },
   { href: '/admin/insumos', label: 'Stock e Insumos', icono: Package },
   { href: '/gestion/cohortes', label: 'Cohortes y Cabina (Empleo)', icono: UsersRound },
+  { href: '/cabina/evaluacion', label: 'Consola de Cabina', icono: Gauge },
 ];
+
+export function obtenerRutasVisiblesPorRol(rol: RolSistema): RutaAdmin[] {
+  return RUTAS_ADMIN.filter((ruta) => puedeAccederRuta(rol, ruta.href));
+}
 
 /** Determina si una ruta del menú corresponde al pathname actual. */
 export function esRutaActiva(pathname: string, href: string): boolean {
@@ -51,8 +63,11 @@ const ENLACE_BASE =
 const ENLACE_ACTIVO = 'bg-zinc-800 text-white';
 const ENLACE_INACTIVO = 'text-zinc-400 hover:bg-zinc-900 hover:text-white';
 
-export default function Sidebar() {
+export default function Sidebar({ rol = 'superadmin' }: { rol?: RolSistema }) {
   const pathname = usePathname();
+  if (rol === 'chofer_tup') return null;
+
+  const rutasVisibles = obtenerRutasVisiblesPorRol(rol);
 
   return (
     <aside className="hidden w-64 shrink-0 flex-col border-r border-zinc-800 bg-zinc-950 lg:sticky lg:top-0 lg:flex lg:h-screen">
@@ -73,12 +88,19 @@ export default function Sidebar() {
         </div>
       </div>
 
+      <div className="border-b border-zinc-800/80 px-4 py-2">
+        <span className="inline-flex items-center gap-1.5 rounded-sm border border-sky-500/40 bg-sky-950/35 px-2 py-0.5 font-mono text-[9.5px] font-semibold tracking-[0.12em] text-sky-200">
+          <ShieldCheck size={11} aria-hidden />
+          ROL: {ETIQUETA_ROL[rol]}
+        </span>
+      </div>
+
       <nav aria-label="Secciones del panel" className="flex-1 overflow-y-auto py-3">
         <p className="px-4 pb-2 font-mono text-[10px] tracking-[0.18em] text-zinc-600">
           OPERACIONES
         </p>
         <ul className="space-y-0.5 px-2">
-          {RUTAS_ADMIN.map((ruta) => {
+          {rutasVisibles.map((ruta) => {
             const activa = esRutaActiva(pathname, ruta.href);
             const Icono = ruta.icono;
             return (

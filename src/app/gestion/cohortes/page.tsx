@@ -1,10 +1,12 @@
 import { redirect } from 'next/navigation';
 import { AlertTriangle, CalendarCheck2 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
+import { obtenerPerfilUsuarioActual, puedeAccederRuta } from '@/lib/auth/permisos';
 import {
   listarCohortesDisponibles,
   obtenerDatosCohorteActiva,
 } from '@/services/empleo';
+import BadgeRolYSesion from '@/components/auth/BadgeRolYSesion';
 import CabeceraConfiguracion from '@/components/empleo/CabeceraConfiguracion';
 import ParrillaCabina from '@/components/empleo/ParrillaCabina';
 import BotonExportarCronograma from '@/components/empleo/BotonExportarCronograma';
@@ -128,10 +130,12 @@ export default async function GestionCohortesPage({
     : (rawCohorteId ?? null);
 
   const [
+    perfil,
     cohortesDisponibles,
     datos,
     { data: filasFeriados, error: errFeriados },
   ] = await Promise.all([
+    obtenerPerfilUsuarioActual(),
     listarCohortesDisponibles(),
     obtenerDatosCohorteActiva(cohorteIdSolicitada),
     supabase
@@ -140,6 +144,10 @@ export default async function GestionCohortesPage({
       .order('fecha', { ascending: true })
       .returns<FilaFeriadoMunicipalRaw[]>(),
   ]);
+
+  const rol = perfil?.rol ?? 'empleo';
+  const puedeAdmin = puedeAccederRuta(rol, '/admin');
+  const puedeCabina = puedeAccederRuta(rol, '/cabina/evaluacion');
 
   const cohorteActivaRealCodigo =
     cohortesDisponibles.find((c) => c.estado === 'activa')?.codigo ?? null;
@@ -242,7 +250,11 @@ export default async function GestionCohortesPage({
             </h1>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <BotonVolver href="/admin" etiqueta="Volver al Panel" />
+            {puedeAdmin && <BotonVolver href="/admin" etiqueta="Volver al Panel" />}
+            {!puedeAdmin && puedeCabina && (
+              <BotonVolver href="/cabina/evaluacion" etiqueta="Consola Cabina" />
+            )}
+            <BadgeRolYSesion rol={rol} usuarioEmail={perfil?.email ?? user.email} />
             <SelectorCohorte
               cohortes={cohortesDisponibles}
               cohorteSeleccionadaId={datos?.cohorte.id ?? null}

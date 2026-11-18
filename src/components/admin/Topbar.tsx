@@ -3,8 +3,13 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { ChevronRight, LogOut } from 'lucide-react';
-import { RUTAS_ADMIN, esRutaActiva, obtenerRutaActiva } from '@/components/admin/Sidebar';
+import { ChevronRight, LogOut, ShieldCheck } from 'lucide-react';
+import {
+  esRutaActiva,
+  obtenerRutaActiva,
+  obtenerRutasVisiblesPorRol,
+} from '@/components/admin/Sidebar';
+import { ETIQUETA_ROL, type RolSistema } from '@/lib/auth/matriz-permisos';
 import { createClient } from '@/lib/supabase/client';
 
 function capitalizar(texto: string): string {
@@ -53,11 +58,19 @@ const ENLACE_MOVIL_BASE =
 const ENLACE_MOVIL_ACTIVO = 'bg-zinc-800 text-white';
 const ENLACE_MOVIL_INACTIVO = 'text-zinc-500 hover:bg-zinc-900 hover:text-white';
 
-export default function Topbar() {
+export default function Topbar({
+  rol = 'superadmin',
+  usuarioEmail,
+}: {
+  rol?: RolSistema;
+  usuarioEmail?: string | null;
+}) {
   const pathname = usePathname();
   const router = useRouter();
   const seccion = obtenerRutaActiva(pathname)?.label ?? 'Panel';
   const [cerrandoSesion, setCerrandoSesion] = useState(false);
+  const rutasVisibles = obtenerRutasVisiblesPorRol(rol);
+  const modoLimpioChofer = rol === 'chofer_tup';
 
   async function cerrarSesion() {
     if (cerrandoSesion) return;
@@ -76,7 +89,7 @@ export default function Topbar() {
       <div className="flex h-14 items-center justify-between gap-4 px-4 sm:px-6">
         <nav aria-label="Ubicación actual" className="min-w-0">
           <ol className="flex items-center gap-2 font-mono text-[11px] tracking-[0.12em] text-zinc-500">
-            <li className="shrink-0">ADMIN</li>
+            <li className="shrink-0">{modoLimpioChofer ? 'TUP' : 'ADMIN'}</li>
             <li aria-hidden className="shrink-0">
               <ChevronRight size={12} strokeWidth={2} />
             </li>
@@ -84,48 +97,59 @@ export default function Topbar() {
           </ol>
         </nav>
 
-        <div className="flex shrink-0 items-center gap-3">
-          <RelojEnVivo />
-          <span className="hidden items-center gap-2 rounded-sm border border-zinc-800 bg-zinc-900 px-2.5 py-1 font-mono text-[10px] tracking-[0.12em] text-zinc-300 sm:flex">
-            <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-            SISTEMA OPERATIVO
+        <div className="flex shrink-0 items-center gap-2.5 sm:gap-3">
+          {!modoLimpioChofer && <RelojEnVivo />}
+          <span
+            title={usuarioEmail ?? undefined}
+            className="inline-flex items-center gap-1.5 rounded-sm border border-sky-500/40 bg-sky-950/35 px-2.5 py-1 font-mono text-[10px] font-semibold tracking-[0.12em] text-sky-200"
+          >
+            <ShieldCheck size={11} aria-hidden />
+            {ETIQUETA_ROL[rol]}
           </span>
+          {!modoLimpioChofer && (
+            <span className="hidden items-center gap-2 rounded-sm border border-zinc-800 bg-zinc-900 px-2.5 py-1 font-mono text-[10px] tracking-[0.12em] text-zinc-300 sm:flex">
+              <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+              SISTEMA OPERATIVO
+            </span>
+          )}
           <button
             type="button"
             onClick={() => void cerrarSesion()}
             disabled={cerrandoSesion}
             aria-label="Cerrar sesión"
             title="Cerrar sesión"
-            className="flex shrink-0 items-center gap-1.5 rounded-sm border border-zinc-800 px-2 py-1 font-mono text-[10px] tracking-[0.12em] text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-zinc-100 disabled:cursor-not-allowed disabled:opacity-60 sm:px-2.5"
+            className="flex shrink-0 items-center gap-1.5 rounded-sm border border-zinc-800 px-2.5 py-1.5 font-mono text-[10px] tracking-[0.12em] text-zinc-300 transition-colors hover:bg-zinc-800 hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
           >
             <LogOut size={12} strokeWidth={2} aria-hidden />
-            <span className="hidden sm:inline">
+            <span className={modoLimpioChofer ? 'inline' : 'hidden sm:inline'}>
               {cerrandoSesion ? 'CERRANDO…' : 'CERRAR SESIÓN'}
             </span>
           </button>
         </div>
       </div>
 
-      <nav
-        aria-label="Secciones del panel"
-        className="flex gap-1 overflow-x-auto border-t border-zinc-800 px-2 py-1.5 lg:hidden"
-      >
-        {RUTAS_ADMIN.map((ruta) => {
-          const activa = esRutaActiva(pathname, ruta.href);
-          const Icono = ruta.icono;
-          return (
-            <Link
-              key={ruta.href}
-              href={ruta.href}
-              aria-current={activa ? 'page' : undefined}
-              className={`${ENLACE_MOVIL_BASE} ${activa ? ENLACE_MOVIL_ACTIVO : ENLACE_MOVIL_INACTIVO}`}
-            >
-              <Icono size={13} strokeWidth={1.75} />
-              <span className="whitespace-nowrap">{ruta.label.toUpperCase()}</span>
-            </Link>
-          );
-        })}
-      </nav>
+      {!modoLimpioChofer && (
+        <nav
+          aria-label="Secciones del panel"
+          className="flex gap-1 overflow-x-auto border-t border-zinc-800 px-2 py-1.5 lg:hidden"
+        >
+          {rutasVisibles.map((ruta) => {
+            const activa = esRutaActiva(pathname, ruta.href);
+            const Icono = ruta.icono;
+            return (
+              <Link
+                key={ruta.href}
+                href={ruta.href}
+                aria-current={activa ? 'page' : undefined}
+                className={`${ENLACE_MOVIL_BASE} ${activa ? ENLACE_MOVIL_ACTIVO : ENLACE_MOVIL_INACTIVO}`}
+              >
+                <Icono size={13} strokeWidth={1.75} />
+                <span className="whitespace-nowrap">{ruta.label.toUpperCase()}</span>
+              </Link>
+            );
+          })}
+        </nav>
+      )}
     </header>
   );
 }

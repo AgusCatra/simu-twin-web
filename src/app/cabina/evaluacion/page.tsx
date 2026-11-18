@@ -1,9 +1,11 @@
 import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
+import { obtenerPerfilUsuarioActual, puedeAccederRuta } from '@/lib/auth/permisos';
 import { obtenerAlumnosTurno } from '@/services/cabina';
 import ConsolaTactil from '@/components/cabina/ConsolaTactil';
 import BotonVolver from '@/components/ui/BotonVolver';
+import BadgeRolYSesion from '@/components/auth/BadgeRolYSesion';
 
 /**
  * /cabina/evaluacion — Consola Viva de Cabina (tablet táctil del instructor).
@@ -29,7 +31,12 @@ export default async function CabinaEvaluacionPage() {
     redirect('/login');
   }
 
-  const alumnos = await obtenerAlumnosTurno();
+  const [alumnos, perfil] = await Promise.all([
+    obtenerAlumnosTurno(),
+    obtenerPerfilUsuarioActual(),
+  ]);
+  const rol = perfil?.rol ?? 'instructor';
+  const puedeAdmin = puedeAccederRuta(rol, '/admin');
   const instructorDefault = user.email ?? '';
 
   return (
@@ -39,8 +46,15 @@ export default async function CabinaEvaluacionPage() {
         className="border-b border-zinc-800/80 bg-zinc-950/95 px-4 py-2.5"
       >
         <div className="mx-auto flex w-full max-w-3xl flex-wrap items-center justify-between gap-2">
-          <BotonVolver href="/admin" etiqueta="Volver al Panel" />
-          <BotonVolver href="/gestion/cohortes" etiqueta="Cohortes" />
+          <div className="flex flex-wrap items-center gap-2">
+            {puedeAdmin ? (
+              <BotonVolver href="/admin" etiqueta="Volver al Panel" />
+            ) : (
+              <BotonVolver href="/admin/registro-actividades" etiqueta="Actividades / Rack" />
+            )}
+            <BotonVolver href="/gestion/cohortes" etiqueta="Cohortes" />
+          </div>
+          <BadgeRolYSesion rol={rol} usuarioEmail={perfil?.email ?? user.email} />
         </div>
       </nav>
 
