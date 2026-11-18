@@ -5,7 +5,14 @@
  */
 
 import type { InformeEmpleoIA } from '@/lib/ia/generador-informe';
-import type { MetricasSimulador } from '@/lib/telemetria/parser-simulador';
+import type { MetricasSimulador, PerfilOperador } from '@/lib/telemetria/parser-simulador';
+import type {
+  EstadoEgreso,
+  FranjaCursado,
+  GrupoCursado,
+  PerfilLaboral,
+  RolSesion,
+} from './cohorte-v2';
 
 export type TurnoFranja = 'Mañana' | 'Tarde';
 
@@ -17,6 +24,26 @@ export type TipoMaquinariaCohorte =
   | 'AUTOELEVADOR'
   | 'PALA_FRONTAL'
   | 'RETROEXCAVADORA';
+
+export interface ConfiguracionCursadoCohorte {
+  modalidad: 'DUPLAS';
+  dias_grupo_a: number[];
+  dias_grupo_b: number[];
+  franjas_activas: string[];
+  sesiones_objetivo: number;
+}
+
+export type EstadoAsistenciaUI =
+  | 'PENDIENTE'
+  | 'PRESENTE'
+  | 'AUSENTE_JUSTIFICADO'
+  | 'AUSENTE_INJUSTIFICADO'
+  | 'REPROGRAMADA';
+
+export type ResultadoPracticaReal =
+  | 'aprobado'
+  | 'requiere_refuerzo'
+  | 'no_apto';
 
 export interface CohorteResumen {
   id: string;
@@ -40,6 +67,7 @@ export interface CohorteActiva {
   fecha_pase_planta: string | null;
   cant_dias_sim: number;
   max_titulares: number;
+  configuracion_cursado: ConfiguracionCursadoCohorte;
 }
 
 export interface FranjaCabina {
@@ -102,6 +130,9 @@ export interface FichaEvaluacion {
   telemetria_archivo_nombre: string | null;
   telemetria_metricas: MetricasSimulador | null;
   informe_ia: InformeEmpleoIA | null;
+  perfil_operador?: PerfilOperador | null;
+  horas_recomendadas?: number | null;
+  modulos_recomendados?: string[] | null;
 }
 
 export interface PostulanteFila {
@@ -119,17 +150,79 @@ export interface PostulanteFila {
   evaluacion: FichaEvaluacion | null;
 }
 
+export interface DuplaPersistidaItem {
+  id: string;
+  cohorte_id: string;
+  grupo: GrupoCursado;
+  franja: FranjaCursado;
+  horario_label: string;
+  alumno_1_id: string;
+  alumno_2_id: string;
+  activo: boolean;
+}
+
+export interface SesionPracticaItem {
+  id: string;
+  cohorte_id: string;
+  dupla_id: string;
+  alumno_id: string;
+  numero_sesion: number;
+  fecha_programada: string;
+  fecha_real: string | null;
+  es_recuperatorio_viernes: boolean;
+  estado_asistencia: EstadoAsistenciaUI;
+  rol_inicio: RolSesion;
+  minutos_operacion: number;
+  minutos_observacion: number;
+  observaciones_instructor: string | null;
+}
+
+export interface PracticaRealItem {
+  id: string;
+  fecha_practica: string;
+  lugar_predio: string | null;
+  maquina_utilizada: string | null;
+  instructor_patio: string | null;
+  resultado: ResultadoPracticaReal;
+  observaciones_terreno: string | null;
+  pdf_reporte_path: string | null;
+  pdf_url_firmada: string | null;
+}
+
+export interface EvaluacionFinalEgresoItem {
+  id: string;
+  cohorte_id: string;
+  postulante_id: string;
+  estado_egreso: EstadoEgreso;
+  paso_a_terreno_aprobado: boolean | null;
+  recomendacion_laboral: PerfilLaboral;
+  observaciones_egreso: string | null;
+  sesiones_asistidas: number;
+  horas_practica_completadas: number;
+  fecha_evaluacion: string | null;
+}
+
+export interface Legajo360Postulante {
+  sesiones: SesionPracticaItem[];
+  viernesSugeridos: string[];
+  practicaReal: PracticaRealItem | null;
+  egreso: EvaluacionFinalEgresoItem | null;
+}
+
 export interface DatosCohorteActiva {
   cohorte: CohorteActiva;
   franjas: FranjaCabina[];
   postulantes: PostulanteFila[];
   totalConfirmados: number;
+  duplasPersistidas: DuplaPersistidaItem[];
+  sesionesPractica: SesionPracticaItem[];
 }
 
 export interface ConfiguracionCohorteInput {
   /** YYYY-MM-DD. */
   fecha_teoria: string;
   max_titulares: number;
+  configuracion_cursado?: ConfiguracionCursadoCohorte;
 }
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -225,6 +318,34 @@ export interface CrearCohorteInput {
   cupo_alumnos: number;
   max_titulares: number;
   activar_inmediatamente?: boolean;
+  configuracion_cursado?: ConfiguracionCursadoCohorte;
+}
+
+export interface SincronizarDuplasInput {
+  cohorte_id: string;
+  asignaciones: Array<{
+    grupo: GrupoCursado;
+    franja: FranjaCursado;
+    alumno_1_id: string;
+    alumno_2_id: string;
+  }>;
+}
+
+export interface ActualizarAsistenciaSesionInput {
+  sesion_id: string;
+  cohorte_id: string;
+  estado_asistencia: EstadoAsistenciaUI;
+  fecha_reprogramacion?: string | null;
+  observaciones_instructor?: string | null;
+}
+
+export interface GuardarEgresoLegajoInput {
+  cohorte_id: string;
+  postulante_id: string;
+  estado_egreso: EstadoEgreso;
+  paso_a_terreno_aprobado: boolean | null;
+  recomendacion_laboral: PerfilLaboral;
+  observaciones_egreso?: string | null;
 }
 
 export interface CrearPostulanteInput {
@@ -256,4 +377,21 @@ export type ResultadoCrearPostulante =
 
 export type ResultadoAnalisisIA =
   | { ok: true; informe: InformeEmpleoIA; persistido: boolean }
+  | { ok: false; error: string };
+
+export type ResultadoSincronizarDuplas =
+  | {
+      ok: true;
+      duplasGuardadas: number;
+      sesionesGeneradas: number;
+      advertencia?: string;
+    }
+  | { ok: false; error: string };
+
+export type ResultadoPracticaRealAccion =
+  | { ok: true; practicaReal: PracticaRealItem }
+  | { ok: false; error: string };
+
+export type ResultadoEgresoAccion =
+  | { ok: true; egreso: EvaluacionFinalEgresoItem }
   | { ok: false; error: string };

@@ -31,13 +31,14 @@ body {
    window.print(). La botonera marca el panel interactivo con
    .print-ocultar para excluirlo de la impresión.
    ══════════════════════════════════════════════════════════════ */
-.hoja-cronograma {
+.hoja-cronograma,
+.hoja-legajo-360 {
   display: none;
 }
 
 @media print {
   @page {
-    margin: 16mm;
+    margin: 14mm;
   }
 
   html,
@@ -52,18 +53,85 @@ body {
     max-width: none !important;
   }
 
-  /* Oculta todo el panel (cabecera, botonera, config, parrilla, tabla,
-     drawers). Solo permanece la hoja membretada del cronograma. */
-  .print-ocultar {
+  /* Oculta todo el panel, drawers y modales en portal. */
+  .print-ocultar,
+  [role="dialog"] {
     display: none !important;
   }
 
-  .hoja-cronograma {
+  body[data-print-mode="legajo"] .hoja-cronograma {
+    display: none !important;
+  }
+
+  body:not([data-print-mode="legajo"]) .hoja-legajo-360 {
+    display: none !important;
+  }
+
+  body:not([data-print-mode="legajo"]) .hoja-cronograma {
     display: block !important;
     color: #000;
     font-family: Georgia, "Times New Roman", serif;
     font-size: 12pt;
     line-height: 1.45;
+  }
+
+  body[data-print-mode="legajo"] .hoja-legajo-360 {
+    display: block !important;
+    color: #000;
+    font-family: "Segoe UI", Arial, Helvetica, sans-serif;
+    font-size: 9.5pt;
+    line-height: 1.38;
+  }
+
+  .l360-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+    border-bottom: 2px solid #000;
+    padding-bottom: 8px;
+    margin-bottom: 10px;
+  }
+
+  .l360-grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .l360-box {
+    border: 1px solid #bbb;
+    padding: 7px 9px;
+    margin-bottom: 8px;
+    break-inside: avoid;
+  }
+
+  .l360-box-title {
+    font-size: 8.5pt;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    border-bottom: 1px solid #ddd;
+    padding-bottom: 2px;
+    margin: 0 0 5px;
+  }
+
+  .l360-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 8.5pt;
+  }
+
+  .l360-table th,
+  .l360-table td {
+    border: 1px solid #ccc;
+    padding: 3px 5px;
+    text-align: left;
+  }
+
+  .l360-table th {
+    background: #f3f4f6;
+    font-weight: 700;
   }
 
   .hc-membrete {

@@ -2,15 +2,28 @@
 
 import { useEffect, useMemo, useState, useTransition, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
-import { CalendarDays, Layers, Users, X } from 'lucide-react';
+import { CalendarDays, Layers, SlidersHorizontal, Users, X } from 'lucide-react';
 import { crearCohorteAction } from '@/services/empleo';
 import {
-  calcularEstructuraGruposYDuplas,
+  calcularEstructuraGruposYDuplasDinamica,
+  CONFIGURACION_CURSADO_DEFECTO,
+  formatearDiasGrupoCorto,
+  FRANJAS_ESTANDAR_LABELS,
   obtenerProximoLunesPosterior,
   proyectarCalendarioCohorteV2,
-  TOTAL_SESIONES_CICLO,
 } from '@/lib/calendario-duplas';
-import type { TipoMaquinariaCohorte } from '@/types/empleo';
+import type {
+  ConfiguracionCursadoCohorte,
+  TipoMaquinariaCohorte,
+} from '@/types/empleo';
+
+const DIAS_HABILES_NC: readonly { num: number; corto: string }[] = [
+  { num: 1, corto: 'LUN' },
+  { num: 2, corto: 'MAR' },
+  { num: 3, corto: 'MIÉ' },
+  { num: 4, corto: 'JUE' },
+  { num: 5, corto: 'VIE' },
+];
 
 /**
  * Modal accesible de alta de cohorte en /gestion/cohortes.
@@ -69,6 +82,11 @@ export default function ModalNuevaCohorte({
   const [fechaTeoria, setFechaTeoria] = useState(() => obtenerFechaSugerida());
   const [cupoAlumnos, setCupoAlumnos] = useState(16);
   const [maxTitulares, setMaxTitulares] = useState(16);
+  const [diasGrupoA, setDiasGrupoA] = useState<number[]>(CONFIGURACION_CURSADO_DEFECTO.dias_grupo_a);
+  const [diasGrupoB, setDiasGrupoB] = useState<number[]>(CONFIGURACION_CURSADO_DEFECTO.dias_grupo_b);
+  const [franjasActivas, setFranjasActivas] = useState<string[]>([...FRANJAS_ESTANDAR_LABELS]);
+  const [sesionesObjetivo, setSesionesObjetivo] = useState<number>(6);
+  const [mostrarCursadoDinamico, setMostrarCursadoDinamico] = useState(false);
   const [activarInmediatamente, setActivarInmediatamente] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [pendiente, startTransition] = useTransition();
@@ -85,9 +103,21 @@ export default function ModalNuevaCohorte({
     return () => document.removeEventListener('keydown', manejarEscape);
   }, [abierto, pendiente, onCerrar]);
 
+  const configCursado: ConfiguracionCursadoCohorte = useMemo(
+    () => ({
+      modalidad: 'DUPLAS',
+      dias_grupo_a: diasGrupoA.length > 0 ? diasGrupoA : [1, 3],
+      dias_grupo_b: diasGrupoB,
+      franjas_activas:
+        franjasActivas.length > 0 ? franjasActivas : [...FRANJAS_ESTANDAR_LABELS],
+      sesiones_objetivo: Math.min(24, Math.max(2, sesionesObjetivo || 6)),
+    }),
+    [diasGrupoA, diasGrupoB, franjasActivas, sesionesObjetivo]
+  );
+
   const estructuraDuplas = useMemo(
-    () => calcularEstructuraGruposYDuplas(cupoAlumnos),
-    [cupoAlumnos]
+    () => calcularEstructuraGruposYDuplasDinamica(cupoAlumnos, configCursado),
+    [cupoAlumnos, configCursado]
   );
 
   const proyeccion = useMemo(() => {
@@ -99,11 +129,12 @@ export default function ModalNuevaCohorte({
         fechaInicioSimulador: inicioSim,
         diasBloqueados: feriadosMunicipales,
         estrategiaFeriados: 'MOVER_A_VIERNES',
+        configuracionCursado: configCursado,
       });
     } catch {
       return null;
     }
-  }, [fechaTeoria, feriadosMunicipales]);
+  }, [fechaTeoria, feriadosMunicipales, configCursado]);
 
   if (!abierto) return null;
 
@@ -142,6 +173,7 @@ export default function ModalNuevaCohorte({
         cupo_alumnos: cupoAlumnos,
         max_titulares: maxTitulares,
         activar_inmediatamente: activarInmediatamente,
+        configuracion_cursado: configCursado,
       });
 
       if (!res.ok) {
@@ -337,15 +369,158 @@ export default function ModalNuevaCohorte({
               </div>
             </div>
 
-            {/* ── Vista automática Grupos A/B y Duplas 1..8 ───────── */}
+            {/* ── Ajuste de días, franjas y sesiones ───────────── */}
+            <div className="mt-3 border-t border-zinc-800 pt-2.5">
+              <button
+                type="button"
+                onClick={() => setMostrarCursadoDinamico((v) => !v)}
+                className="inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.12em] text-zinc-400 hover:text-white"
+              >
+                <SlidersHorizontal size={12} aria-hidden />
+                {mostrarCursadoDinamico
+                  ? 'Ocultar configuración de días y franjas'
+                  : `Personalizar días (${formatearDiasGrupoCorto(configCursado.dias_grupo_a)} / ${configCursado.dias_grupo_b.length > 0 ? formatearDiasGrupoCorto(configCursado.dias_grupo_b) : 'Sin B'}), franjas (${configCursado.franjas_activas.length}) y sesiones (${configCursado.sesiones_objetivo})`}
+              </button>
+
+              {mostrarCursadoDinamico && (
+                <div className="mt-2.5 grid gap-2.5 rounded-sm border border-zinc-800 bg-zinc-900/50 p-2.5 sm:grid-cols-3">
+                  <div>
+                    <p className="font-mono text-[9.5px] uppercase tracking-[0.12em] text-emerald-400">
+                      Grupo A
+                    </p>
+                    <div className="mt-1 flex flex-wrap gap-1">
+                      {DIAS_HABILES_NC.map((d) => {
+                        const on = diasGrupoA.includes(d.num);
+                        return (
+                          <button
+                            key={`nc-ga-${d.num}`}
+                            type="button"
+                            onClick={() =>
+                              setDiasGrupoA((prev) =>
+                                prev.includes(d.num)
+                                  ? prev.length > 1
+                                    ? prev.filter((x) => x !== d.num)
+                                    : prev
+                                  : [...prev, d.num].sort((a, b) => a - b)
+                              )
+                            }
+                            className={`h-7 rounded-sm border px-2 font-mono text-[10px] ${
+                              on
+                                ? 'border-emerald-500 bg-emerald-500/20 text-emerald-200'
+                                : 'border-zinc-700 bg-zinc-950 text-zinc-500'
+                            }`}
+                          >
+                            {d.corto}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="flex items-center justify-between">
+                      <p className="font-mono text-[9.5px] uppercase tracking-[0.12em] text-cyan-400">
+                        Grupo B
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setDiasGrupoB((prev) => (prev.length === 0 ? [2, 4] : []))
+                        }
+                        className="font-mono text-[9px] text-zinc-400 underline"
+                      >
+                        {diasGrupoB.length === 0 ? 'Activar' : 'Desactivar'}
+                      </button>
+                    </div>
+                    <div className="mt-1 flex flex-wrap gap-1">
+                      {DIAS_HABILES_NC.map((d) => {
+                        const on = diasGrupoB.includes(d.num);
+                        return (
+                          <button
+                            key={`nc-gb-${d.num}`}
+                            type="button"
+                            onClick={() =>
+                              setDiasGrupoB((prev) =>
+                                prev.includes(d.num)
+                                  ? prev.filter((x) => x !== d.num)
+                                  : [...prev, d.num].sort((a, b) => a - b)
+                              )
+                            }
+                            className={`h-7 rounded-sm border px-2 font-mono text-[10px] ${
+                              on
+                                ? 'border-cyan-500 bg-cyan-500/20 text-cyan-200'
+                                : 'border-zinc-700 bg-zinc-950 text-zinc-500'
+                            }`}
+                          >
+                            {d.corto}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <p className="font-mono text-[9.5px] uppercase tracking-[0.12em] text-zinc-400">
+                      Franjas y Sesiones
+                    </p>
+                    <div className="flex flex-wrap gap-1">
+                      {FRANJAS_ESTANDAR_LABELS.map((fl) => {
+                        const on = franjasActivas.includes(fl);
+                        return (
+                          <button
+                            key={fl}
+                            type="button"
+                            onClick={() =>
+                              setFranjasActivas((prev) =>
+                                prev.includes(fl)
+                                  ? prev.length > 1
+                                    ? prev.filter((x) => x !== fl)
+                                    : prev
+                                  : [...prev, fl]
+                              )
+                            }
+                            className={`h-7 rounded-sm border px-1.5 font-mono text-[9.5px] ${
+                              on
+                                ? 'border-white bg-white font-semibold text-zinc-950'
+                                : 'border-zinc-700 bg-zinc-950 text-zinc-500'
+                            }`}
+                          >
+                            {fl.split('-')[0]}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <label className="flex items-center gap-2 font-mono text-[10px] text-zinc-400">
+                      <span>Sesiones:</span>
+                      <input
+                        type="number"
+                        min={2}
+                        max={24}
+                        value={sesionesObjetivo}
+                        onChange={(e) => {
+                          const v = Number(e.target.value);
+                          if (Number.isFinite(v)) setSesionesObjetivo(Math.trunc(v));
+                        }}
+                        className="h-7 w-14 rounded-sm border border-zinc-700 bg-zinc-950 px-2 font-mono text-[11px] text-white"
+                      />
+                    </label>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* ── Vista automática Grupos A/B y Duplas dinámicas ──── */}
             <div className="mt-3 space-y-2.5 border-t border-zinc-800 pt-3">
               <div className="flex flex-wrap items-center justify-between gap-2 font-mono text-[10px] tracking-[0.1em]">
                 <span className="flex items-center gap-1.5 text-emerald-400">
                   <Layers size={12} strokeWidth={1.75} aria-hidden />
-                  GRUPO A (LUN/MIÉ): {estructuraDuplas.grupoACantidad} ALUMNOS · 4 DUPLAS
+                  GRUPO A ({formatearDiasGrupoCorto(configCursado.dias_grupo_a)}):{' '}
+                  {estructuraDuplas.grupoACantidad} ALUMNOS
                 </span>
                 <span className="text-cyan-400">
-                  GRUPO B (MAR/JUE): {estructuraDuplas.grupoBCantidad} ALUMNOS · 4 DUPLAS
+                  {configCursado.dias_grupo_b.length > 0
+                    ? `GRUPO B (${formatearDiasGrupoCorto(configCursado.dias_grupo_b)}): ${estructuraDuplas.grupoBCantidad} ALUMNOS`
+                    : 'GRUPO B DESACTIVADO'}
                 </span>
                 {estructuraDuplas.cuposReserva > 0 && (
                   <span className="text-amber-300">
@@ -390,7 +565,7 @@ export default function ModalNuevaCohorte({
           {proyeccion && (
             <div className="rounded-sm border border-zinc-800 bg-zinc-950 px-3 py-2.5 font-mono text-[10.5px] leading-relaxed text-zinc-300">
               <p className="text-white">
-                PROYECCIÓN AUTOMÁTICA ({TOTAL_SESIONES_CICLO} SESIONES / 3 SEMANAS):
+                PROYECCIÓN AUTOMÁTICA ({configCursado.sesiones_objetivo} SESIONES POR ALUMNO):
               </p>
               <p className="mt-0.5">
                 Inicio Simulador: <strong className="text-white">{formatoCortoIso(proyeccion.fechaInicioSimulador)}</strong>{' '}

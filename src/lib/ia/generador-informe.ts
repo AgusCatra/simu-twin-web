@@ -1,4 +1,9 @@
-import type { MetricasSimulador } from '@/lib/telemetria/parser-simulador';
+import {
+  clasificarPerfilOperador,
+  type MetricasSimulador,
+  type PerfilOperador,
+  type ResultadoClasificacionOperador,
+} from '@/lib/telemetria/parser-simulador';
 import type { BloqueSplit, NivelAsistencia } from '@/types/cabina';
 
 /**
@@ -32,6 +37,10 @@ export interface ContextoPostulanteIA {
   asistenciaCabinaLegacy?: string | null;
   bloqueSplit?: BloqueSplit | string | null;
   scoreCabina?: number | null;
+  puntajeLateralidad?: number | null;
+  puntajeTactoMandos?: number | null;
+  puntajeMastil?: number | null;
+  puntajeControlReceptividad?: number | null;
   hardFailCabina?: boolean;
   motivoHardFailCabina?: string | null;
   observacionesCabina?: string[] | null;
@@ -50,6 +59,11 @@ export interface InformeEmpleoIA {
   dictamenSugerido: DictamenInformeIA;
   banderaFalsoPositivoSuelo: boolean;
   banderaFalsoNegativoRiesgoOculto: boolean;
+  perfilOperador?: PerfilOperador;
+  etiquetaPerfilOperador?: string;
+  horasRecomendadas?: number;
+  rangoHorasTexto?: string;
+  modulosRecomendados?: string[];
   puntos: [PuntoInformeEmpleo, PuntoInformeEmpleo, PuntoInformeEmpleo];
 }
 
@@ -208,7 +222,8 @@ function evaluarRubricaAntiFalsos(
 function generarFallbackHeuristico(
   m: MetricasSimulador,
   ctx: ContextoPostulanteIA,
-  rubrica: EvaluacionRubricaInterna
+  rubrica: EvaluacionRubricaInterna,
+  clasificacion: ResultadoClasificacionOperador
 ): InformeEmpleoIA {
   const scoreTxt = m.scorePuntos !== null ? `${m.scorePuntos} pts` : 'no informado';
   const serruchoTxt = m.indiceSerrucho !== null ? `${m.indiceSerrucho}` : 'S/D';
@@ -217,12 +232,18 @@ function generarFallbackHeuristico(
   const frenadasTxt = m.frenadasPanico !== null ? `${m.frenadasPanico}` : 'S/D';
   const velTxt =
     m.velocidadMaxKmh !== null ? `${m.velocidadMaxKmh} km/h` : 'S/D';
+  const horquillaTxt =
+    m.porcentajeCirculacionHorquillaAlta !== null
+      ? `${m.porcentajeCirculacionHorquillaAlta}%`
+      : 'S/D';
+  const accelFondoTxt =
+    m.porcentajeAceleradorFondo !== null ? `${m.porcentajeAceleradorFondo}%` : 'S/D';
 
   const punto1 =
-    `El postulante ${ctx.nombreCompleto} (DNI ${ctx.dni}) registró un score de simulador de ${scoreTxt} ` +
-    `en ${formatoMinutosSeg(m.tiempoDuracionSeg)}, con ${m.colisionesReales} colisión(es) real(es). ` +
-    `En micro-telemetría de mandos presentó serrucho=${serruchoTxt}, volantazos extremos=${volantazosTxt}, ` +
-    `frenadas de pánico=${frenadasTxt} y velocidad pico de ${velTxt}` +
+    `El postulante ${ctx.nombreCompleto} (DNI ${ctx.dni}) clasificó como perfil "${clasificacion.etiquetaPerfil}" ` +
+    `con score de simulador de ${scoreTxt} en ${formatoMinutosSeg(m.tiempoDuracionSeg)} y ${m.colisionesReales} colisión(es) real(es). ` +
+    `En telemetría de las 6 curvas registró serrucho=${serruchoTxt}, volantazos=${volantazosTxt}, ` +
+    `frenadas de pánico=${frenadasTxt}, velocidad pico=${velTxt}, acelerador a fondo=${accelFondoTxt} y circulación con horquilla alta=${horquillaTxt}` +
     (ctx.nivelAsistenciaCabina
       ? `, bajo nivel de asistencia docente "${ctx.nivelAsistenciaCabina}".`
       : '.');
@@ -233,7 +254,7 @@ function generarFallbackHeuristico(
     rubrica.notasFalsoPositivo.length === 0
   ) {
     punto2 =
-      'Auditoría consistente: no se detectaron colisiones fantasma por artefacto suelo (-2) ni contradicciones entre el puntaje global y la telemetría fina de dirección, frenado o intervención en cabina.';
+      'Auditoría consistente: no se detectaron colisiones fantasma por artefacto suelo (-2) ni contradicciones entre el puntaje global y la telemetría fina de dirección, frenado, mástil o intervención en cabina.';
   } else {
     const bloques: string[] = [];
     if (rubrica.notasFalsoPositivo.length > 0) {
@@ -253,33 +274,42 @@ function generarFallbackHeuristico(
     punto2 = bloques.join(' ');
   }
 
-  let punto3: string;
+  let baseDictamenTxt: string;
   switch (rubrica.dictamenSugerido) {
     case 'APTO_DIRECTO':
-      punto3 =
-        'Recomendación Dirección de Empleo: APTO DIRECTO para derivación prioritaria a prácticas en planta y postulación en empresas con autonomía operativa estándar.';
+      baseDictamenTxt =
+        'APTO DIRECTO para derivación prioritaria a prácticas en planta con autonomía operativa estándar.';
       break;
     case 'APTO_OBSERVACION':
-      punto3 =
-        'Recomendación Dirección de Empleo: APTO CON OBSERVACIÓN. Habilitado para continuidad del ciclo, priorizando refuerzo en precisión de giro, anticipación de frenado y autonomía gradual antes de pase a terreno.';
+      baseDictamenTxt =
+        'APTO CON OBSERVACIÓN para continuidad del ciclo, priorizando consolidar precisión antes del pase a terreno.';
       break;
     case 'CONDICIONAL':
-      punto3 =
-        'Recomendación Dirección de Empleo: CONDICIONAL. Se sugiere asignar bloque adicional de nivelación en simulador (Split 30/30 con feedback dirigido) y reevaluar colisiones reales / estabilidad lateral previo a derivación laboral.';
+      baseDictamenTxt =
+        'CONDICIONAL con asignación de bloque de nivelación Split 30/30 y reevaluación previa a derivación laboral.';
       break;
     case 'NO_APTO':
-      punto3 =
-        'Recomendación Dirección de Empleo: NO APTO para máquina real en esta instancia debido a incidencias críticas de seguridad o alta dependencia del instructor. Requiere reinicio formativo o reorientación laboral.';
+      baseDictamenTxt =
+        'NO APTO para máquina real en esta instancia por incidencias críticas de seguridad o alta dependencia del instructor.';
       break;
   }
 
+  const punto3 =
+    `Perfil ${clasificacion.etiquetaPerfil.toUpperCase()} · Carga sugerida: ${clasificacion.rangoHorasTexto} (${clasificacion.horasRecomendadas} hs). ` +
+    `Dictamen Empleo: ${baseDictamenTxt} Módulos recomendados: ${clasificacion.modulosRecomendados.join('; ')}.`;
+
   return {
     origen: 'FALLBACK_HEURISTICO',
-    modelo: 'heuristica-determinista-titan-v1',
+    modelo: 'heuristica-determinista-titan-v2',
     generadoEn: new Date().toISOString(),
     dictamenSugerido: rubrica.dictamenSugerido,
     banderaFalsoPositivoSuelo: rubrica.banderaFalsoPositivoSuelo,
     banderaFalsoNegativoRiesgoOculto: rubrica.banderaFalsoNegativoRiesgoOculto,
+    perfilOperador: clasificacion.perfilOperador,
+    etiquetaPerfilOperador: clasificacion.etiquetaPerfil,
+    horasRecomendadas: clasificacion.horasRecomendadas,
+    rangoHorasTexto: clasificacion.rangoHorasTexto,
+    modulosRecomendados: clasificacion.modulosRecomendados,
     puntos: [
       { titulo: '01 · SÍNTESIS TÉCNICA Y TELEMETRÍA', detalle: punto1 },
       {
@@ -297,7 +327,8 @@ function generarFallbackHeuristico(
 function construirPromptGemini(
   m: MetricasSimulador,
   ctx: ContextoPostulanteIA,
-  rubrica: EvaluacionRubricaInterna
+  rubrica: EvaluacionRubricaInterna,
+  clasificacion: ResultadoClasificacionOperador
 ): string {
   const payloadContexto = {
     postulante: {
@@ -307,11 +338,17 @@ function construirPromptGemini(
       nivel_asistencia_cabina: ctx.nivelAsistenciaCabina ?? null,
       bloque_split: ctx.bloqueSplit ?? null,
       score_cabina_90: ctx.scoreCabina ?? null,
+      puntajes_ejes_0_a_20: {
+        lateralidad: ctx.puntajeLateralidad ?? null,
+        tacto_mandos: ctx.puntajeTactoMandos ?? null,
+        mastil: ctx.puntajeMastil ?? null,
+        control_receptividad: ctx.puntajeControlReceptividad ?? null,
+      },
       hard_fail: Boolean(ctx.hardFailCabina),
       motivo_hard_fail: ctx.motivoHardFailCabina ?? null,
       observaciones_cabina: ctx.observacionesCabina ?? [],
     },
-    telemetria_titan_sanitizada: {
+    telemetria_titan_6_curvas: {
       archivo_fuente: m.archivoFuente,
       score_puntos: m.scorePuntos,
       duracion_seg: m.tiempoDuracionSeg,
@@ -321,8 +358,16 @@ function construirPromptGemini(
       volantazos_extremos: m.volantazosExtremos,
       frenadas_panico: m.frenadasPanico,
       velocidad_max_kmh: m.velocidadMaxKmh,
+      picos_aceleracion: m.picosAceleracion,
+      porcentaje_acelerador_fondo: m.porcentajeAceleradorFondo,
+      muestras_horquilla_elevada: m.muestrasHorquillaElevada,
+      porcentaje_horquilla_alta: m.porcentajeCirculacionHorquillaAlta,
+      altura_max_horquilla_m: m.alturaMaximaHorquillaM,
+      oscilaciones_mastil_tilt: m.oscilacionesMastil,
+      inestabilidad_tilt_index: m.indiceInestabilidadTilt,
       hallazgos_mastil: m.hallazgosMastil,
     },
+    perfil_operador_clasificado: clasificacion,
     preanalisis_rubrica: {
       bandera_falso_positivo_suelo: rubrica.banderaFalsoPositivoSuelo,
       bandera_falso_negativo_riesgo_oculto:
@@ -335,8 +380,8 @@ function construirPromptGemini(
     'Actuás como Auditor Técnico Senior del Centro Municipal de Entrenamiento en Simuladores de Autoelevadores (Venado Tuerto) asistiendo a la Dirección de Empleo.',
     'Analizá los datos estructurados del postulante aplicando ESTRICTAMENTE la Rúbrica Antifalsos Positivos y Antifalsos Negativos:',
     '1) ANTIFALSO POSITIVO: Jamás castigues al postulante por colisiones fantasma contra suelo/malla ("bug -2" ya depuradas en colisiones_descartadas). Si la duración es lenta pero con 0 colisiones reales y serrucho < 1.8, destacalo como precaución metódica.',
-    '2) ANTIFALSO NEGATIVO: No te dejes engañar por un score numérico alto (>80) si existen colisiones reales >= 2, índice serrucho >= 1.8, volantazos extremos >= 3, frenadas de pánico >= 2, fallas reiteradas de mástil, hard-fail o nivel de asistencia docente alto/crítico.',
-    '3) SALIDA: Generá exactamente 3 puntos claros, concisos, profesionales y accionables en español rioplatense formal para la Dirección de Empleo.',
+    '2) ANTIFALSO NEGATIVO: No te dejes engañar por un score numérico alto (>80) si existen colisiones reales >= 2, índice serrucho >= 1.8, volantazos extremos >= 3, frenadas de pánico >= 2, circulación elevada con horquillas altas, fallas reiteradas de mástil, hard-fail o nivel de asistencia docente alto/crítico.',
+    '3) SALIDA: Generá exactamente 3 puntos claros, concisos, profesionales y accionables en español rioplatense formal para la Dirección de Empleo, integrando explícitamente el perfil de operador clasificado, la carga horaria recomendada y los módulos de práctica.',
     `Datos del caso: ${JSON.stringify(payloadContexto)}`,
   ].join('\n');
 }
@@ -358,10 +403,20 @@ export async function generarInformeEmpleoIA(
   contexto: ContextoPostulanteIA
 ): Promise<InformeEmpleoIA> {
   const rubrica = evaluarRubricaAntiFalsos(metricas, contexto);
+  const clasificacion = clasificarPerfilOperador(metricas, {
+    puntajeLateralidad: contexto.puntajeLateralidad,
+    puntajeTactoMandos: contexto.puntajeTactoMandos,
+    puntajeMastil: contexto.puntajeMastil,
+    puntajeControlReceptividad: contexto.puntajeControlReceptividad,
+    scoreCabina: contexto.scoreCabina,
+    nivelAsistencia: contexto.nivelAsistenciaCabina,
+    asistenciaCabinaLegacy: contexto.asistenciaCabinaLegacy,
+    hardFail: contexto.hardFailCabina,
+  });
   const apiKey = process.env.GEMINI_API_KEY?.trim();
 
   if (!apiKey) {
-    return generarFallbackHeuristico(metricas, contexto, rubrica);
+    return generarFallbackHeuristico(metricas, contexto, rubrica, clasificacion);
   }
 
   const controller = new AbortController();
@@ -372,7 +427,16 @@ export async function generarInformeEmpleoIA(
       contents: [
         {
           role: 'user',
-          parts: [{ text: construirPromptGemini(metricas, contexto, rubrica) }],
+          parts: [
+            {
+              text: construirPromptGemini(
+                metricas,
+                contexto,
+                rubrica,
+                clasificacion
+              ),
+            },
+          ],
         },
       ],
       generationConfig: {
@@ -410,32 +474,32 @@ export async function generarInformeEmpleoIA(
 
     if (!res.ok) {
       console.warn('[generador-informe] Gemini HTTP no satisfactorio:', res.status);
-      return generarFallbackHeuristico(metricas, contexto, rubrica);
+      return generarFallbackHeuristico(metricas, contexto, rubrica, clasificacion);
     }
 
     const respuestaCruda: unknown = await res.json();
     if (!esObjeto(respuestaCruda) || !Array.isArray(respuestaCruda.candidates)) {
-      return generarFallbackHeuristico(metricas, contexto, rubrica);
+      return generarFallbackHeuristico(metricas, contexto, rubrica, clasificacion);
     }
 
     const primerCandidato = respuestaCruda.candidates[0];
     if (!esObjeto(primerCandidato) || !esObjeto(primerCandidato.content)) {
-      return generarFallbackHeuristico(metricas, contexto, rubrica);
+      return generarFallbackHeuristico(metricas, contexto, rubrica, clasificacion);
     }
 
     const parts = primerCandidato.content.parts;
     if (!Array.isArray(parts) || parts.length === 0) {
-      return generarFallbackHeuristico(metricas, contexto, rubrica);
+      return generarFallbackHeuristico(metricas, contexto, rubrica, clasificacion);
     }
 
     const primeraParte = parts[0];
     if (!esObjeto(primeraParte) || typeof primeraParte.text !== 'string') {
-      return generarFallbackHeuristico(metricas, contexto, rubrica);
+      return generarFallbackHeuristico(metricas, contexto, rubrica, clasificacion);
     }
 
     const jsonEstructurado = extraerJsonDeTexto(primeraParte.text);
     if (!esObjeto(jsonEstructurado)) {
-      return generarFallbackHeuristico(metricas, contexto, rubrica);
+      return generarFallbackHeuristico(metricas, contexto, rubrica, clasificacion);
     }
 
     const p1 = jsonEstructurado.punto_1_desempeno_tecnico;
@@ -451,7 +515,7 @@ export async function generarInformeEmpleoIA(
       typeof p3 !== 'string' ||
       p3.trim().length < 10
     ) {
-      return generarFallbackHeuristico(metricas, contexto, rubrica);
+      return generarFallbackHeuristico(metricas, contexto, rubrica, clasificacion);
     }
 
     // Blindaje: un Hard-Fail de cabina jamás puede ser suavizado por el LLM.
@@ -468,6 +532,11 @@ export async function generarInformeEmpleoIA(
       dictamenSugerido: dictamenFinal,
       banderaFalsoPositivoSuelo: rubrica.banderaFalsoPositivoSuelo,
       banderaFalsoNegativoRiesgoOculto: rubrica.banderaFalsoNegativoRiesgoOculto,
+      perfilOperador: clasificacion.perfilOperador,
+      etiquetaPerfilOperador: clasificacion.etiquetaPerfil,
+      horasRecomendadas: clasificacion.horasRecomendadas,
+      rangoHorasTexto: clasificacion.rangoHorasTexto,
+      modulosRecomendados: clasificacion.modulosRecomendados,
       puntos: [
         {
           titulo: '01 · SÍNTESIS TÉCNICA Y TELEMETRÍA',
@@ -487,7 +556,7 @@ export async function generarInformeEmpleoIA(
     console.warn('[generador-informe] Fallback heurístico por error/timeout:', {
       tipo: err instanceof Error ? err.name : 'desconocido',
     });
-    return generarFallbackHeuristico(metricas, contexto, rubrica);
+    return generarFallbackHeuristico(metricas, contexto, rubrica, clasificacion);
   } finally {
     clearTimeout(timer);
   }

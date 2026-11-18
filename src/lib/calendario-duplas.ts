@@ -20,6 +20,7 @@
 */
 
 import type { FranjaCursado, GrupoCursado } from '@/types/cohorte-v2';
+import type { ConfiguracionCursadoCohorte } from '@/types/empleo';
 
 export const FRANJAS_OPERATIVAS: readonly FranjaCursado[] = [
   'M1_10_11',
@@ -27,6 +28,21 @@ export const FRANJAS_OPERATIVAS: readonly FranjaCursado[] = [
   'T1_16_17',
   'T2_17_18',
 ] as const;
+
+export const FRANJAS_ESTANDAR_LABELS: readonly string[] = [
+  '10:00-11:00',
+  '11:00-12:00',
+  '16:00-17:00',
+  '17:00-18:00',
+] as const;
+
+export const CONFIGURACION_CURSADO_DEFECTO: ConfiguracionCursadoCohorte = {
+  modalidad: 'DUPLAS',
+  dias_grupo_a: [1, 3],
+  dias_grupo_b: [2, 4],
+  franjas_activas: [...FRANJAS_ESTANDAR_LABELS],
+  sesiones_objetivo: 6,
+};
 
 export const TOTAL_SESIONES_CICLO = 6;
 export const TOTAL_DUPLAS_POR_GRUPO = 4;
@@ -37,12 +53,14 @@ export interface ProyeccionCohorteV2Input {
   fechaInicioSimulador: string; // YYYY-MM-DD (debe ser un Lunes)
   diasBloqueados?: string[]; // Array de feriados YYYY-MM-DD
   estrategiaFeriados?: 'MOVER_A_VIERNES' | 'CORRER_CALENDARIO'; // default 'MOVER_A_VIERNES'
+  configuracionCursado?: ConfiguracionCursadoCohorte | null;
 }
 
 export interface SesionPlanificada {
-  numeroSesion: number; // 1 a 6
+  numeroSesion: number; // 1 a sesiones_objetivo
   grupo: GrupoCursado;
   franja: FranjaCursado;
+  horarioLabel?: string;
   fechaProgramada: string; // YYYY-MM-DD
   diaSemana: string; // 'Lunes', 'Martes', etc.
   esRecuperatorioViernes: boolean;
@@ -170,6 +188,153 @@ export function describirEstadoViernesBuffer(
     : ETIQUETA_VIERNES_BUFFER_LIBRE;
 }
 
+const NOMBRES_DIAS_CORTOS: Record<number, string> = {
+  1: 'Lun',
+  2: 'Mar',
+  3: 'Mié',
+  4: 'Jue',
+  5: 'Vie',
+};
+
+const LABEL_A_FRANJA_ESTANDAR: Record<string, FranjaCursado> = {
+  '10:00-11:00': 'M1_10_11',
+  '11:00-12:00': 'M2_11_12',
+  '16:00-17:00': 'T1_16_17',
+  '17:00-18:00': 'T2_17_18',
+};
+
+function limpiarListaDias(raw: unknown): number[] | null {
+  if (!Array.isArray(raw)) return null;
+  const validos = raw
+    .map((n) => (typeof n === 'number' ? Math.trunc(n) : Number.NaN))
+    .filter((n) => Number.isInteger(n) && n >= 1 && n <= 5);
+  return Array.from(new Set(validos)).sort((a, b) => a - b);
+}
+
+function normalizarLabelFranja(label: string): string {
+  return label.replace(/\s+/g, '').trim();
+}
+
+/**
+ * Normaliza la configuración JSONB de `public.cohortes.configuracion_cursado`,
+ * admitiendo tanto el formato nuevo (`dias_grupo_a`, `dias_grupo_b`,
+ * `franjas_activas`, `sesiones_objetivo`) como el default legado de migración 0009.
+ */
+export function normalizarConfiguracionCursado(
+  raw: unknown
+): ConfiguracionCursadoCohorte {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+    return {
+      modalidad: 'DUPLAS',
+      dias_grupo_a: [...CONFIGURACION_CURSADO_DEFECTO.dias_grupo_a],
+      dias_grupo_b: [...CONFIGURACION_CURSADO_DEFECTO.dias_grupo_b],
+      franjas_activas: [...CONFIGURACION_CURSADO_DEFECTO.franjas_activas],
+      sesiones_objetivo: CONFIGURACION_CURSADO_DEFECTO.sesiones_objetivo,
+    };
+  }
+
+  const obj = raw as Record<string, unknown>;
+  const diasAInput = limpiarListaDias(obj.dias_grupo_a);
+  const diasBInput = limpiarListaDias(obj.dias_grupo_b);
+  const diasSemanaLegacy = limpiarListaDias(obj.dias_semana);
+
+  let diasGrupoA: number[];
+  let diasGrupoB: number[];
+
+  if (diasAInput !== null || diasBInput !== null) {
+    diasGrupoA = diasAInput ?? [];
+    diasGrupoB = diasBInput ?? [];
+  } else if (diasSemanaLegacy && diasSemanaLegacy.length > 0) {
+    const aLegacy = diasSemanaLegacy.filter((d) => d === 1 || d === 3);
+    const bLegacy = diasSemanaLegacy.filter((d) => d === 2 || d === 4);
+    if (aLegacy.length > 0 || bLegacy.length > 0) {
+      diasGrupoA = aLegacy.length > 0 ? aLegacy : diasSemanaLegacy;
+      diasGrupoB = aLegacy.length > 0 ? bLegacy : [];
+    } else {
+      diasGrupoA = diasSemanaLegacy;
+      diasGrupoB = [];
+    }
+  } else {
+    diasGrupoA = [...CONFIGURACION_CURSADO_DEFECTO.dias_grupo_a];
+    diasGrupoB = [...CONFIGURACION_CURSADO_DEFECTO.dias_grupo_b];
+  }
+
+  if (diasGrupoA.length === 0 && diasGrupoB.length === 0) {
+    diasGrupoA = [...CONFIGURACION_CURSADO_DEFECTO.dias_grupo_a];
+  }
+
+  const rawFranjas = Array.isArray(obj.franjas_activas)
+    ? obj.franjas_activas
+    : Array.isArray(obj.franjas)
+      ? obj.franjas
+      : null;
+
+  const franjasLimpias = rawFranjas
+    ? Array.from(
+        new Set(
+          rawFranjas
+            .filter((f): f is string => typeof f === 'string')
+            .map((f) => normalizarLabelFranja(f))
+            .filter((f) => f.length >= 3 && f.length <= 24)
+        )
+      ).slice(0, 4)
+    : [...CONFIGURACION_CURSADO_DEFECTO.franjas_activas];
+
+  const franjasActivas =
+    franjasLimpias.length > 0
+      ? franjasLimpias
+      : [...CONFIGURACION_CURSADO_DEFECTO.franjas_activas];
+
+  const sesionesRaw =
+    typeof obj.sesiones_objetivo === 'number' &&
+    Number.isFinite(obj.sesiones_objetivo)
+      ? Math.trunc(obj.sesiones_objetivo)
+      : CONFIGURACION_CURSADO_DEFECTO.sesiones_objetivo;
+  const sesionesObjetivo = Math.min(24, Math.max(1, sesionesRaw));
+
+  return {
+    modalidad: 'DUPLAS',
+    dias_grupo_a: diasGrupoA,
+    dias_grupo_b: diasGrupoB,
+    franjas_activas: franjasActivas,
+    sesiones_objetivo: sesionesObjetivo,
+  };
+}
+
+export function formatearDiasGrupoCorto(dias: number[]): string {
+  if (dias.length === 0) return 'Deshabilitado';
+  return dias.map((d) => NOMBRES_DIAS_CORTOS[d] ?? `D${d}`).join(' / ');
+}
+
+export function mapearFranjasActivasACodigos(
+  franjasActivas: readonly string[]
+): Array<{ codigo: FranjaCursado; label: string }> {
+  const fuente =
+    franjasActivas.length > 0
+      ? franjasActivas.slice(0, FRANJAS_OPERATIVAS.length)
+      : [...FRANJAS_ESTANDAR_LABELS];
+
+  const usados = new Set<FranjaCursado>();
+  const resultado: Array<{ codigo: FranjaCursado; label: string }> = [];
+
+  for (const labelRaw of fuente) {
+    const labelNorm = normalizarLabelFranja(labelRaw);
+    const estandar = LABEL_A_FRANJA_ESTANDAR[labelNorm];
+    if (estandar && !usados.has(estandar)) {
+      usados.add(estandar);
+      resultado.push({ codigo: estandar, label: labelNorm });
+      continue;
+    }
+    const disponible = FRANJAS_OPERATIVAS.find((f) => !usados.has(f));
+    if (disponible) {
+      usados.add(disponible);
+      resultado.push({ codigo: disponible, label: labelNorm });
+    }
+  }
+
+  return resultado;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Motor Principal de Proyección
 // ─────────────────────────────────────────────────────────────────────────────
@@ -183,7 +348,8 @@ interface InfoJornadaEfectiva {
 
 /**
  * Proyecta de manera pura y determinista el calendario oficial de cursado
- * para una cohorte V2 bajo el modelo de duplas de 16 alumnos.
+ * para una cohorte V2 bajo el modelo de duplas (por defecto 16 alumnos en
+ * 8 duplas, o los días/franjas/sesiones configurados dinámicamente).
  */
 export function proyectarCalendarioCohorteV2(
   input: ProyeccionCohorteV2Input
@@ -191,6 +357,16 @@ export function proyectarCalendarioCohorteV2(
   const alertas: string[] = [];
   const estrategia = input.estrategiaFeriados ?? 'MOVER_A_VIERNES';
   const diasBloqueadosSet = new Set(input.diasBloqueados ?? []);
+  const config = input.configuracionCursado
+    ? normalizarConfiguracionCursado(input.configuracionCursado)
+    : CONFIGURACION_CURSADO_DEFECTO;
+
+  const sesionesObjetivo = config.sesiones_objetivo;
+  const diasGrupoASet = new Set(config.dias_grupo_a);
+  const diasGrupoBSet = new Set(config.dias_grupo_b);
+  const targetGrupoA = diasGrupoASet.size > 0 ? sesionesObjetivo : 0;
+  const targetGrupoB = diasGrupoBSet.size > 0 ? sesionesObjetivo : 0;
+  const franjasMapeadas = mapearFranjasActivasACodigos(config.franjas_activas);
 
   // 1. Validar y normalizar fecha de inicio (debe ser Lunes)
   const dInicioSolicitada = parsearFechaUtc(input.fechaInicioSimulador);
@@ -211,121 +387,113 @@ export function proyectarCalendarioCohorteV2(
 
   const fechaInicioNormalizada = aFechaIso(lunesInicio);
 
-  // 2. Acumuladores de jornadas efectivas (6 para Grupo A y 6 para Grupo B)
+  // 2. Acumuladores de jornadas efectivas por grupo
   const jornadasGrupoA: InfoJornadaEfectiva[] = [];
   const jornadasGrupoB: InfoJornadaEfectiva[] = [];
   const mapaViernes = new Map<string, EstadoViernesBuffer>();
 
   let semana = 0;
-  const maxSemanasSeguridad = 20; // Guarda contra bucles infinitos por bloqueos masivos
+  const maxSemanasSeguridad = 30;
 
   while (
-    (jornadasGrupoA.length < TOTAL_SESIONES_CICLO ||
-      jornadasGrupoB.length < TOTAL_SESIONES_CICLO) &&
+    (jornadasGrupoA.length < targetGrupoA ||
+      jornadasGrupoB.length < targetGrupoB) &&
     semana < maxSemanasSeguridad
   ) {
     const lunesSemana = sumarDias(lunesInicio, semana * 7);
-    const martesSemana = sumarDias(lunesSemana, 1);
-    const miercolesSemana = sumarDias(lunesSemana, 2);
-    const juevesSemana = sumarDias(lunesSemana, 3);
-    const viernesSemana = sumarDias(lunesSemana, 4);
+    const fViernes = aFechaIso(sumarDias(lunesSemana, 4));
+    const viernesOcupadoRegular =
+      diasGrupoASet.has(5) || diasGrupoBSet.has(5);
+    const viernesDisponibleParaBuffer =
+      !diasBloqueadosSet.has(fViernes) && !viernesOcupadoRegular;
 
-    const fLunes = aFechaIso(lunesSemana);
-    const fMartes = aFechaIso(martesSemana);
-    const fMiercoles = aFechaIso(miercolesSemana);
-    const fJueves = aFechaIso(juevesSemana);
-    const fViernes = aFechaIso(viernesSemana);
-
-    const viernesHabilitado = !diasBloqueadosSet.has(fViernes);
     let grupoAsignadoViernes: GrupoCursado | null = null;
     let motivoViernes: string | undefined = undefined;
 
-    // ── GRUPO A: Lunes ────────────────────────────────────────────────────────
-    if (jornadasGrupoA.length < TOTAL_SESIONES_CICLO) {
-      if (!diasBloqueadosSet.has(fLunes)) {
-        jornadasGrupoA.push({
-          fecha: fLunes,
-          esRecuperatorioViernes: false,
-          reprogramada: false,
-        });
-      } else {
-        if (estrategia === 'MOVER_A_VIERNES' && viernesHabilitado && !grupoAsignadoViernes) {
+    for (let diaSemanaNum = 1; diaSemanaNum <= 4; diaSemanaNum += 1) {
+      const fechaObj = sumarDias(lunesSemana, diaSemanaNum - 1);
+      const fDia = aFechaIso(fechaObj);
+      const nombreDia = obtenerNombreDia(fechaObj);
+
+      if (
+        diasGrupoASet.has(diaSemanaNum) &&
+        jornadasGrupoA.length < targetGrupoA
+      ) {
+        if (!diasBloqueadosSet.has(fDia)) {
+          jornadasGrupoA.push({
+            fecha: fDia,
+            esRecuperatorioViernes: false,
+            reprogramada: false,
+          });
+        } else if (
+          estrategia === 'MOVER_A_VIERNES' &&
+          viernesDisponibleParaBuffer &&
+          !grupoAsignadoViernes
+        ) {
           grupoAsignadoViernes = 'GRUPO_A';
-          motivoViernes = `Feriado del Lunes (${fLunes}) absorbido en Viernes Buffer (${fViernes}) para Grupo A`;
+          motivoViernes = `Feriado del ${nombreDia} (${fDia}) absorbido en Viernes Buffer (${fViernes}) para Grupo A`;
           alertas.push(`Semana ${semana + 1}: ${motivoViernes}.`);
         } else {
           alertas.push(
-            `Semana ${semana + 1}: Feriado del Lunes (${fLunes}) para Grupo A; diferido a la siguiente jornada hábil del grupo.`
+            `Semana ${semana + 1}: Feriado del ${nombreDia} (${fDia}) para Grupo A; diferido a la siguiente jornada hábil del grupo.`
           );
         }
       }
-    }
 
-    // ── GRUPO B: Martes ───────────────────────────────────────────────────────
-    if (jornadasGrupoB.length < TOTAL_SESIONES_CICLO) {
-      if (!diasBloqueadosSet.has(fMartes)) {
-        jornadasGrupoB.push({
-          fecha: fMartes,
-          esRecuperatorioViernes: false,
-          reprogramada: false,
-        });
-      } else {
-        if (estrategia === 'MOVER_A_VIERNES' && viernesHabilitado && !grupoAsignadoViernes) {
+      if (
+        diasGrupoBSet.has(diaSemanaNum) &&
+        jornadasGrupoB.length < targetGrupoB
+      ) {
+        if (!diasBloqueadosSet.has(fDia)) {
+          jornadasGrupoB.push({
+            fecha: fDia,
+            esRecuperatorioViernes: false,
+            reprogramada: false,
+          });
+        } else if (
+          estrategia === 'MOVER_A_VIERNES' &&
+          viernesDisponibleParaBuffer &&
+          !grupoAsignadoViernes
+        ) {
           grupoAsignadoViernes = 'GRUPO_B';
-          motivoViernes = `Feriado del Martes (${fMartes}) absorbido en Viernes Buffer (${fViernes}) para Grupo B`;
+          motivoViernes = `Feriado del ${nombreDia} (${fDia}) absorbido en Viernes Buffer (${fViernes}) para Grupo B`;
           alertas.push(`Semana ${semana + 1}: ${motivoViernes}.`);
         } else {
           alertas.push(
-            `Semana ${semana + 1}: Feriado del Martes (${fMartes}) para Grupo B; diferido a la siguiente jornada hábil del grupo.`
+            `Semana ${semana + 1}: Feriado del ${nombreDia} (${fDia}) para Grupo B; diferido a la siguiente jornada hábil del grupo.`
           );
         }
       }
     }
 
-    // ── GRUPO A: Miércoles ────────────────────────────────────────────────────
-    if (jornadasGrupoA.length < TOTAL_SESIONES_CICLO) {
-      if (!diasBloqueadosSet.has(fMiercoles)) {
-        jornadasGrupoA.push({
-          fecha: fMiercoles,
-          esRecuperatorioViernes: false,
-          reprogramada: false,
-        });
+    // ── VIERNES: Clase regular si fue configurada en el día 5, o Buffer/Recuperatorio ──
+    if (viernesOcupadoRegular) {
+      if (!diasBloqueadosSet.has(fViernes)) {
+        if (diasGrupoASet.has(5) && jornadasGrupoA.length < targetGrupoA) {
+          jornadasGrupoA.push({
+            fecha: fViernes,
+            esRecuperatorioViernes: false,
+            reprogramada: false,
+          });
+        }
+        if (diasGrupoBSet.has(5) && jornadasGrupoB.length < targetGrupoB) {
+          jornadasGrupoB.push({
+            fecha: fViernes,
+            esRecuperatorioViernes: false,
+            reprogramada: false,
+          });
+        }
       } else {
-        if (estrategia === 'MOVER_A_VIERNES' && viernesHabilitado && !grupoAsignadoViernes) {
-          grupoAsignadoViernes = 'GRUPO_A';
-          motivoViernes = `Feriado del Miércoles (${fMiercoles}) absorbido en Viernes Buffer (${fViernes}) para Grupo A`;
-          alertas.push(`Semana ${semana + 1}: ${motivoViernes}.`);
-        } else {
-          alertas.push(
-            `Semana ${semana + 1}: Feriado del Miércoles (${fMiercoles}) para Grupo A; diferido a la siguiente jornada hábil del grupo.`
-          );
-        }
+        alertas.push(
+          `Semana ${semana + 1}: Feriado del Viernes (${fViernes}); diferido a la siguiente jornada hábil.`
+        );
       }
-    }
-
-    // ── GRUPO B: Jueves ───────────────────────────────────────────────────────
-    if (jornadasGrupoB.length < TOTAL_SESIONES_CICLO) {
-      if (!diasBloqueadosSet.has(fJueves)) {
-        jornadasGrupoB.push({
-          fecha: fJueves,
-          esRecuperatorioViernes: false,
-          reprogramada: false,
-        });
-      } else {
-        if (estrategia === 'MOVER_A_VIERNES' && viernesHabilitado && !grupoAsignadoViernes) {
-          grupoAsignadoViernes = 'GRUPO_B';
-          motivoViernes = `Feriado del Jueves (${fJueves}) absorbido en Viernes Buffer (${fViernes}) para Grupo B`;
-          alertas.push(`Semana ${semana + 1}: ${motivoViernes}.`);
-        } else {
-          alertas.push(
-            `Semana ${semana + 1}: Feriado del Jueves (${fJueves}) para Grupo B; diferido a la siguiente jornada hábil del grupo.`
-          );
-        }
-      }
-    }
-
-    // ── VIERNES: Resolución de Buffer o Recuperatorio ─────────────────────────
-    if (grupoAsignadoViernes === 'GRUPO_A') {
+      mapaViernes.set(fViernes, {
+        fecha: fViernes,
+        estado: 'LIBRE',
+        sesionesReubicadas: 0,
+      });
+    } else if (grupoAsignadoViernes === 'GRUPO_A') {
       jornadasGrupoA.push({
         fecha: fViernes,
         esRecuperatorioViernes: true,
@@ -335,7 +503,7 @@ export function proyectarCalendarioCohorteV2(
       mapaViernes.set(fViernes, {
         fecha: fViernes,
         estado: 'RECUPERATORIO_FERIADO',
-        sesionesReubicadas: TOTAL_DUPLAS_POR_GRUPO,
+        sesionesReubicadas: franjasMapeadas.length,
       });
     } else if (grupoAsignadoViernes === 'GRUPO_B') {
       jornadasGrupoB.push({
@@ -347,7 +515,7 @@ export function proyectarCalendarioCohorteV2(
       mapaViernes.set(fViernes, {
         fecha: fViernes,
         estado: 'RECUPERATORIO_FERIADO',
-        sesionesReubicadas: TOTAL_DUPLAS_POR_GRUPO,
+        sesionesReubicadas: franjasMapeadas.length,
       });
     } else {
       mapaViernes.set(fViernes, {
@@ -357,18 +525,20 @@ export function proyectarCalendarioCohorteV2(
       });
     }
 
-    semana++;
+    semana += 1;
   }
 
-  // 3. Garantizar que existan al menos los 3 viernes estándar del ciclo
-  for (let s = 0; s < 3; s++) {
-    const fViernesMin = aFechaIso(sumarDias(lunesInicio, s * 7 + 4));
-    if (!mapaViernes.has(fViernesMin)) {
-      mapaViernes.set(fViernesMin, {
-        fecha: fViernesMin,
-        estado: 'LIBRE',
-        sesionesReubicadas: 0,
-      });
+  // 3. Garantizar al menos 3 viernes estándar cuando la cohorte usa esquema base (>= 3 semanas)
+  if (!input.configuracionCursado) {
+    for (let s = 0; s < 3; s += 1) {
+      const fViernesMin = aFechaIso(sumarDias(lunesInicio, s * 7 + 4));
+      if (!mapaViernes.has(fViernesMin)) {
+        mapaViernes.set(fViernesMin, {
+          fecha: fViernesMin,
+          estado: 'LIBRE',
+          sesionesReubicadas: 0,
+        });
+      }
     }
   }
 
@@ -380,44 +550,44 @@ export function proyectarCalendarioCohorteV2(
   const diasEfectivosGrupoB = jornadasGrupoB.map((j) => j.fecha);
 
   // 4. Determinación de Fecha de Fin de Simulador y Pase a Terreno
-  // El ciclo regular cierra el Viernes de la semana 3 (3 semanas calendario exactas).
-  // Si hubo corrimientos de calendario que superaron la semana 3, toma el Viernes
-  // de la última semana efectiva de cursado.
-  const viernesList = Array.from(mapaViernes.values()).sort((a, b) =>
-    a.fecha.localeCompare(b.fecha)
-  );
-
   const viernesSemana3 = aFechaIso(sumarDias(lunesInicio, 2 * 7 + 4));
   const todasLasFechas = [...diasEfectivosGrupoA, ...diasEfectivosGrupoB].sort();
-  const ultimaFechaClase = todasLasFechas[todasLasFechas.length - 1] ?? viernesSemana3;
+  const ultimaFechaClase =
+    todasLasFechas[todasLasFechas.length - 1] ?? viernesSemana3;
 
-  // Si la última clase superó el Viernes de semana 3, cerrar en el Viernes de esa semana
-  let fechaFinSimulador = viernesSemana3;
-  if (ultimaFechaClase > viernesSemana3) {
-    const dUltima = parsearFechaUtc(ultimaFechaClase);
-    const diasAlViernes = (5 - dUltima.getUTCDay() + 7) % 7;
-    fechaFinSimulador = aFechaIso(sumarDias(dUltima, diasAlViernes));
-  }
+  const dUltima = parsearFechaUtc(ultimaFechaClase);
+  const diasAlViernesUltima = (5 - dUltima.getUTCDay() + 7) % 7;
+  const viernesUltimaClase = aFechaIso(sumarDias(dUltima, diasAlViernesUltima));
+
+  const fechaFinSimulador = input.configuracionCursado
+    ? viernesUltimaClase
+    : ultimaFechaClase > viernesSemana3
+      ? viernesUltimaClase
+      : viernesSemana3;
+
+  const viernesList = Array.from(mapaViernes.values())
+    .filter((v) => v.fecha <= fechaFinSimulador)
+    .sort((a, b) => a.fecha.localeCompare(b.fecha));
 
   const fechaPaseTerreno = calcularPrimerDiaHabilPosterior(
     fechaFinSimulador,
     diasBloqueadosSet
   );
 
-  // 5. Construcción de la Matriz de 48 Sesiones Planificadas
+  // 5. Construcción de la Matriz de Sesiones Planificadas
   const matrizSesiones: SesionPlanificada[] = [];
 
-  // Sesiones de Grupo A
   jornadasGrupoA.forEach((jornada, idx) => {
     const numeroSesion = idx + 1;
     const d = parsearFechaUtc(jornada.fecha);
     const diaSemana = obtenerNombreDia(d);
 
-    FRANJAS_OPERATIVAS.forEach((franja) => {
+    franjasMapeadas.forEach(({ codigo, label }) => {
       matrizSesiones.push({
         numeroSesion,
         grupo: 'GRUPO_A',
-        franja,
+        franja: codigo,
+        horarioLabel: label,
         fechaProgramada: jornada.fecha,
         diaSemana,
         esRecuperatorioViernes: jornada.esRecuperatorioViernes,
@@ -427,17 +597,17 @@ export function proyectarCalendarioCohorteV2(
     });
   });
 
-  // Sesiones de Grupo B
   jornadasGrupoB.forEach((jornada, idx) => {
     const numeroSesion = idx + 1;
     const d = parsearFechaUtc(jornada.fecha);
     const diaSemana = obtenerNombreDia(d);
 
-    FRANJAS_OPERATIVAS.forEach((franja) => {
+    franjasMapeadas.forEach(({ codigo, label }) => {
       matrizSesiones.push({
         numeroSesion,
         grupo: 'GRUPO_B',
-        franja,
+        franja: codigo,
+        horarioLabel: label,
         fechaProgramada: jornada.fecha,
         diaSemana,
         esRecuperatorioViernes: jornada.esRecuperatorioViernes,
@@ -447,7 +617,6 @@ export function proyectarCalendarioCohorteV2(
     });
   });
 
-  // Ordenar cronológicamente la matriz de sesiones
   matrizSesiones.sort((a, b) => {
     const cmpFecha = a.fechaProgramada.localeCompare(b.fechaProgramada);
     if (cmpFecha !== 0) return cmpFecha;
@@ -492,48 +661,76 @@ export interface ResumenGruposYDuplas {
   duplas: DuplaPlanificadaItem[];
 }
 
-const HORARIOS_FRANJA_DUPLA: Record<FranjaCursado, string> = {
-  M1_10_11: '10:00 - 11:00',
-  M2_11_12: '11:00 - 12:00',
-  T1_16_17: '16:00 - 17:00',
-  T2_17_18: '17:00 - 18:00',
-};
-
 /**
- * Calcula de forma determinista la distribución de Grupos A (Lun/Mié, Duplas 1..4)
- * y B (Mar/Jue, Duplas 5..8) para un cupo dado bajo el régimen de 8 duplas (16 alumnos).
+ * Calcula de forma determinista la distribución de Grupos A y B y sus duplas
+ * respetando la configuración dinámica de días y franjas activas.
  */
-export function calcularEstructuraGruposYDuplas(
-  cupoTotalInput: number
+export function calcularEstructuraGruposYDuplasDinamica(
+  cupoTotalInput: number,
+  configRaw?: ConfiguracionCursadoCohorte | null
 ): ResumenGruposYDuplas {
+  const config = configRaw
+    ? normalizarConfiguracionCursado(configRaw)
+    : CONFIGURACION_CURSADO_DEFECTO;
+  const franjasMapeadas = mapearFranjasActivasACodigos(config.franjas_activas);
+  const tieneGrupoA = config.dias_grupo_a.length > 0;
+  const tieneGrupoB = config.dias_grupo_b.length > 0;
+  const gruposActivos: Array<{
+    grupo: GrupoCursado;
+    diasLabel: string;
+  }> = [];
+
+  if (tieneGrupoA) {
+    gruposActivos.push({
+      grupo: 'GRUPO_A',
+      diasLabel: formatearDiasGrupoCorto(config.dias_grupo_a),
+    });
+  }
+  if (tieneGrupoB) {
+    gruposActivos.push({
+      grupo: 'GRUPO_B',
+      diasLabel: formatearDiasGrupoCorto(config.dias_grupo_b),
+    });
+  }
+  if (gruposActivos.length === 0) {
+    gruposActivos.push({
+      grupo: 'GRUPO_A',
+      diasLabel: formatearDiasGrupoCorto(CONFIGURACION_CURSADO_DEFECTO.dias_grupo_a),
+    });
+  }
+
+  const slotsTotales = gruposActivos.length * franjasMapeadas.length;
+  const capacidadBaseDuplas = slotsTotales * 2;
   const cupoTotal =
     Number.isInteger(cupoTotalInput) && cupoTotalInput > 0
       ? Math.min(200, cupoTotalInput)
-      : 16;
-  const capacidadBaseDuplas = 16;
+      : capacidadBaseDuplas;
+
   const duplas: DuplaPlanificadaItem[] = [];
+  let idxGlobal = 0;
 
-  for (let i = 0; i < 8; i += 1) {
-    const duplaNumero = i + 1;
-    const grupo: GrupoCursado = duplaNumero <= 4 ? 'GRUPO_A' : 'GRUPO_B';
-    const franja = FRANJAS_OPERATIVAS[i % TOTAL_DUPLAS_POR_GRUPO];
-    const puestoDesde = i * 2 + 1;
-    const puestoHasta = i * 2 + 2;
-    const integrantesPrevistos = Math.max(
-      0,
-      Math.min(2, cupoTotal - (puestoDesde - 1))
-    );
+  for (const g of gruposActivos) {
+    for (const f of franjasMapeadas) {
+      const duplaNumero = idxGlobal + 1;
+      const puestoDesde = idxGlobal * 2 + 1;
+      const puestoHasta = idxGlobal * 2 + 2;
+      const integrantesPrevistos = Math.max(
+        0,
+        Math.min(2, cupoTotal - (puestoDesde - 1))
+      );
 
-    duplas.push({
-      duplaNumero,
-      grupo,
-      diasLabel: grupo === 'GRUPO_A' ? 'Lun / Mié' : 'Mar / Jue',
-      franja,
-      horarioLabel: HORARIOS_FRANJA_DUPLA[franja],
-      puestoDesde,
-      puestoHasta,
-      integrantesPrevistos,
-    });
+      duplas.push({
+        duplaNumero,
+        grupo: g.grupo,
+        diasLabel: g.diasLabel,
+        franja: f.codigo,
+        horarioLabel: f.label,
+        puestoDesde,
+        puestoHasta,
+        integrantesPrevistos,
+      });
+      idxGlobal += 1;
+    }
   }
 
   const grupoACantidad = duplas
@@ -553,5 +750,15 @@ export function calcularEstructuraGruposYDuplas(
     grupoBCantidad,
     duplas,
   };
+}
+
+/**
+ * Calcula de forma determinista la distribución de Grupos A (Lun/Mié, Duplas 1..4)
+ * y B (Mar/Jue, Duplas 5..8) para un cupo dado bajo el régimen de 8 duplas (16 alumnos).
+ */
+export function calcularEstructuraGruposYDuplas(
+  cupoTotalInput: number
+): ResumenGruposYDuplas {
+  return calcularEstructuraGruposYDuplasDinamica(cupoTotalInput, null);
 }
 

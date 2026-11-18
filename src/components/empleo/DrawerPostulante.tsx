@@ -1,51 +1,71 @@
 'use client';
 
-import { useEffect, useRef, useState, useTransition } from 'react';
+import { useEffect, useRef, useState, useTransition, type FormEvent } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   AlertTriangle,
+  Award,
+  CalendarCheck,
+  CalendarClock,
   CheckCircle2,
   ClipboardCopy,
+  Clock,
+  ExternalLink,
   FileJson,
+  FileText,
   Loader2,
+  Printer,
   ShieldAlert,
   Sparkles,
   Upload,
 } from 'lucide-react';
 import {
+  actualizarAsistenciaSesionAction,
   analizarTelemetriaPostulanteAction,
   asignarPostulanteFranja,
   darDeBajaPostulante,
+  guardarEvaluacionFinalEgresoAction,
   guardarNotasEmpleo,
+  guardarPracticaRealAction,
   obtenerComparativaProgreso,
+  obtenerLegajo360PostulanteAction,
 } from '@/services/empleo';
 import {
+  clasificarPerfilOperador,
   MAX_BYTES_REPORTE_JSON,
   parsearReporteSimulador,
   type MetricasSimulador,
+  type PerfilOperador,
 } from '@/lib/telemetria/parser-simulador';
 import type { InformeEmpleoIA } from '@/lib/ia/generador-informe';
+import type { EstadoEgreso, PerfilLaboral } from '@/types/cohorte-v2';
 import type {
+  CohorteActiva,
   ComparativaProgreso,
+  EstadoAsistenciaUI,
   FranjaCabina,
+  Legajo360Postulante,
   MetricasIntento,
   PostulanteFila,
   PuntoRadar,
+  ResultadoPracticaReal,
+  SesionPracticaItem,
 } from '@/types/empleo';
 import Sheet from './Sheet';
 import RadarCuatroEjes from './RadarCuatroEjes';
+import Legajo360Imprimible from './Legajo360Imprimible';
 
 /**
- * Drawer lateral de la ficha técnica del postulante: datos de contacto,
- * nivel de asistencia, los 4 ejes técnicos (puntaje 0/10/20 de la consola
- * táctil o texto legacy del pipeline PDF), telemetría TITAN y notas
- * sociolaborales del equipo de Empleo. También permite asignar a franja y
- * dar de baja con motivo.
+ * Drawer lateral de la ficha técnica 360° del postulante: datos de contacto,
+ * nivel de asistencia, 4 ejes técnicos, telemetría Titán + IA, asistencias en
+ * simulador, práctica real en terreno (.pdf), egreso y exportación PDF 360°.
  */
 
 interface Props {
   postulante: PostulanteFila | null;
   franjas: FranjaCabina[];
   cohorteId?: string | null;
+  cohorte?: CohorteActiva | null;
   enfocarTitan?: boolean;
   enfocarSignal?: number;
   onCerrar: () => void;
@@ -122,6 +142,37 @@ const BADGE_RECEPTIVIDAD: Record<string, string> = {
   'Estable': 'bg-amber-400 text-amber-950',
   'Ansiedad Operativa': 'bg-red-500 text-red-950',
   'Sin Datos': 'bg-zinc-700 text-zinc-200',
+};
+
+const BADGE_PERFIL_OPERADOR: Record<
+  PerfilOperador,
+  { etiqueta: string; clase: string; borde: string }
+> = {
+  EFICIENTE: {
+    etiqueta: 'EFICIENTE',
+    clase: 'bg-emerald-500 text-emerald-950',
+    borde: 'border-emerald-500/45 bg-emerald-950/25',
+  },
+  APURADO: {
+    etiqueta: 'APURADO',
+    clase: 'bg-amber-400 text-amber-950',
+    borde: 'border-amber-500/45 bg-amber-950/20',
+  },
+  INEFICIENTE: {
+    etiqueta: 'INEFICIENTE',
+    clase: 'bg-cyan-400 text-cyan-950',
+    borde: 'border-cyan-500/45 bg-cyan-950/20',
+  },
+  SIN_NOCION_ESPACIO: {
+    etiqueta: 'SIN NOCIÓN DEL ESPACIO',
+    clase: 'bg-orange-500 text-orange-950',
+    borde: 'border-orange-500/45 bg-orange-950/20',
+  },
+  NOVATO: {
+    etiqueta: 'NOVATO',
+    clase: 'bg-red-500 text-red-950',
+    borde: 'border-red-500/45 bg-red-950/25',
+  },
 };
 
 const ETIQUETA_TURNO: Record<PostulanteFila['origen_turno'], string> = {
@@ -238,10 +289,12 @@ export default function DrawerPostulante({
   postulante,
   franjas,
   cohorteId,
+  cohorte = null,
   enfocarTitan = false,
   enfocarSignal = 0,
   onCerrar,
 }: Props) {
+  const router = useRouter();
   const [notas, setNotas] = useState('');
   const [franjaSeleccionada, setFranjaSeleccionada] = useState('');
   const [mensaje, setMensaje] = useState<{ texto: string; tipo: 'ok' | 'error' } | null>(
@@ -253,6 +306,29 @@ export default function DrawerPostulante({
   const [comparativa, setComparativa] = useState<ComparativaProgreso | null>(null);
   const [cargandoComp, setCargandoComp] = useState(false);
   const [vistaActiva, setVistaActiva] = useState<'V1' | 'V2'>('V1');
+
+  // Legajo 360°: Sesiones, Práctica Real en Terreno (.pdf) y Egreso.
+  const [legajo360, setLegajo360] = useState<Legajo360Postulante | null>(null);
+  const [cargandoLegajo, setCargandoLegajo] = useState(false);
+  const [msgLegajo, setMsgLegajo] = useState<{ tipo: 'ok' | 'error'; texto: string } | null>(
+    null
+  );
+  const [pracFecha, setPracFecha] = useState(() => new Date().toISOString().split('T')[0]);
+  const [pracLugar, setPracLugar] = useState('');
+  const [pracMaquina, setPracMaquina] = useState('Autoelevador Eléctrico / Combustión');
+  const [pracInstructor, setPracInstructor] = useState('');
+  const [pracResultado, setPracResultado] = useState<ResultadoPracticaReal>('aprobado');
+  const [pracObs, setPracObs] = useState('');
+  const [pracArchivoPdf, setPracArchivoPdf] = useState<File | null>(null);
+  const [egEstado, setEgEstado] = useState<EstadoEgreso>('INCOMPLETO');
+  const [egTerrenoAprobado, setEgTerrenoAprobado] = useState<'pendiente' | 'si' | 'no'>(
+    'pendiente'
+  );
+  const [egPerfil, setEgPerfil] = useState<PerfilLaboral>('ESTANDAR');
+  const [egObs, setEgObs] = useState('');
+  const [guardandoPrac, startPracTransition] = useTransition();
+  const [guardandoEg, startEgTransition] = useTransition();
+  const [guardandoAsisId, setGuardandoAsisId] = useState<string | null>(null);
 
   // Pipeline Titán .json + Motor IA Gemini 2.5 Flash.
   const titanSectionRef = useRef<HTMLElement | null>(null);
@@ -327,6 +403,73 @@ export default function DrawerPostulante({
     };
   }, [postulante?.postulante_id, cohorteId]);
 
+  // Carga el Legajo 360° (sesiones, práctica real en terreno y egreso).
+  useEffect(() => {
+    const pid = postulante?.postulante_id;
+    const cid = cohorteId ?? '';
+    setMsgLegajo(null);
+    setPracArchivoPdf(null);
+    if (!pid || !cid) {
+      setLegajo360(null);
+      return;
+    }
+    let vivo = true;
+    setCargandoLegajo(true);
+    obtenerLegajo360PostulanteAction(pid, cid)
+      .then((res) => {
+        if (!vivo) return;
+        if (res.ok) {
+          setLegajo360(res.data);
+          if (res.data.practicaReal) {
+            setPracFecha(res.data.practicaReal.fecha_practica);
+            setPracLugar(res.data.practicaReal.lugar_predio ?? '');
+            setPracMaquina(
+              res.data.practicaReal.maquina_utilizada ??
+                'Autoelevador Eléctrico / Combustión'
+            );
+            setPracInstructor(res.data.practicaReal.instructor_patio ?? '');
+            setPracResultado(res.data.practicaReal.resultado);
+            setPracObs(res.data.practicaReal.observaciones_terreno ?? '');
+          } else {
+            setPracFecha(new Date().toISOString().split('T')[0]);
+            setPracLugar('');
+            setPracMaquina('Autoelevador Eléctrico / Combustión');
+            setPracInstructor('');
+            setPracResultado('aprobado');
+            setPracObs('');
+          }
+          if (res.data.egreso) {
+            setEgEstado(res.data.egreso.estado_egreso);
+            setEgTerrenoAprobado(
+              res.data.egreso.paso_a_terreno_aprobado === true
+                ? 'si'
+                : res.data.egreso.paso_a_terreno_aprobado === false
+                  ? 'no'
+                  : 'pendiente'
+            );
+            setEgPerfil(res.data.egreso.recomendacion_laboral);
+            setEgObs(res.data.egreso.observaciones_egreso ?? '');
+          } else {
+            setEgEstado('INCOMPLETO');
+            setEgTerrenoAprobado('pendiente');
+            setEgPerfil('ESTANDAR');
+            setEgObs('');
+          }
+        } else {
+          setLegajo360(null);
+        }
+      })
+      .catch(() => {
+        if (vivo) setLegajo360(null);
+      })
+      .finally(() => {
+        if (vivo) setCargandoLegajo(false);
+      });
+    return () => {
+      vivo = false;
+    };
+  }, [postulante?.postulante_id, cohorteId]);
+
   if (!postulante) return null;
 
   const evaluacion = postulante.evaluacion;
@@ -350,6 +493,39 @@ export default function DrawerPostulante({
   const informeActivo =
     informeLocal ??
     (metricasJsonLocal ? null : (evaluacion?.informe_ia ?? null));
+
+  const clasificacionOperador = metricasActivas
+    ? clasificarPerfilOperador(metricasActivas, {
+        puntajeLateralidad: evaluacion?.puntaje_lateralidad,
+        puntajeTactoMandos: evaluacion?.puntaje_tacto_mandos,
+        puntajeMastil: evaluacion?.puntaje_mastil,
+        puntajeControlReceptividad: evaluacion?.puntaje_control_receptividad,
+        scoreCabina: evaluacion?.score_tablet,
+        nivelAsistencia: evaluacion?.nivel_asistencia,
+        asistenciaCabinaLegacy: evaluacion?.asistencia_cabina,
+        hardFail: evaluacion?.hard_fail === true,
+      })
+    : null;
+
+  const perfilOperadorActivo: PerfilOperador | null =
+    informeActivo?.perfilOperador ??
+    clasificacionOperador?.perfilOperador ??
+    evaluacion?.perfil_operador ??
+    null;
+  const horasRecomendadasActivas: number | null =
+    informeActivo?.horasRecomendadas ??
+    clasificacionOperador?.horasRecomendadas ??
+    evaluacion?.horas_recomendadas ??
+    null;
+  const rangoHorasActivo: string | null =
+    informeActivo?.rangoHorasTexto ??
+    clasificacionOperador?.rangoHorasTexto ??
+    (horasRecomendadasActivas !== null ? `${horasRecomendadasActivas} hs` : null);
+  const modulosRecomendadosActivos: string[] =
+    informeActivo?.modulosRecomendados ??
+    clasificacionOperador?.modulosRecomendados ??
+    evaluacion?.modulos_recomendados ??
+    [];
 
   const ejesRadar: PuntoRadar[] | null =
     comparativa && comparativa.radarEjes.length > 0
@@ -483,9 +659,12 @@ export default function DrawerPostulante({
       setInformeLocal(res.informe);
       setAvisoPersistenciaIA(
         res.persistido
-          ? 'Informe IA y métricas guardados en evaluacion_diagnostico.'
-          : 'Informe generado en pantalla (se guardará en DB cuando exista una fila de evaluación de cabina/diagnóstico).'
+          ? 'Informe IA, perfil de operador y métricas guardados en evaluacion_diagnostico.'
+          : 'Informe generado en pantalla (no se pudo persistir en la base de datos).'
       );
+      if (res.persistido) {
+        router.refresh();
+      }
     } catch {
       setErrorIA('Error de red o tiempo de espera agotado al ejecutar el análisis IA.');
     } finally {
@@ -506,7 +685,152 @@ export default function DrawerPostulante({
     });
   }
 
+  async function recargarLegajo360() {
+    if (!postulante || !cohorteId) return;
+    const res = await obtenerLegajo360PostulanteAction(
+      postulante.postulante_id,
+      cohorteId
+    );
+    if (res.ok) {
+      setLegajo360(res.data);
+    }
+  }
+
+  async function cambiarAsistenciaLegajo(
+    sesion: SesionPracticaItem,
+    estado: EstadoAsistenciaUI,
+    fechaReprog?: string | null
+  ) {
+    if (!cohorteId) return;
+    setMsgLegajo(null);
+    setGuardandoAsisId(sesion.id);
+    try {
+      const res = await actualizarAsistenciaSesionAction({
+        sesion_id: sesion.id,
+        cohorte_id: cohorteId,
+        estado_asistencia: estado,
+        fecha_reprogramacion: fechaReprog ?? null,
+      });
+      if (!res.ok) {
+        setMsgLegajo({ tipo: 'error', texto: res.error });
+      } else {
+        await recargarLegajo360();
+        setMsgLegajo({
+          tipo: 'ok',
+          texto: `Asistencia de Clase #${sesion.numero_sesion} actualizada (${estado}).`,
+        });
+        router.refresh();
+      }
+    } finally {
+      setGuardandoAsisId(null);
+    }
+  }
+
+  function guardarPracticaRealSubmit(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    if (!postulante || !cohorteId) return;
+    setMsgLegajo(null);
+
+    const fd = new FormData();
+    fd.set('cohorte_id', cohorteId);
+    fd.set('postulante_id', postulante.postulante_id);
+    fd.set('fecha_practica', pracFecha);
+    fd.set('lugar_predio', pracLugar);
+    fd.set('maquina_utilizada', pracMaquina);
+    fd.set('instructor_patio', pracInstructor);
+    fd.set('resultado', pracResultado);
+    fd.set('observaciones_terreno', pracObs);
+    if (legajo360?.practicaReal?.pdf_reporte_path) {
+      fd.set('pdf_previo_path', legajo360.practicaReal.pdf_reporte_path);
+    }
+    if (pracArchivoPdf) {
+      fd.set('archivo_pdf', pracArchivoPdf);
+    }
+
+    startPracTransition(async () => {
+      const res = await guardarPracticaRealAction(fd);
+      if (!res.ok) {
+        setMsgLegajo({ tipo: 'error', texto: res.error });
+        return;
+      }
+      setPracArchivoPdf(null);
+      setLegajo360((prev) =>
+        prev
+          ? { ...prev, practicaReal: res.practicaReal }
+          : {
+              sesiones: [],
+              viernesSugeridos: [],
+              practicaReal: res.practicaReal,
+              egreso: null,
+            }
+      );
+      setMsgLegajo({
+        tipo: 'ok',
+        texto: res.practicaReal.pdf_reporte_path
+          ? 'Práctica en terreno y comprobante PDF guardados.'
+          : 'Práctica en terreno guardada correctamente.',
+      });
+      router.refresh();
+    });
+  }
+
+  function guardarEgresoClick() {
+    if (!postulante || !cohorteId) return;
+    setMsgLegajo(null);
+    startEgTransition(async () => {
+      const res = await guardarEvaluacionFinalEgresoAction({
+        cohorte_id: cohorteId,
+        postulante_id: postulante.postulante_id,
+        estado_egreso: egEstado,
+        paso_a_terreno_aprobado:
+          egTerrenoAprobado === 'si'
+            ? true
+            : egTerrenoAprobado === 'no'
+              ? false
+              : null,
+        recomendacion_laboral: egPerfil,
+        observaciones_egreso: egObs,
+      });
+      if (!res.ok) {
+        setMsgLegajo({ tipo: 'error', texto: res.error });
+        return;
+      }
+      setLegajo360((prev) =>
+        prev
+          ? { ...prev, egreso: res.egreso }
+          : {
+              sesiones: [],
+              viernesSugeridos: [],
+              practicaReal: null,
+              egreso: res.egreso,
+            }
+      );
+      setMsgLegajo({
+        tipo: 'ok',
+        texto: `Dictamen final de egreso guardado (${res.egreso.estado_egreso}).`,
+      });
+      router.refresh();
+    });
+  }
+
+  function imprimirLegajo360() {
+    document.body.setAttribute('data-print-mode', 'legajo');
+    const limpiar = () => {
+      document.body.removeAttribute('data-print-mode');
+      window.removeEventListener('afterprint', limpiar);
+    };
+    window.addEventListener('afterprint', limpiar);
+    window.print();
+    window.setTimeout(limpiar, 1500);
+  }
+
+  const presentesSimulador = (legajo360?.sesiones ?? []).filter(
+    (s) => s.estado_asistencia === 'PRESENTE'
+  ).length;
+  const totalSesionesLegajo = legajo360?.sesiones.length ?? 0;
+
   return (
+    <>
     <Sheet
       abierto
       onCerrar={onCerrar}
@@ -514,6 +838,26 @@ export default function DrawerPostulante({
       subtitulo={`RANKING #${postulante.ranking_orden} · DNI ${postulante.dni} · ${ETIQUETA_TURNO[postulante.origen_turno]}`}
     >
       <div className="space-y-5">
+        {/* ── Acción directa: Exportar Legajo 360° (PDF) ───────── */}
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-sm border border-zinc-800 bg-zinc-900/70 px-3 py-2">
+          <span className="font-mono text-[10px] tracking-[0.12em] text-zinc-400">
+            LEGAJO 360° ·{' '}
+            {cargandoLegajo
+              ? 'SINCRONIZANDO…'
+              : totalSesionesLegajo > 0
+                ? `${presentesSimulador}/${totalSesionesLegajo} SESIONES`
+                : 'SIN DUPLA SYNC'}
+          </span>
+          <button
+            type="button"
+            onClick={imprimirLegajo360}
+            className="inline-flex h-9 items-center gap-1.5 rounded-sm border border-white bg-white px-3 font-mono text-[10px] font-semibold tracking-[0.1em] text-zinc-950 transition-colors hover:bg-zinc-200"
+          >
+            <Printer size={12} aria-hidden />
+            Imprimir / Exportar Legajo 360° (PDF)
+          </button>
+        </div>
+
         {/* ── Badges de cabecera ─────────────────────────────── */}
         <div className="flex flex-wrap gap-2">
           {asistencia ? (
@@ -748,6 +1092,51 @@ export default function DrawerPostulante({
                   etiqueta="DESCARTADAS -2"
                   valor={String(metricasActivas.colisionesDescartadas)}
                 />
+                {(metricasActivas.picosAceleracion !== null ||
+                  metricasActivas.porcentajeAceleradorFondo !== null) && (
+                  <Metrica
+                    etiqueta="ACELERADOR PICOS"
+                    valor={
+                      metricasActivas.picosAceleracion !== null
+                        ? `${metricasActivas.picosAceleracion}${
+                            metricasActivas.porcentajeAceleradorFondo !== null
+                              ? ` (${metricasActivas.porcentajeAceleradorFondo}%)`
+                              : ''
+                          }`
+                        : formatoNumeroSeguro(
+                            metricasActivas.porcentajeAceleradorFondo,
+                            '%',
+                            1
+                          )
+                    }
+                  />
+                )}
+                {(metricasActivas.porcentajeCirculacionHorquillaAlta !== null ||
+                  metricasActivas.alturaMaximaHorquillaM !== null) && (
+                  <Metrica
+                    etiqueta="HORQUILLA ALTA"
+                    valor={
+                      metricasActivas.porcentajeCirculacionHorquillaAlta !== null
+                        ? `${metricasActivas.porcentajeCirculacionHorquillaAlta}%`
+                        : formatoNumeroSeguro(
+                            metricasActivas.alturaMaximaHorquillaM,
+                            ' m',
+                            2
+                          )
+                    }
+                  />
+                )}
+                {(metricasActivas.oscilacionesMastil !== null ||
+                  metricasActivas.indiceInestabilidadTilt !== null) && (
+                  <Metrica
+                    etiqueta="OSCIL. MÁSTIL"
+                    valor={formatoNumeroSeguro(
+                      metricasActivas.oscilacionesMastil,
+                      '',
+                      0
+                    )}
+                  />
+                )}
               </div>
             </div>
           ) : evaluacion?.telemetria.tiene_datos ? (
@@ -775,6 +1164,46 @@ export default function DrawerPostulante({
               </div>
             </div>
           ) : null}
+
+          {perfilOperadorActivo && (
+            <div
+              className={`space-y-2 rounded-sm border p-2.5 ${BADGE_PERFIL_OPERADOR[perfilOperadorActivo].borde}`}
+            >
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className="font-mono text-[9.5px] tracking-[0.12em] text-zinc-300">
+                  PERFIL DE OPERADOR &amp; RECETA FORMATIVA
+                </span>
+                <span
+                  className={`rounded-sm px-2 py-0.5 font-mono text-[9.5px] font-bold tracking-[0.1em] ${BADGE_PERFIL_OPERADOR[perfilOperadorActivo].clase}`}
+                >
+                  {BADGE_PERFIL_OPERADOR[perfilOperadorActivo].etiqueta}
+                </span>
+              </div>
+              {rangoHorasActivo && (
+                <p className="flex items-center gap-1.5 font-mono text-[10.5px] text-zinc-100">
+                  <Clock size={12} strokeWidth={2} className="shrink-0 text-emerald-400" aria-hidden />
+                  <span>
+                    Carga recomendada: <strong>{rangoHorasActivo}</strong>
+                    {horasRecomendadasActivas !== null
+                      ? ` (${horasRecomendadasActivas} hs sugeridas)`
+                      : ''}
+                  </span>
+                </p>
+              )}
+              {modulosRecomendadosActivos.length > 0 && (
+                <ul className="space-y-1 border-t border-zinc-800/80 pt-2">
+                  {modulosRecomendadosActivos.map((modulo) => (
+                    <li
+                      key={modulo}
+                      className="font-mono text-[9.5px] leading-relaxed text-zinc-300"
+                    >
+                      • {modulo}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
 
           {avisoPersistenciaIA && (
             <p
@@ -1207,6 +1636,330 @@ export default function DrawerPostulante({
           )}
         </section>
 
+        {/* ── Legajo 360° · Asistencias de Simulador ───────────── */}
+        {cohorteId && (
+          <section
+            aria-label="Asistencias de Simulador"
+            className="space-y-3 rounded-sm border border-zinc-800 bg-zinc-950 p-3.5"
+          >
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h3 className="flex items-center gap-1.5 font-mono text-[10px] tracking-[0.16em] text-sky-300">
+                <CalendarCheck size={13} aria-hidden />
+                ASISTENCIAS DE SIMULADOR
+              </h3>
+              <span className="rounded-sm border border-zinc-700 bg-zinc-900 px-2 py-0.5 font-mono text-[10px] text-zinc-200">
+                {presentesSimulador} / {totalSesionesLegajo} PRESENTES
+              </span>
+            </div>
+
+            {cargandoLegajo ? (
+              <p className="font-mono text-[10px] text-zinc-500">Cargando sesiones…</p>
+            ) : (legajo360?.sesiones.length ?? 0) === 0 ? (
+              <p className="rounded-sm border border-dashed border-zinc-800 px-3 py-2 font-mono text-[10px] text-zinc-500">
+                Este postulante aún no tiene sesiones sincronizadas en `duplas_cabina`. Usá el botón &quot;Sincronizar Duplas y Sesiones&quot; en la grilla principal.
+              </p>
+            ) : (
+              <div className="space-y-2">
+                {legajo360?.sesiones.map((ses) => {
+                  const viernesSug =
+                    legajo360.viernesSugeridos[0] ?? ses.fecha_real ?? ses.fecha_programada;
+                  return (
+                    <div
+                      key={ses.id}
+                      className="flex flex-col gap-2 rounded-sm border border-zinc-800 bg-zinc-900/70 p-2.5 sm:flex-row sm:items-center sm:justify-between"
+                    >
+                      <div className="min-w-0 font-mono text-[10px]">
+                        <p className="font-semibold text-zinc-100">
+                          Clase #{ses.numero_sesion} · {ses.fecha_programada}{' '}
+                          <span className="text-zinc-500">
+                            ({ses.rol_inicio === 'PILOTO_INICIAL' ? 'Piloto 1°' : 'Copiloto 1°'})
+                          </span>
+                        </p>
+                        {ses.fecha_real && (
+                          <p className="text-[9.5px] text-cyan-300">
+                            Reprogramada: {ses.fecha_real}
+                            {ses.es_recuperatorio_viernes ? ' · Viernes Buffer' : ''}
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <select
+                          aria-label={`Estado sesión ${ses.numero_sesion}`}
+                          value={ses.estado_asistencia}
+                          disabled={guardandoAsisId === ses.id}
+                          onChange={(e) =>
+                            void cambiarAsistenciaLegajo(
+                              ses,
+                              e.target.value as EstadoAsistenciaUI,
+                              e.target.value === 'REPROGRAMADA' ? viernesSug : null
+                            )
+                          }
+                          className="h-8 rounded-sm border border-zinc-700 bg-zinc-950 px-2 font-mono text-[10px] text-zinc-100"
+                        >
+                          <option value="PENDIENTE">PENDIENTE</option>
+                          <option value="PRESENTE">PRESENTE</option>
+                          <option value="AUSENTE_JUSTIFICADO">AUSENTE JUSTIFICADO</option>
+                          <option value="AUSENTE_INJUSTIFICADO">AUSENTE INJUSTIFICADO</option>
+                          <option value="REPROGRAMADA">REPROGRAMADA</option>
+                        </select>
+                        <button
+                          type="button"
+                          disabled={guardandoAsisId === ses.id}
+                          onClick={() =>
+                            void cambiarAsistenciaLegajo(ses, 'REPROGRAMADA', viernesSug)
+                          }
+                          className="inline-flex h-8 items-center gap-1 rounded-sm border border-cyan-500/50 bg-cyan-950/35 px-2 font-mono text-[9.5px] text-cyan-200 hover:bg-cyan-500/20 disabled:opacity-50"
+                        >
+                          <CalendarClock size={11} aria-hidden />
+                          Reprog. a Viernes Buffer
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </section>
+        )}
+
+        {/* ── Legajo 360° · Práctica Real en Terreno + PDF ────── */}
+        {cohorteId && (
+          <form
+            onSubmit={guardarPracticaRealSubmit}
+            aria-label="Práctica Real en Terreno"
+            className="space-y-3 rounded-sm border border-zinc-800 bg-zinc-950 p-3.5"
+          >
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h3 className="flex items-center gap-1.5 font-mono text-[10px] tracking-[0.16em] text-amber-300">
+                <FileText size={13} aria-hidden />
+                PRÁCTICA REAL EN TERRENO (PASAJE A PLANTA)
+              </h3>
+              {legajo360?.practicaReal?.pdf_url_firmada && (
+                <a
+                  href={legajo360.practicaReal.pdf_url_firmada}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex h-7 items-center gap-1 rounded-sm border border-emerald-500/50 bg-emerald-950/35 px-2.5 font-mono text-[9.5px] font-semibold text-emerald-300 hover:bg-emerald-500/20"
+                >
+                  <ExternalLink size={11} aria-hidden />
+                  Abrir PDF
+                </a>
+              )}
+            </div>
+
+            <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+              <label className="space-y-1">
+                <span className="font-mono text-[9.5px] text-zinc-500">FECHA PRÁCTICA *</span>
+                <input
+                  type="date"
+                  required
+                  value={pracFecha}
+                  onChange={(e) => setPracFecha(e.target.value)}
+                  className="h-9 w-full rounded-sm border border-zinc-700 bg-zinc-900 px-2.5 font-mono text-xs text-white [color-scheme:dark]"
+                />
+              </label>
+
+              <label className="space-y-1">
+                <span className="font-mono text-[9.5px] text-zinc-500">RESULTADO *</span>
+                <select
+                  value={pracResultado}
+                  onChange={(e) => setPracResultado(e.target.value as ResultadoPracticaReal)}
+                  className="h-9 w-full rounded-sm border border-zinc-700 bg-zinc-900 px-2 font-mono text-xs text-white"
+                >
+                  <option value="aprobado">APROBADO</option>
+                  <option value="requiere_refuerzo">REQUIERE REFUERZO</option>
+                  <option value="no_apto">NO APTO</option>
+                </select>
+              </label>
+
+              <label className="space-y-1">
+                <span className="font-mono text-[9.5px] text-zinc-500">LUGAR / PREDIO *</span>
+                <input
+                  type="text"
+                  required
+                  maxLength={150}
+                  value={pracLugar}
+                  onChange={(e) => setPracLugar(e.target.value)}
+                  placeholder="Ej: Galpón Municipal / Predio Parque Industrial"
+                  className="h-9 w-full rounded-sm border border-zinc-700 bg-zinc-900 px-2.5 font-mono text-xs text-white"
+                />
+              </label>
+
+              <label className="space-y-1">
+                <span className="font-mono text-[9.5px] text-zinc-500">MÁQUINA REAL *</span>
+                <input
+                  type="text"
+                  required
+                  maxLength={120}
+                  value={pracMaquina}
+                  onChange={(e) => setPracMaquina(e.target.value)}
+                  placeholder="Ej: Toyota 8FGCU25"
+                  className="h-9 w-full rounded-sm border border-zinc-700 bg-zinc-900 px-2.5 font-mono text-xs text-white"
+                />
+              </label>
+
+              <label className="space-y-1 sm:col-span-2">
+                <span className="font-mono text-[9.5px] text-zinc-500">INSTRUCTOR DE PATIO</span>
+                <input
+                  type="text"
+                  maxLength={120}
+                  value={pracInstructor}
+                  onChange={(e) => setPracInstructor(e.target.value)}
+                  placeholder="Nombre del instructor responsable en terreno"
+                  className="h-9 w-full rounded-sm border border-zinc-700 bg-zinc-900 px-2.5 font-mono text-xs text-white"
+                />
+              </label>
+
+              <label className="space-y-1 sm:col-span-2">
+                <span className="font-mono text-[9.5px] text-zinc-500">
+                  OBSERVACIONES DE TERRENO
+                </span>
+                <textarea
+                  rows={2}
+                  maxLength={2000}
+                  value={pracObs}
+                  onChange={(e) => setPracObs(e.target.value)}
+                  placeholder="Desempeño con carga real, maniobra en espacio acotado, seguridad..."
+                  className="w-full rounded-sm border border-zinc-700 bg-zinc-900 px-2.5 py-2 font-mono text-xs text-white"
+                />
+              </label>
+
+              <div className="space-y-1 sm:col-span-2">
+                <span className="block font-mono text-[9.5px] text-zinc-500">
+                  ADJUNTAR ACTA / REPORTE PDF (MÁX 10 MB · BUCKET PRIVADO)
+                </span>
+                <input
+                  type="file"
+                  accept="application/pdf,.pdf"
+                  onChange={(e) => setPracArchivoPdf(e.target.files?.[0] ?? null)}
+                  className="block w-full rounded-sm border border-dashed border-zinc-700 bg-zinc-900 px-2.5 py-2 font-mono text-[10.5px] text-zinc-300 file:mr-3 file:rounded-sm file:border-0 file:bg-zinc-800 file:px-2.5 file:py-1 file:font-mono file:text-[10px] file:text-zinc-100"
+                />
+                {pracArchivoPdf ? (
+                  <p className="font-mono text-[9.5px] text-cyan-300">
+                    Seleccionado para subir: {pracArchivoPdf.name}
+                  </p>
+                ) : legajo360?.practicaReal?.pdf_reporte_path ? (
+                  <p className="font-mono text-[9.5px] text-emerald-400">
+                    Archivo archivado en Storage: {legajo360.practicaReal.pdf_reporte_path.split('/').pop()}
+                  </p>
+                ) : null}
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={guardandoPrac}
+              className="h-10 w-full rounded-sm border border-amber-500/60 bg-amber-500/15 px-4 font-mono text-[11px] font-semibold tracking-[0.12em] text-amber-200 transition-colors hover:bg-amber-500/25 disabled:opacity-50"
+            >
+              {guardandoPrac ? 'GUARDANDO PRÁCTICA Y PDF…' : 'GUARDAR PRÁCTICA REAL Y PDF'}
+            </button>
+          </form>
+        )}
+
+        {/* ── Legajo 360° · Evaluación Final y Dictamen de Egreso ── */}
+        {cohorteId && (
+          <section
+            aria-label="Evaluación Final y Egreso"
+            className="space-y-3 rounded-sm border border-zinc-800 bg-zinc-950 p-3.5"
+          >
+            <h3 className="flex items-center gap-1.5 font-mono text-[10px] tracking-[0.16em] text-emerald-300">
+              <Award size={13} aria-hidden />
+              FICHA FINAL DE EGRESO (COHORTE)
+            </h3>
+
+            <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-3">
+              <label className="space-y-1">
+                <span className="font-mono text-[9.5px] text-zinc-500">ESTADO EGRESO</span>
+                <select
+                  value={egEstado}
+                  onChange={(e) => setEgEstado(e.target.value as EstadoEgreso)}
+                  className="h-9 w-full rounded-sm border border-zinc-700 bg-zinc-900 px-2 font-mono text-xs text-white"
+                >
+                  <option value="INCOMPLETO">INCOMPLETO</option>
+                  <option value="CERTIFICADO">CERTIFICADO</option>
+                  <option value="ABANDONO">ABANDONO</option>
+                </select>
+              </label>
+
+              <label className="space-y-1">
+                <span className="font-mono text-[9.5px] text-zinc-500">PASE A TERRENO</span>
+                <select
+                  value={egTerrenoAprobado}
+                  onChange={(e) =>
+                    setEgTerrenoAprobado(e.target.value as 'pendiente' | 'si' | 'no')
+                  }
+                  className="h-9 w-full rounded-sm border border-zinc-700 bg-zinc-900 px-2 font-mono text-xs text-white"
+                >
+                  <option value="pendiente">PENDIENTE</option>
+                  <option value="si">APROBADO</option>
+                  <option value="no">NO APROBADO</option>
+                </select>
+              </label>
+
+              <label className="space-y-1">
+                <span className="font-mono text-[9.5px] text-zinc-500">PERFIL LABORAL</span>
+                <select
+                  value={egPerfil}
+                  onChange={(e) => setEgPerfil(e.target.value as PerfilLaboral)}
+                  className="h-9 w-full rounded-sm border border-zinc-700 bg-zinc-900 px-2 font-mono text-xs text-white"
+                >
+                  <option value="DESTACADO">DESTACADO</option>
+                  <option value="ESTANDAR">ESTÁNDAR</option>
+                  <option value="CON_OBSERVACIONES">CON OBSERVACIONES</option>
+                  <option value="NO_RECOMENDADO">NO RECOMENDADO</option>
+                </select>
+              </label>
+
+              <label className="space-y-1 sm:col-span-3">
+                <span className="font-mono text-[9.5px] text-zinc-500">
+                  DEVOLUCIÓN FINAL DE EMPLEO / RECOMENDACIÓN
+                </span>
+                <textarea
+                  rows={2}
+                  maxLength={2000}
+                  value={egObs}
+                  onChange={(e) => setEgObs(e.target.value)}
+                  placeholder="Conclusión de cierre para derivación laboral…"
+                  className="w-full rounded-sm border border-zinc-700 bg-zinc-900 px-2.5 py-2 font-mono text-xs text-white"
+                />
+              </label>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                disabled={guardandoEg}
+                onClick={guardarEgresoClick}
+                className="h-10 flex-1 rounded-sm border border-emerald-500 bg-emerald-500 px-4 font-mono text-[11px] font-semibold tracking-[0.12em] text-emerald-950 transition-colors hover:bg-emerald-400 disabled:opacity-50"
+              >
+                {guardandoEg ? 'GUARDANDO EGRESO…' : 'GUARDAR DICTAMEN DE EGRESO'}
+              </button>
+              <button
+                type="button"
+                onClick={imprimirLegajo360}
+                className="inline-flex h-10 items-center gap-1.5 rounded-sm border border-white bg-white px-3.5 font-mono text-[10.5px] font-semibold tracking-[0.1em] text-zinc-950 hover:bg-zinc-200"
+              >
+                <Printer size={13} aria-hidden />
+                PDF 360°
+              </button>
+            </div>
+          </section>
+        )}
+
+        {msgLegajo && (
+          <p
+            role={msgLegajo.tipo === 'error' ? 'alert' : 'status'}
+            className={`rounded-sm border px-3 py-2 font-mono text-[10.5px] ${
+              msgLegajo.tipo === 'ok'
+                ? 'border-emerald-500/40 bg-emerald-950/30 text-emerald-300'
+                : 'border-red-500/40 bg-red-950/30 text-red-300'
+            }`}
+          >
+            {msgLegajo.texto}
+          </p>
+        )}
+
         {/* ── Notas sociolaborales de Empleo ─────────────────── */}
         <section aria-label="Notas sociolaborales">
           <label
@@ -1239,40 +1992,44 @@ export default function DrawerPostulante({
           </button>
         </section>
 
-        {/* ── Asignación y baja ──────────────────────────────── */}
-        <section aria-label="Asignación de cabina" className="space-y-2">
-          <p className="font-mono text-[10px] tracking-[0.18em] text-zinc-500">
-            ASIGNAR A FRANJA (CONFIRMA TITULARIDAD)
-          </p>
-          <div className="flex gap-2">
-            <select
-              value={franjaSeleccionada}
-              onChange={(e) => setFranjaSeleccionada(e.target.value)}
-              aria-label="Franja de cabina disponible"
-              disabled={postulante.estado === 'DESCARTADO'}
-              className="h-11 min-w-0 flex-1 rounded-sm border border-zinc-700 bg-zinc-900 px-2 font-mono text-xs text-white focus-visible:outline-1 focus-visible:outline-white disabled:cursor-not-allowed disabled:text-zinc-600"
-            >
-              <option value="">
-                {franjasLibres.length === 0
-                  ? 'SIN FRANJAS LIBRES'
-                  : 'ELEGIR FRANJA…'}
-              </option>
-              {franjasLibres.map((f) => (
-                <option key={f.id} value={f.id}>
-                  {f.turno.toUpperCase()} · {f.horario_label} ({f.ocupantes.length}/
-                  {f.cupo_maximo})
-                </option>
-              ))}
-            </select>
-            <button
-              type="button"
-              onClick={asignar}
-              disabled={isPending || !franjaSeleccionada}
-              className="h-11 shrink-0 rounded-sm border border-emerald-500 bg-emerald-500 px-4 font-mono text-xs font-semibold tracking-[0.12em] text-emerald-950 transition-colors hover:bg-emerald-400 disabled:cursor-not-allowed disabled:border-zinc-700 disabled:bg-zinc-800 disabled:text-zinc-500 focus-visible:outline-1 focus-visible:outline-white"
-            >
-              ASIGNAR
-            </button>
-          </div>
+        {/* ── Asignación legacy y baja ─────────────────────────── */}
+        <section aria-label="Asignación y baja" className="space-y-2.5">
+          {franjas.length > 0 && (
+            <details className="rounded-sm border border-zinc-800 bg-zinc-950 p-2.5">
+              <summary className="cursor-pointer font-mono text-[10px] tracking-[0.14em] text-zinc-500 hover:text-zinc-300">
+                ASIGNACIÓN LEGACY A FRANJA (TERNAS 3 POR HORA)
+              </summary>
+              <div className="mt-2 flex gap-2">
+                <select
+                  value={franjaSeleccionada}
+                  onChange={(e) => setFranjaSeleccionada(e.target.value)}
+                  aria-label="Franja de cabina disponible"
+                  disabled={postulante.estado === 'DESCARTADO'}
+                  className="h-11 min-w-0 flex-1 rounded-sm border border-zinc-700 bg-zinc-900 px-2 font-mono text-xs text-white focus-visible:outline-1 focus-visible:outline-white disabled:cursor-not-allowed disabled:text-zinc-600"
+                >
+                  <option value="">
+                    {franjasLibres.length === 0
+                      ? 'SIN FRANJAS LIBRES'
+                      : 'ELEGIR FRANJA…'}
+                  </option>
+                  {franjasLibres.map((f) => (
+                    <option key={f.id} value={f.id}>
+                      {f.turno.toUpperCase()} · {f.horario_label} ({f.ocupantes.length}/
+                      {f.cupo_maximo})
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  onClick={asignar}
+                  disabled={isPending || !franjaSeleccionada}
+                  className="h-11 shrink-0 rounded-sm border border-emerald-500 bg-emerald-500 px-4 font-mono text-xs font-semibold tracking-[0.12em] text-emerald-950 transition-colors hover:bg-emerald-400 disabled:cursor-not-allowed disabled:border-zinc-700 disabled:bg-zinc-800 disabled:text-zinc-500 focus-visible:outline-1 focus-visible:outline-white"
+                >
+                  ASIGNAR
+                </button>
+              </div>
+            </details>
+          )}
 
           {postulante.estado !== 'DESCARTADO' ? (
             <button
@@ -1302,5 +2059,14 @@ export default function DrawerPostulante({
         )}
       </div>
     </Sheet>
+    <Legajo360Imprimible
+      postulante={postulante}
+      cohorte={cohorte}
+      comparativa={comparativa}
+      legajo={legajo360}
+      metricasOverride={metricasJsonLocal}
+      informeOverride={informeLocal}
+    />
+    </>
   );
 }

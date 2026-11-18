@@ -2,7 +2,10 @@
 
 import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import { Volume2, VolumeX, ArrowLeftRight } from 'lucide-react';
-import { registrarEvaluacionCabina } from '@/services/cabina';
+import {
+  conmutarSimuladorAutoelevadorCabina,
+  registrarEvaluacionCabina,
+} from '@/services/cabina';
 import {
   calcularDictamen,
   mapearNivelAsistenciaACabina,
@@ -289,6 +292,7 @@ export default function ConsolaTactil({
   const [corriendo, setCorriendo] = useState(false);
   const [intercambioConfirmado, setIntercambioConfirmado] = useState(false);
   const [audioSilenciado, setAudioSilenciado] = useState(false);
+  const [simuladorEnLinea, setSimuladorEnLinea] = useState(false);
 
   const [feedback, setFeedback] = useState<{ ok: boolean; texto: string } | null>(
     null
@@ -509,8 +513,15 @@ export default function ConsolaTactil({
           });
           resetPantalla();
           const nuevosEvaluados = new Set(evaluados).add(idGuardado);
+          const siguiente = siguienteSinEvaluar(alumnos, nuevosEvaluados, idxGuardado);
           setEvaluados(nuevosEvaluados);
-          setIdSeleccionado(siguienteSinEvaluar(alumnos, nuevosEvaluados, idxGuardado));
+          setIdSeleccionado(siguiente);
+          if (!siguiente) {
+            setSimuladorEnLinea(false);
+            void conmutarSimuladorAutoelevadorCabina(false);
+          } else {
+            setSimuladorEnLinea(true);
+          }
         } else {
           setFeedback({ ok: false, texto: resultado.error ?? 'ERROR AL GUARDAR' });
         }
@@ -587,11 +598,32 @@ export default function ConsolaTactil({
     <div className="mx-auto flex flex-1 w-full max-w-3xl flex-col">
       {/* ── Cabecera ─────────────────────────────────────────────── */}
       <header className="border-b border-zinc-800 px-4 pb-3 pt-4">
-        <div className="flex items-center justify-between gap-2">
+        <div className="flex flex-wrap items-center justify-between gap-2">
           <h1 className="text-sm font-semibold uppercase tracking-[0.18em] text-zinc-100">
             {'// CONSOLA VIVA DE CABINA'}
           </h1>
-          <span aria-hidden className="h-2.5 w-2.5 rounded-full bg-emerald-400 animate-pulse" />
+          <button
+            type="button"
+            onClick={() => {
+              const siguienteEstado = !simuladorEnLinea;
+              setSimuladorEnLinea(siguienteEstado);
+              void conmutarSimuladorAutoelevadorCabina(siguienteEstado);
+            }}
+            aria-pressed={simuladorEnLinea}
+            className={`inline-flex min-h-[36px] items-center gap-2 rounded-sm border px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.1em] transition-colors ${
+              simuladorEnLinea
+                ? 'border-amber-500/60 bg-amber-950/40 text-amber-300'
+                : 'border-emerald-500/40 bg-emerald-950/30 text-emerald-300'
+            }`}
+          >
+            <span
+              aria-hidden
+              className={`h-2 w-2 rounded-full ${
+                simuladorEnLinea ? 'bg-amber-400 animate-pulse' : 'bg-emerald-400'
+              }`}
+            />
+            {simuladorEnLinea ? 'SIM-01 EN OPERACIÓN (3D)' : 'SIM-01 LIBRE (3D)'}
+          </button>
         </div>
         <p className="mt-1 text-[10px] uppercase tracking-[0.14em] text-zinc-500">
           ETAPA {etapaActual.codigo} · COHORTE ACTIVA · {pendientes} PENDIENTES DE{' '}
@@ -746,6 +778,8 @@ export default function ConsolaTactil({
               onClick={() => {
                 asegurarAudioActivo();
                 setCorriendo(true);
+                setSimuladorEnLinea(true);
+                void conmutarSimuladorAutoelevadorCabina(true);
               }}
               disabled={corriendo}
               className="flex min-h-[48px] items-center justify-center rounded-sm border border-emerald-700 bg-emerald-950 text-[11px] font-bold tracking-[0.12em] text-emerald-300 transition-colors active:bg-emerald-900 disabled:border-zinc-800 disabled:bg-zinc-900 disabled:text-zinc-600"
@@ -767,6 +801,8 @@ export default function ConsolaTactil({
                 setSegundos(0);
                 setIntercambioConfirmado(false);
                 alarmaDisparadaRef.current = false;
+                setSimuladorEnLinea(false);
+                void conmutarSimuladorAutoelevadorCabina(false);
               }}
               className="flex min-h-[48px] items-center justify-center rounded-sm border border-zinc-700 bg-zinc-900 text-[11px] font-bold tracking-[0.12em] text-zinc-200 transition-colors active:bg-zinc-800"
             >

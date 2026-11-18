@@ -37,10 +37,44 @@ export interface MetricasSimulador {
   volantazosExtremos: number | null;
   velocidadMaxKmh: number | null;
   frenadasPanico: number | null;
+  picosAceleracion: number | null;
+  porcentajeAceleradorFondo: number | null;
+  muestrasHorquillaElevada: number | null;
+  porcentajeCirculacionHorquillaAlta: number | null;
+  alturaMaximaHorquillaM: number | null;
+  oscilacionesMastil: number | null;
+  indiceInestabilidadTilt: number | null;
   clasificacionRiesgo: string | null;
   clasificacionAptitud: string | null;
   hallazgosMastil: string[];
   alertaFalsoPositivoSuelo: boolean;
+}
+
+export type PerfilOperador =
+  | 'EFICIENTE'
+  | 'APURADO'
+  | 'INEFICIENTE'
+  | 'SIN_NOCION_ESPACIO'
+  | 'NOVATO';
+
+export interface ContextoCabinaClasificacion {
+  puntajeLateralidad?: number | null;
+  puntajeTactoMandos?: number | null;
+  puntajeMastil?: number | null;
+  puntajeControlReceptividad?: number | null;
+  scoreCabina?: number | null;
+  nivelAsistencia?: string | null;
+  asistenciaCabinaLegacy?: string | null;
+  hardFail?: boolean;
+}
+
+export interface ResultadoClasificacionOperador {
+  perfilOperador: PerfilOperador;
+  etiquetaPerfil: string;
+  horasRecomendadas: number;
+  rangoHorasTexto: string;
+  modulosRecomendados: string[];
+  justificacion: string;
 }
 
 export interface OpcionesParseoSimulador {
@@ -382,6 +416,70 @@ export function parsearReporteSimulador(
     leerEnteroNoNegativo(subTelemetria, ['frenadas_panico_count', 'frenadas_panico', 'frenadas']) ??
     leerEnteroNoNegativo(raiz, ['frenadas_panico_count', 'frenadas_panico', 'frenadas']);
 
+  const leerEnteroMulti = (claves: readonly string[]): number | null =>
+    leerEnteroNoNegativo(subSanitizadas, claves) ??
+    leerEnteroNoNegativo(subTelemetria, claves) ??
+    leerEnteroNoNegativo(raiz, claves);
+
+  const leerNumeroAcotadoMulti = (
+    claves: readonly string[],
+    min: number,
+    max: number,
+    decimales: number
+  ): number | null => {
+    const raw =
+      leerNumero(subSanitizadas, claves) ??
+      leerNumero(subTelemetria, claves) ??
+      leerNumero(raiz, claves);
+    if (raw === null || raw < min || raw > max) return null;
+    const factor = 10 ** decimales;
+    return Math.round(raw * factor) / factor;
+  };
+
+  const picosAceleracion = leerEnteroMulti([
+    'accel_pad_picos_count',
+    'picos_aceleracion',
+    'picosAceleracion',
+  ]);
+  const porcentajeAceleradorFondo = leerNumeroAcotadoMulti(
+    ['accel_pad_fondo_pct', 'porcentaje_acelerador_fondo', 'porcentajeAceleradorFondo'],
+    0,
+    100,
+    1
+  );
+  const muestrasHorquillaElevada = leerEnteroMulti([
+    'fork_height_muestras_elevadas',
+    'muestras_horquilla_elevada',
+    'muestrasHorquillaElevada',
+  ]);
+  const porcentajeCirculacionHorquillaAlta = leerNumeroAcotadoMulti(
+    [
+      'fork_height_elevada_pct',
+      'porcentaje_circulacion_horquilla_alta',
+      'porcentajeCirculacionHorquillaAlta',
+    ],
+    0,
+    100,
+    1
+  );
+  const alturaMaximaHorquillaM = leerNumeroAcotadoMulti(
+    ['fork_height_max_m', 'altura_maxima_horquilla_m', 'alturaMaximaHorquillaM'],
+    0,
+    20,
+    2
+  );
+  const oscilacionesMastil = leerEnteroMulti([
+    'tilt_oscilaciones_count',
+    'oscilaciones_mastil',
+    'oscilacionesMastil',
+  ]);
+  const indiceInestabilidadTilt = leerNumeroAcotadoMulti(
+    ['tilt_inestabilidad_index', 'indice_inestabilidad_tilt', 'indiceInestabilidadTilt'],
+    0,
+    100,
+    3
+  );
+
   const tieneAlgunDato =
     scorePuntos !== null ||
     tiempoDuracionSeg !== null ||
@@ -389,6 +487,9 @@ export function parsearReporteSimulador(
     volantazosExtremos !== null ||
     frenadasPanico !== null ||
     velocidadMaxKmh !== null ||
+    picosAceleracion !== null ||
+    porcentajeCirculacionHorquillaAlta !== null ||
+    oscilacionesMastil !== null ||
     colisionesRaw.length > 0 ||
     colisionesRealesNumero > 0 ||
     infraccionesFiltradas.length > 0 ||
@@ -425,9 +526,169 @@ export function parsearReporteSimulador(
     volantazosExtremos,
     velocidadMaxKmh,
     frenadasPanico,
+    picosAceleracion,
+    porcentajeAceleradorFondo,
+    muestrasHorquillaElevada,
+    porcentajeCirculacionHorquillaAlta,
+    alturaMaximaHorquillaM,
+    oscilacionesMastil,
+    indiceInestabilidadTilt,
     clasificacionRiesgo: leerString(subClasificacion, ['riesgo', 'risk']),
     clasificacionAptitud: leerString(subClasificacion, ['aptitud', 'verdict']),
     hallazgosMastil,
     alertaFalsoPositivoSuelo: colisionesDescartadas > 0,
+  };
+}
+
+/**
+ * Clasifica de forma determinista el Perfil de Operador (5 arquetipos oficiales)
+ * y emite la receta de horas y módulos recomendados cruzando telemetría + tablet.
+ */
+export function clasificarPerfilOperador(
+  telemetria: MetricasSimulador,
+  evaluacionCabina?: ContextoCabinaClasificacion | null
+): ResultadoClasificacionOperador {
+  const nivelRaw =
+    evaluacionCabina?.nivelAsistencia ??
+    evaluacionCabina?.asistenciaCabinaLegacy ??
+    null;
+  const nivel = nivelRaw ? nivelRaw.trim().toUpperCase() : null;
+  const hardFail = evaluacionCabina?.hardFail === true;
+  const scoreCabina = evaluacionCabina?.scoreCabina ?? null;
+  const puntajesEjes = [
+    evaluacionCabina?.puntajeLateralidad,
+    evaluacionCabina?.puntajeTactoMandos,
+    evaluacionCabina?.puntajeMastil,
+    evaluacionCabina?.puntajeControlReceptividad,
+  ].filter((v): v is number => typeof v === 'number' && Number.isFinite(v));
+  const ejesEnCero = puntajesEjes.filter((v) => v === 0).length;
+
+  const {
+    scorePuntos,
+    tiempoDuracionSeg,
+    colisionesReales,
+    indiceSerrucho,
+    volantazosExtremos,
+    velocidadMaxKmh,
+    frenadasPanico,
+    picosAceleracion,
+    porcentajeAceleradorFondo,
+    porcentajeCirculacionHorquillaAlta,
+    oscilacionesMastil,
+    hallazgosMastil,
+  } = telemetria;
+
+  // 1. NOVATO: bajo rendimiento global o intervención crítica / hard-fail
+  if (
+    hardFail ||
+    nivel === 'INTERVENCION_CRITICA' ||
+    (scorePuntos !== null && scorePuntos < 55) ||
+    (scoreCabina !== null && scoreCabina < 40) ||
+    ejesEnCero >= 2
+  ) {
+    const horas = hardFail || nivel === 'INTERVENCION_CRITICA' ? 10 : 8;
+    return {
+      perfilOperador: 'NOVATO',
+      etiquetaPerfil: 'Novato',
+      horasRecomendadas: horas,
+      rangoHorasTexto: '8 a 10 hs',
+      modulosRecomendados: [
+        'Familiarización integral de mandos, pedales y ergonomía de cabina',
+        'Circuitos básicos de avance, detención controlada y marcha atrás sin carga',
+        'Procedimiento guiado de horquillas e inclinación de mástil paso a paso',
+      ],
+      justificacion:
+        'Baja puntuación global o requerimiento de intervención crítica del instructor en cabina.',
+    };
+  }
+
+  // 2. SIN_NOCION_ESPACIO: problemas espaciales, radio de giro o errores de mástil/horquillas
+  if (
+    colisionesReales >= 2 ||
+    evaluacionCabina?.puntajeLateralidad === 0 ||
+    evaluacionCabina?.puntajeMastil === 0 ||
+    hallazgosMastil.length >= 2 ||
+    (porcentajeCirculacionHorquillaAlta !== null &&
+      porcentajeCirculacionHorquillaAlta >= 25) ||
+    (oscilacionesMastil !== null && oscilacionesMastil >= 4)
+  ) {
+    return {
+      perfilOperador: 'SIN_NOCION_ESPACIO',
+      etiquetaPerfil: 'Sin noción del espacio',
+      horasRecomendadas: 8,
+      rangoHorasTexto: '8 hs',
+      modulosRecomendados: [
+        'Geometría de giro con dirección trasera (barrido de contrapeso)',
+        'Circulación y giro en pasillos estrechos con referencias visuales/espejos',
+        'Control de cota segura de horquillas e inclinación de mástil con pallet',
+      ],
+      justificacion:
+        'Se detectaron colisiones reiteradas o desvíos críticos de espacio lateral y altura de mástil.',
+    };
+  }
+
+  // 3. APURADO: tiempo bajo/normal con picos agresivos de velocidad, acelerador, freno o volante
+  const tiempoBajoOMedio = tiempoDuracionSeg === null || tiempoDuracionSeg <= 390;
+  const senalExceso =
+    (velocidadMaxKmh !== null && velocidadMaxKmh >= 11) ||
+    (frenadasPanico !== null && frenadasPanico >= 2) ||
+    (indiceSerrucho !== null && indiceSerrucho >= 2.0) ||
+    (volantazosExtremos !== null && volantazosExtremos >= 3) ||
+    (picosAceleracion !== null && picosAceleracion >= 3) ||
+    (porcentajeAceleradorFondo !== null && porcentajeAceleradorFondo >= 35) ||
+    (colisionesReales === 1 &&
+      tiempoDuracionSeg !== null &&
+      tiempoDuracionSeg < 330);
+
+  if (tiempoBajoOMedio && senalExceso) {
+    return {
+      perfilOperador: 'APURADO',
+      etiquetaPerfil: 'Apurado',
+      horasRecomendadas: 6,
+      rangoHorasTexto: '6 hs',
+      modulosRecomendados: [
+        'Control progresivo de acelerador y velocidad máxima en depósito',
+        'Anticipación de frenado y reducción de volantazos en aproximación a racks',
+        'Maniobras de estiba cadenciadas con verificación previa de entorno',
+      ],
+      justificacion:
+        'Ritmo acelerado acompañado de picos de velocidad, frenadas bruscas o correcciones de volante.',
+    };
+  }
+
+  // 4. INEFICIENTE: pocos choques pero tiempos excesivos o alta dependencia verbal/constante
+  if (
+    (tiempoDuracionSeg !== null && tiempoDuracionSeg > 450) ||
+    nivel === 'INTERVENCION_CONSTANTE' ||
+    nivel === 'ALTA' ||
+    (colisionesReales <= 1 && scorePuntos !== null && scorePuntos < 75)
+  ) {
+    return {
+      perfilOperador: 'INEFICIENTE',
+      etiquetaPerfil: 'Ineficiente',
+      horasRecomendadas: 7,
+      rangoHorasTexto: '6 a 8 hs',
+      modulosRecomendados: [
+        'Fluidez operativa y encadenamiento continuo de toma, traslado y descarga',
+        'Reducción de tiempos muertos con seguridad e independencia de guía verbal',
+        'Práctica cronometrada Split 30/30 orientada a ritmo estándar de planta',
+      ],
+      justificacion:
+        'Pocas colisiones graves pero tiempos elevados o dependencia sostenida del instructor.',
+    };
+  }
+
+  // 5. EFICIENTE: desempeño óptimo y autónomo
+  return {
+    perfilOperador: 'EFICIENTE',
+    etiquetaPerfil: 'Eficiente',
+    horasRecomendadas: 4,
+    rangoHorasTexto: '4 a 6 hs estándar',
+    modulosRecomendados: [
+      'Consolidación operativa en estiba multinivel y rampas con carga completa',
+      'Evaluación integradora final orientada a pase directo a máquina real',
+    ],
+    justificacion:
+      'Control equilibrado de velocidad, volante, mástil y bajas o nulas colisiones con autonomía en cabina.',
   };
 }

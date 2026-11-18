@@ -15,6 +15,7 @@ import BotonVolver from '@/components/ui/BotonVolver';
 import {
   aFechaIso,
   describirEstadoViernesBuffer,
+  formatearDiasGrupoCorto,
   obtenerProximoLunesPosterior,
   parsearFechaUtc,
   proyectarCalendarioCohorteV2,
@@ -163,8 +164,11 @@ export default async function GestionCohortesPage({
 
   let calendarioV2: ProyeccionCohorteV2Resultado | null = null;
   if (datos) {
-    const { fecha_teoria: fechaTeoria, fecha_inicio_sim: fechaInicioSim } =
-      datos.cohorte;
+    const {
+      fecha_teoria: fechaTeoria,
+      fecha_inicio_sim: fechaInicioSim,
+      configuracion_cursado: configCursado,
+    } = datos.cohorte;
     if (fechaInicioSim || fechaTeoria) {
       try {
         const fechaTeoriaResuelta = fechaTeoria ?? fechaInicioSim!;
@@ -175,6 +179,7 @@ export default async function GestionCohortesPage({
           fechaInicioSimulador: fechaInicioResuelta,
           diasBloqueados: feriadosMunicipales,
           estrategiaFeriados: 'MOVER_A_VIERNES',
+          configuracionCursado: configCursado,
         });
       } catch (err) {
         console.error(
@@ -190,6 +195,19 @@ export default async function GestionCohortesPage({
   const semanasCronograma = calendarioV2
     ? construirSemanasCronograma(calendarioV2)
     : [];
+  const viernesSugeridos = calendarioV2
+    ? calendarioV2.viernesEstado.map((v) => v.fecha)
+    : [];
+  const tieneTernasLegacy = datos
+    ? datos.franjas.some((f) => f.ocupantes.length > 0)
+    : false;
+  const diasGrupoALabel = datos
+    ? formatearDiasGrupoCorto(datos.cohorte.configuracion_cursado.dias_grupo_a)
+    : 'Lun/Mié';
+  const diasGrupoBLabel =
+    datos && datos.cohorte.configuracion_cursado.dias_grupo_b.length > 0
+      ? formatearDiasGrupoCorto(datos.cohorte.configuracion_cursado.dias_grupo_b)
+      : null;
 
   // Fuente de verdad del cronograma: proyección V2 de duplas + bloques de turnos.
   const proyeccion = datos
@@ -276,6 +294,7 @@ export default async function GestionCohortesPage({
               calendarioV2?.fechaPaseTerreno ?? datos.cohorte.fecha_pase_planta
             }
             feriadosMunicipales={feriadosMunicipales}
+            configuracionInicial={datos.cohorte.configuracion_cursado}
           />
 
           <section
@@ -285,9 +304,9 @@ export default async function GestionCohortesPage({
             <div className="flex flex-wrap items-center justify-between gap-2">
               <h2 className="flex items-center gap-2 font-mono text-[11px] tracking-[0.18em] text-zinc-400">
                 <CalendarCheck2 size={14} strokeWidth={1.75} aria-hidden />
-                CRONOGRAMA DE DUPLAS (3 SEMANAS){' '}
+                CRONOGRAMA DE DUPLAS ({semanasCronograma.length || 3} SEMANAS){' '}
                 <span className="text-zinc-600">
-                  {'// GRUPO A LUN-MIÉ · GRUPO B MAR-JUE'}
+                  {`// GRUPO A ${diasGrupoALabel.toUpperCase()}${diasGrupoBLabel ? ` · GRUPO B ${diasGrupoBLabel.toUpperCase()}` : ' · SIN GRUPO B'}`}
                 </span>
               </h2>
               <span
@@ -343,7 +362,7 @@ export default async function GestionCohortesPage({
                         <div className="mt-3 space-y-2.5 font-mono text-[11px]">
                           <div>
                             <p className="text-[10px] tracking-[0.12em] text-zinc-500">
-                              GRUPO A · 4 DUPLAS (LUN / MIÉ)
+                              GRUPO A · {datos.cohorte.configuracion_cursado.franjas_activas.length} DUPLAS ({diasGrupoALabel.toUpperCase()})
                             </p>
                             <div className="mt-1 flex flex-wrap gap-1.5">
                               {sem.jornadasGrupoA.map((j) => (
@@ -363,27 +382,29 @@ export default async function GestionCohortesPage({
                             </div>
                           </div>
 
-                          <div>
-                            <p className="text-[10px] tracking-[0.12em] text-zinc-500">
-                              GRUPO B · 4 DUPLAS (MAR / JUE)
-                            </p>
-                            <div className="mt-1 flex flex-wrap gap-1.5">
-                              {sem.jornadasGrupoB.map((j) => (
-                                <span
-                                  key={j.fecha}
-                                  className={`rounded-sm border px-2 py-0.5 text-[10.5px] ${
-                                    j.esRecuperatorioViernes
-                                      ? 'border-amber-500/40 bg-amber-950/35 text-amber-200'
-                                      : 'border-zinc-800 bg-zinc-900 text-zinc-200'
-                                  }`}
-                                >
-                                  {j.diaSemana.slice(0, 3).toUpperCase()}{' '}
-                                  {formatoFechaCortaUtc(j.fecha)}
-                                  {j.esRecuperatorioViernes ? ' · RECUP.' : ''}
-                                </span>
-                              ))}
+                          {diasGrupoBLabel && sem.jornadasGrupoB.length > 0 && (
+                            <div>
+                              <p className="text-[10px] tracking-[0.12em] text-zinc-500">
+                                GRUPO B · {datos.cohorte.configuracion_cursado.franjas_activas.length} DUPLAS ({diasGrupoBLabel.toUpperCase()})
+                              </p>
+                              <div className="mt-1 flex flex-wrap gap-1.5">
+                                {sem.jornadasGrupoB.map((j) => (
+                                  <span
+                                    key={j.fecha}
+                                    className={`rounded-sm border px-2 py-0.5 text-[10.5px] ${
+                                      j.esRecuperatorioViernes
+                                        ? 'border-amber-500/40 bg-amber-950/35 text-amber-200'
+                                        : 'border-zinc-800 bg-zinc-900 text-zinc-200'
+                                    }`}
+                                  >
+                                    {j.diaSemana.slice(0, 3).toUpperCase()}{' '}
+                                    {formatoFechaCortaUtc(j.fecha)}
+                                    {j.esRecuperatorioViernes ? ' · RECUP.' : ''}
+                                  </span>
+                                ))}
+                              </div>
                             </div>
-                          </div>
+                          )}
 
                           <div
                             className={`rounded-sm border px-2.5 py-2 ${
@@ -430,22 +451,26 @@ export default async function GestionCohortesPage({
             )}
           </section>
 
-          <section aria-label="Parrilla de cabina" className="space-y-3">
-            <h2 className="font-mono text-[11px] tracking-[0.18em] text-zinc-400">
-              PARRILLA DE CABINA{' '}
-              <span className="text-zinc-600">
-                {'// 4 FRANJAS MAÑANA · 3 TARDE · 3 PUESTOS C/U'}
-              </span>
-            </h2>
-            <ParrillaCabina franjas={datos.franjas} />
-          </section>
-
           <PanelDuplasYPostulantes
             key={datos.cohorte.id}
-            cohorteId={datos.cohorte.id}
+            cohorte={datos.cohorte}
             postulantes={datos.postulantes}
             franjas={datos.franjas}
+            duplasPersistidas={datos.duplasPersistidas}
+            sesionesPractica={datos.sesionesPractica}
+            viernesSugeridos={viernesSugeridos}
           />
+
+          {tieneTernasLegacy && (
+            <details className="rounded-sm border border-zinc-800 bg-zinc-950/60 p-3">
+              <summary className="cursor-pointer font-mono text-[10.5px] tracking-[0.16em] text-zinc-500 hover:text-zinc-300">
+                ARCHIVO LEGACY · PARRILLA DE TERNAS (MODELO ANTERIOR 3 POR HORA)
+              </summary>
+              <div className="mt-3">
+                <ParrillaCabina franjas={datos.franjas} />
+              </div>
+            </details>
+          )}
         </>
       )}
       </div>
@@ -475,7 +500,10 @@ export default async function GestionCohortesPage({
 
           <section className="hc-seccion">
             <h2 className="hc-seccion-titulo">
-              ETAPA 2 · PRÁCTICA EN SIMULADOR (MODELO DUPLAS · 16 ALUMNOS)
+              ETAPA 2 · PRÁCTICA EN SIMULADOR (MODELO DUPLAS ·{' '}
+              {datos.cohorte.configuracion_cursado.franjas_activas.length *
+                (diasGrupoBLabel ? 4 : 2)}{' '}
+              ALUMNOS)
             </h2>
             <p className="hc-dato">
               Inicio:{' '}
@@ -490,8 +518,9 @@ export default async function GestionCohortesPage({
               )}
             </p>
             <p className="hc-dato">
-              Régimen: 8 duplas (Grupo A: Lun/Mié · Grupo B: Mar/Jue), 6 clases de
-              1 hora por alumno.
+              Régimen: {datos.cohorte.configuracion_cursado.franjas_activas.length * (diasGrupoBLabel ? 2 : 1)} duplas (Grupo A: {diasGrupoALabel}
+              {diasGrupoBLabel ? ` · Grupo B: ${diasGrupoBLabel}` : ''}),{' '}
+              {datos.cohorte.configuracion_cursado.sesiones_objetivo} clases de 1 hora por alumno.
             </p>
             {semanasCronograma.length > 0 && (
               <div className="mt-2 space-y-1">

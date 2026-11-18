@@ -15,6 +15,7 @@
 import type { CohorteActiva, FranjaCabina, TurnoFranja } from '@/types/empleo';
 import {
   describirEstadoViernesBuffer,
+  formatearDiasGrupoCorto,
   type ProyeccionCohorteV2Resultado,
 } from '@/lib/calendario-duplas';
 
@@ -166,11 +167,20 @@ export function generarTextoWhatsApp(
   const inicioSim = cal?.fechaInicioSimulador ?? cohorte.fecha_inicio_sim;
   const finSim = cal?.fechaFinSimulador ?? cohorte.fecha_fin_sim;
 
-  lineas.push('🚜 *ETAPA 2: PRÁCTICA EN SIMULADOR (MODELO DUPLAS · 3 SEMANAS)*');
+  const cfg = cohorte.configuracion_cursado;
+  const cantDuplas =
+    cfg.franjas_activas.length *
+    ((cfg.dias_grupo_a.length > 0 ? 1 : 0) + (cfg.dias_grupo_b.length > 0 ? 1 : 0));
+  const resumenGrupos =
+    cfg.dias_grupo_b.length > 0
+      ? `Grupo A: ${formatearDiasGrupoCorto(cfg.dias_grupo_a)} · Grupo B: ${formatearDiasGrupoCorto(cfg.dias_grupo_b)}`
+      : `Grupo Único: ${formatearDiasGrupoCorto(cfg.dias_grupo_a)}`;
+
+  lineas.push('🚜 *ETAPA 2: PRÁCTICA EN SIMULADOR (MODELO DUPLAS)*');
   lineas.push(`• Inicio: ${formatearFechaLegible(inicioSim)}`);
   lineas.push(`• Finalización: ${formatearFechaLegible(finSim)}`);
   lineas.push(
-    '• Régimen: 16 alumnos en 8 duplas (Grupo A: Lun/Mié · Grupo B: Mar/Jue · 6 sesiones de 1 h).'
+    `• Régimen: hasta ${cantDuplas * 2} alumnos en ${cantDuplas} duplas (${resumenGrupos} · ${cfg.sesiones_objetivo} sesiones de 1 h).`
   );
   if (cal && cal.viernesEstado.length > 0) {
     cal.viernesEstado.forEach((v, idx) => {

@@ -34,6 +34,126 @@ const ARCHIVO_FUENTE_POR_ETAPA: Record<EtapaEvaluacionCabina, string> = {
   FINAL: 'CABINA_TABLET_FINAL',
 };
 
+const IDS_SIMULADOR_AUTOELEVADOR = ['autoelevador', 'SIM-01'] as const;
+
+type ClienteSupabaseServidor = Awaited<ReturnType<typeof createClient>>;
+
+interface FilaSimuladorAutoelevador {
+  id: string;
+  estado: string | null;
+  horas_uso_totales: number | null;
+}
+
+async function sincronizarSimuladorAutoelevador(
+  supabase: ClienteSupabaseServidor,
+  enOperacion: boolean,
+  segundosSesion?: number | null
+): Promise<boolean> {
+  const { data: filasRaw, error: errSelect } = await supabase
+    .from('simuladores')
+    .select('id, estado, horas_uso_totales')
+    .in('id', [...IDS_SIMULADOR_AUTOELEVADOR])
+    .returns<FilaSimuladorAutoelevador[]>();
+
+  if (errSelect) {
+    console.error('[cabina] Error al leer simulador de autoelevador:', {
+      code: errSelect.code,
+      message: errSelect.message,
+    });
+    return false;
+  }
+
+  const filas = filasRaw ?? [];
+  if (filas.length === 0) return false;
+
+  const ahoraIso = new Date().toISOString();
+  const horasExtra =
+    typeof segundosSesion === 'number' &&
+    Number.isFinite(segundosSesion) &&
+    segundosSesion > 0
+      ? Math.round((segundosSesion / 3600) * 100) / 100
+      : 0;
+
+  let actualizadoAlguno = false;
+  for (const fila of filas) {
+    if (fila.estado === 'mantenimiento') continue;
+
+    const horasActuales =
+      typeof fila.horas_uso_totales === 'number' &&
+      Number.isFinite(fila.horas_uso_totales)
+        ? fila.horas_uso_totales
+        : 0;
+
+    const patch: {
+      estado: 'en_operacion' | 'libre';
+      actualizado_el: string;
+      actividad_actual_id?: null;
+      horas_uso_totales?: number;
+    } = enOperacion
+      ? {
+          estado: 'en_operacion',
+          actualizado_el: ahoraIso,
+        }
+      : {
+          estado: 'libre',
+          actividad_actual_id: null,
+          actualizado_el: ahoraIso,
+        };
+
+    if (horasExtra > 0) {
+      patch.horas_uso_totales = Math.round((horasActuales + horasExtra) * 100) / 100;
+    }
+
+    const { error: errUpdate } = await supabase
+      .from('simuladores')
+      .update(patch)
+      .eq('id', fila.id);
+
+    if (errUpdate) {
+      console.error('[cabina] Error al actualizar estado SIM-01:', {
+        id: fila.id,
+        code: errUpdate.code,
+        message: errUpdate.message,
+      });
+    } else {
+      actualizadoAlguno = true;
+    }
+  }
+
+  return actualizadoAlguno;
+}
+
+/**
+ * Conmuta en tiempo real el estado de SIM-01 (`autoelevador`) en `public.simuladores`
+ * desde la Consola Viva de Cabina para reflejar su operación en el Gemelo Digital 3D.
+ */
+export async function conmutarSimuladorAutoelevadorCabina(
+  enOperacion: boolean
+): Promise<{ ok: boolean; error?: string }> {
+  if (typeof enOperacion !== 'boolean') {
+    return { ok: false, error: 'Estado de simulador inválido.' };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: 'Sesión no válida.' };
+
+  const ok = await sincronizarSimuladorAutoelevador(supabase, enOperacion);
+  if (!ok) {
+    return {
+      ok: false,
+      error: 'No se pudo actualizar SIM-01 (verificá que no esté en mantenimiento).',
+    };
+  }
+
+  revalidatePath('/');
+  revalidatePath('/admin');
+  revalidatePath('/admin/registro-actividades');
+  return { ok: true };
+}
+
 type PostulanteRel = { nombre_completo: string; dni: string };
 
 type FilaInscripcion = {
@@ -406,7 +526,13 @@ export async function registrarEvaluacionCabina(
     }
   }
 
+  // Refleja la práctica activa de autoelevador en SIM-01 (Gemelo 3D + SCADA).
+  await sincronizarSimuladorAutoelevador(supabase, true, tiempo);
+
   revalidatePath('/cabina/evaluacion');
   revalidatePath('/gestion/cohortes');
+  revalidatePath('/admin');
+  revalidatePath('/admin/registro-actividades');
+  revalidatePath('/');
   return { ok: true, dictamen: dictamenFinal, score: score_total };
 }

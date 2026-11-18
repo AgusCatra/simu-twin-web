@@ -29,13 +29,23 @@ INPUT_DIR = r"C:\Users\catra\Desktop\Reportes diagnostico nov"
 OUTPUT_JSON = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
                            "telemetria_cohortes.json")
 
-# indices (en orden de aparicion de imagenes de las pags 5-12) de los canales objetivo
+# indices (en orden de aparicion de imagenes de las pags 5-12) de los 6 canales objetivo
+IDX_ACCEL_PAD = 3
 IDX_BRAKE = 4
+IDX_FORK_HEIGHT = 7
+IDX_TILT_ANGLE = 8
 IDX_STEERING = 9
 IDX_SPEED = 10
 
 # paso de rejilla (valor entre lineas de grid) por canal, segun plantilla verificada
-GRID_STEP = {"brake": 1.0, "steering": 5.0, "speed": 0.5}
+GRID_STEP = {
+    "accel_pad": 1.0,
+    "brake": 1.0,
+    "fork_height": 0.5,
+    "tilt_angle": 2.0,
+    "steering": 5.0,
+    "speed": 0.5,
+}
 
 RE_TIME = re.compile(r"^\d{2}:\d{2}:\d{2}$")
 TYPES = {"PrechecksViolation", "Driving", "Collision", "ExerciseTasks", "VehicleParking"}
@@ -190,7 +200,7 @@ def analizar_canal(doc, page_no, local_idx, canal):
     y_top, y_bot = grid[0], grid[-1]
     n_int = len(grid) - 1
     paso = GRID_STEP[canal]
-    if canal == "steering":
+    if canal in ("steering", "tilt_angle"):
         v_max, v_min = paso * n_int / 2.0, -paso * n_int / 2.0
     else:
         v_max, v_min = paso * n_int, 0.0
@@ -199,14 +209,23 @@ def analizar_canal(doc, page_no, local_idx, canal):
         return None
     vals = v_max + (ys - y_top) * (v_min - v_max) / max(y_bot - y_top, 1e-9)
     if v_min >= 0.0:
-        # Canales no bipolares (brake, speed, fork height): el artefacto de
+        # Canales no bipolares (accel_pad, brake, speed, fork_height): el artefacto de
         # sensor -2 cae bajo la ultima gridline y la extrapolacion lineal lo
         # conserva. Se clampea a 0.0 para no distorsionar medias ni picos.
         vals = np.maximum(vals, 0.0)
     return {"vals": vals, "v_max": v_max, "v_min": v_min}
 
 
+def _contar_rachas(mask):
+    """Cuenta eventos consecutivos donde una condicion booleana se activa."""
+    if not mask.size:
+        return 0
+    return int(np.sum(mask[1:] & ~mask[:-1]) + (1 if mask[0] else 0))
+
+
 def metricas_steering(doc, orden):
+    if len(orden) <= IDX_STEERING:
+        return None, None
     pg, li = orden[IDX_STEERING]
     d = analizar_canal(doc, pg, li, "steering")
     if not d:
@@ -214,31 +233,79 @@ def metricas_steering(doc, orden):
     v = d["vals"]
     serrucho = float(np.mean(np.abs(np.diff(v)))) if v.size > 1 else 0.0
     tope = 14.0 - 0.5  # topes mecanicos +/-14 segun plantilla
-    alto = v >= tope
-    bajo = v <= -tope
-    contacto = alto | bajo
-    # contar eventos (rachas consecutivas) de contacto con topes
-    volantazos = int(np.sum(contacto[1:] & ~contacto[:-1]) + (1 if contacto.size and contacto[0] else 0))
+    contacto = (v >= tope) | (v <= -tope)
+    volantazos = _contar_rachas(contacto)
     return round(serrucho, 3), volantazos
 
 
 def metricas_brake(doc, orden):
+    if len(orden) <= IDX_BRAKE:
+        return None
     pg, li = orden[IDX_BRAKE]
     d = analizar_canal(doc, pg, li, "brake")
     if not d:
         return None
     v = d["vals"]
     pico = v >= 9.5  # nivel 10
-    frenadas = int(np.sum(pico[1:] & ~pico[:-1]) + (1 if pico.size and pico[0] else 0))
-    return frenadas
+    return _contar_rachas(pico)
 
 
 def metricas_speed(doc, orden):
+    if len(orden) <= IDX_SPEED:
+        return None
     pg, li = orden[IDX_SPEED]
     d = analizar_canal(doc, pg, li, "speed")
     if not d:
         return None
     return round(float(np.max(d["vals"])), 2)
+
+
+def metricas_accel_pad(doc, orden):
+    """Digitaliza Acceleration Pad (idx 3): picos bruscos y % a fondo."""
+    if len(orden) <= IDX_ACCEL_PAD:
+        return None, None
+    pg, li = orden[IDX_ACCEL_PAD]
+    d = analizar_canal(doc, pg, li, "accel_pad")
+    if not d:
+        return None, None
+    v = d["vals"]
+    umbral_pico = max(d["v_max"] * 0.85, 1e-6)
+    umbral_fondo = max(d["v_max"] * 0.80, 1e-6)
+    picos = _contar_rachas(v >= umbral_pico)
+    pct_fondo = round(float(np.mean(v >= umbral_fondo) * 100.0), 1)
+    return picos, pct_fondo
+
+
+def metricas_fork_height(doc, orden):
+    """Digitaliza Fork Height (idx 7): circulacion con horquillas sobre cota segura (0.35 m)."""
+    if len(orden) <= IDX_FORK_HEIGHT:
+        return None, None, None
+    pg, li = orden[IDX_FORK_HEIGHT]
+    d = analizar_canal(doc, pg, li, "fork_height")
+    if not d:
+        return None, None, None
+    v = d["vals"]
+    cota_segura = 0.35
+    sobre_cota = v > cota_segura
+    muestras_elevadas = int(np.sum(sobre_cota))
+    pct_elevada = round(float(np.mean(sobre_cota) * 100.0), 1)
+    altura_max_m = round(float(np.max(v)), 2)
+    return muestras_elevadas, pct_elevada, altura_max_m
+
+
+def metricas_tilt_angle(doc, orden):
+    """Digitaliza Tilt Angle (idx 8): oscilaciones extremas e inestabilidad de mastil."""
+    if len(orden) <= IDX_TILT_ANGLE:
+        return None, None
+    pg, li = orden[IDX_TILT_ANGLE]
+    d = analizar_canal(doc, pg, li, "tilt_angle")
+    if not d:
+        return None, None
+    v = d["vals"]
+    inestabilidad = float(np.mean(np.abs(np.diff(v)))) if v.size > 1 else 0.0
+    tope_tilt = max(d["v_max"] * 0.65, 3.0)
+    oscilaciones = _contar_rachas(np.abs(v) >= tope_tilt)
+    return oscilaciones, round(inestabilidad, 3)
 
 
 def clasificar(colisiones, serrucho, frenadas):
@@ -267,17 +334,29 @@ def procesar_pdf(ruta):
         for i in range(4, min(doc.page_count, 12)):
             for k in range(len(doc[i].get_images(full=True))):
                 orden.append((i, k))
-        serrucho, volantazos = (None, None)
-        frenadas = None
-        speed_max = None
-        if len(orden) > max(IDX_BRAKE, IDX_STEERING, IDX_SPEED):
-            serrucho, volantazos = metricas_steering(doc, orden)
-            frenadas = metricas_brake(doc, orden)
-            speed_max = metricas_speed(doc, orden)
+        serrucho, volantazos = metricas_steering(doc, orden)
+        frenadas = metricas_brake(doc, orden)
+        speed_max = metricas_speed(doc, orden)
+        accel_picos, accel_fondo_pct = metricas_accel_pad(doc, orden)
+        fork_muestras_altas, fork_alta_pct, fork_max_m = metricas_fork_height(doc, orden)
+        tilt_oscilaciones, tilt_inestabilidad = metricas_tilt_angle(doc, orden)
 
         dur = portada.get("Exercise Duration", "")
         inicio = portada.get("Exercise Start Time")
         riesgo, aptitud = clasificar(len(colisiones), serrucho, frenadas)
+        bloque_telemetria = {
+            "steering_serrucho_index": serrucho,
+            "steering_volantazos_extremos": volantazos,
+            "speed_max_estimada_kmh": speed_max,
+            "frenadas_panico_count": frenadas,
+            "accel_pad_picos_count": accel_picos,
+            "accel_pad_fondo_pct": accel_fondo_pct,
+            "fork_height_muestras_elevadas": fork_muestras_altas,
+            "fork_height_elevada_pct": fork_alta_pct,
+            "fork_height_max_m": fork_max_m,
+            "tilt_oscilaciones_count": tilt_oscilaciones,
+            "tilt_inestabilidad_index": tilt_inestabilidad,
+        }
         return {
             "archivo": os.path.basename(ruta),
             "archivo_fuente": os.path.basename(ruta),
@@ -296,19 +375,11 @@ def procesar_pdf(ruta):
             "infracciones_conduccion": [{"timestamp": c["timestamp"],
                                          "descripcion": c["descripcion"]} for c in conduccion],
             "descartes_sanitizados": descartes,
-            "telemetria": {
-                "steering_serrucho_index": serrucho,
-                "steering_volantazos_extremos": volantazos,
-                "speed_max_estimada_kmh": speed_max,
-                "frenadas_panico_count": frenadas,
-            },
+            "telemetria": bloque_telemetria,
             "metricas_sanitizadas": {
                 "n_colisiones_reales": len(colisiones),
                 "colisiones_descartadas": len(descartes),
-                "steering_serrucho_index": serrucho,
-                "steering_volantazos_extremos": volantazos,
-                "speed_max_estimada_kmh": speed_max,
-                "frenadas_panico_count": frenadas,
+                **bloque_telemetria,
             },
             "clasificacion": {"riesgo": riesgo, "aptitud": aptitud},
         }
