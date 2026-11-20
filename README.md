@@ -13,37 +13,37 @@
 
 ## 📖 Documentación Completa
 
-Para acceder a la documentación técnica exhaustiva, diagramas de arquitectura, modelos de datos, políticas de seguridad RLS y flujos de trabajo, consulta la **[Wiki Oficial del Proyecto](file:///c:/Users/catra/Desktop/simu-twin-web/docs/WIKI.md)**.
+Para acceder a la documentación técnica exhaustiva, diagramas de arquitectura, modelos de datos, políticas de seguridad RLS y flujos de trabajo, consulta la **[Wiki Oficial del Proyecto](docs/WIKI.md)**.
 
 ---
 
 ## 🚀 Módulos Principales
 
-### 1. 🏭 Gemelo Digital 3D y Nave SCADA ([`src/components/gemelo/`](file:///c:/Users/catra/Desktop/simu-twin-web/src/components/gemelo/))
+### 1. 🏭 Gemelo Digital 3D y Nave SCADA ([`src/components/gemelo/`](src/components/gemelo/))
 - **Nave Industrial Procedural**: Modelado en Three.js con dimensiones reales (28m x 22m x 7.5m), cerchas, columnas de acero y demarcación perimetral de seguridad continua.
 - **7 Puestos de Simulación**: Autoelevador, pala frontal, retroexcavadora, grúa telescópica, tractor, camión articulado y cabina SimSpray.
 - **Operarios 3D Animados**: Cinemática directa con mameluco de trabajo, casco de seguridad y visor VR, alternando estados entre descanso, caminata y operación.
 - **HUD SCADA**: Telemetría en tiempo real de consumo eléctrico (kWh), temperatura de cabina y puestos activos.
 
-### 2. 🎓 Reserva de Visitas Educativas H4 ([`src/app/visitas/`](file:///c:/Users/catra/Desktop/simu-twin-web/src/app/visitas/))
+### 2. 🎓 Reserva de Visitas Educativas H4 ([`src/app/visitas/`](src/app/visitas/))
 - Formulario público para contingentes de 5° y 6° año de escuelas secundarias (cupo máximo: 40 alumnos).
 - Validación de disponibilidad contra calendario municipal (`fechas_habilitadas`).
 - Carga dinámica de nóminas de alumnos y docentes con DNI argentino.
 - Consentimientos de póliza de seguro, registro fotográfico y medidas judiciales.
 
-### 3. 🚌 Logística TUP ([`src/app/admin/tup/`](file:///c:/Users/catra/Desktop/simu-twin-web/src/app/admin/tup/))
+### 3. 🚌 Logística TUP ([`src/app/admin/tup/`](src/app/admin/tup/))
 - Panel móvil para choferes y coordinadores del Transporte Urbano de Pasajeros de Venado Tuerto.
 - Control de franjas horarias de retiro y retorno de estudiantes.
 - Estados de viaje en tiempo real (`pendiente`, `en_camino`, `en_destino`, `completado`, `cancelado`).
 - Botón de enlace directo a WhatsApp con los docentes a cargo.
 
-### 4. ⚙️ Rack de Simuladores y Sesiones en Vivo ([`src/app/admin/registro-actividades/`](file:///c:/Users/catra/Desktop/simu-twin-web/src/app/admin/registro-actividades/))
+### 4. ⚙️ Rack de Simuladores y Sesiones en Vivo ([`src/app/admin/registro-actividades/`](src/app/admin/registro-actividades/))
 - Conmutador en vivo del estado de cada puesto físico (`libre`, `en_operacion`, `mantenimiento`).
 - Panel de sesión activa con cronómetro, registro de empresa/institución y nómina de participantes.
 - **Métricas de Inclusión**: Registro tipado por género (Hombre, Mujer, Otro, N/E) para estadísticas de equidad en oficios.
 - Acumulación automática de horas de uso en cada máquina física al finalizar la sesión.
 
-### 5. 🛡️ Seguridad y Control de Acceso ([`src/middleware.ts`](file:///c:/Users/catra/Desktop/simu-twin-web/src/middleware.ts))
+### 5. 🛡️ Seguridad y Control de Acceso ([`src/middleware.ts`](src/middleware.ts))
 - Autenticación administrativa mediante Supabase Auth y Middleware en el Edge.
 - **Row Level Security (RLS)**: Nóminas y datos personales de menores inaccesibles para usuarios anónimos.
 - Trigger PL/pgSQL que blinda checks operativos contra manipulaciones externas.
