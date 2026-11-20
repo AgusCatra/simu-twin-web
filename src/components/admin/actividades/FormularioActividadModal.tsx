@@ -40,10 +40,28 @@ interface FilaParticipante {
   puesto: string;
 }
 
+/** Fecha de hoy en zona horaria Argentina en formato YYYY-MM-DD. */
+function obtenerFechaHoyIso(): string {
+  try {
+    const formateada = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'America/Argentina/Buenos_Aires',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).format(new Date());
+    if (/^\d{4}-\d{2}-\d{2}$/.test(formateada)) {
+      return formateada;
+    }
+  } catch {
+    // Fallback UTC ISO si Intl falla en un entorno restringido
+  }
+  return new Date().toISOString().slice(0, 10);
+}
+
 /** Fila inicial vacía para arrancar la grilla. */
-function filaVacia(indice: number): FilaParticipante {
+function filaVacia(indice: number, claveFija?: string): FilaParticipante {
   return {
-    clave: `p-${indice}-${Math.random().toString(36).slice(2, 8)}`,
+    clave: claveFija ?? `p-${indice}-${Math.random().toString(36).slice(2, 8)}`,
     apellido_nombre: '',
     dni: '',
     genero: 'no_especifica',
@@ -79,18 +97,18 @@ export default function FormularioActividadModal({
   onRegistrada,
 }: FormularioActividadModalProps) {
   const [entidadNombre, setEntidadNombre] = useState('');
-  const [tipo, setTipo] = useState<TipoActividad>('empresa');
-  const [estado, setEstado] = useState<EstadoActividad>('planificada');
+  const [tipo, setTipo] = useState<TipoActividad>('institucional');
+  const [estado, setEstado] = useState<EstadoActividad>('finalizada');
   const [contactoNombre, setContactoNombre] = useState('');
   const [contactoTelefono, setContactoTelefono] = useState('');
-  const [fecha, setFecha] = useState('');
+  const [fecha, setFecha] = useState<string>(() => obtenerFechaHoyIso());
   const [horaInicio, setHoraInicio] = useState('');
   const [horaFin, setHoraFin] = useState('');
   const [duracionManual, setDuracionManual] = useState('');
   const [observaciones, setObservaciones] = useState('');
   const [simuladoresIds, setSimuladoresIds] = useState<string[]>([]);
   const [participantes, setParticipantes] = useState<FilaParticipante[]>(() => [
-    filaVacia(0),
+    filaVacia(0, 'p-0-inicial'),
   ]);
   const [error, setError] = useState<string | null>(null);
   const [pendiente, startTransition] = useTransition();
@@ -130,17 +148,17 @@ export default function FormularioActividadModal({
 
   function reiniciarFormulario() {
     setEntidadNombre('');
-    setTipo('empresa');
-    setEstado('planificada');
+    setTipo('institucional');
+    setEstado('finalizada');
     setContactoNombre('');
     setContactoTelefono('');
-    setFecha('');
+    setFecha(obtenerFechaHoyIso());
     setHoraInicio('');
     setHoraFin('');
     setDuracionManual('');
     setObservaciones('');
     setSimuladoresIds([]);
-    setParticipantes([filaVacia(0)]);
+    setParticipantes([filaVacia(0, 'p-0-inicial')]);
     setError(null);
   }
 
@@ -219,10 +237,10 @@ export default function FormularioActividadModal({
               id="titulo-modal-actividad"
               className="text-lg font-bold text-slate-900"
             >
-              Nueva Actividad
+              Nueva Actividad / Visita Institucional
             </h2>
             <p className="mt-0.5 text-sm text-slate-600">
-              Registro de entidad, simuladores utilizados y lista de participantes
+              Registro rápido de entidad, simuladores utilizados y lista de participantes
             </p>
           </div>
           <button

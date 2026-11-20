@@ -1,9 +1,6 @@
 import type { Metadata } from 'next';
 import { createClient } from '@/lib/supabase/server';
-import { obtenerEstadisticasGlobalesCentro } from '@/services/estadisticas-centro';
-import RackSimuladores from '@/components/admin/actividades/RackSimuladores';
 import TablaActividades from '@/components/admin/actividades/TablaActividades';
-import PanelEstadisticasCentro from '@/components/admin/actividades/PanelEstadisticasCentro';
 import type {
   ActividadItem,
   EstadoActividad,
@@ -18,20 +15,19 @@ import type {
 /**
  * /admin/registro-actividades — Server Component.
  *
- * La página consulta en paralelo la flota (simuladores) y el historial de
- * actividades con sus relaciones anidadas (participantes + simuladores),
- * y entrega la foto a los componentes cliente del Rack, la Tabla y el Modal.
+ * Vista dedicada al Registro de Actividades e Institucionales:
+ * alta rápida (y apertura automática con `?nueva=1`), Monitor de Sesión en Vivo,
+ * totalizador de personas/horas e historial completo filtrable por categoría.
  */
 
 export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
-  title: 'Registro de Actividades · Hub Simuladores',
+  title: 'Registro de Actividades e Institucionales · Centro de Simuladores',
   description:
-    'Rack en vivo de simuladores y registro de actividades presenciales con nómina de participantes.',
+    'Registro rápido de visitas institucionales, empresas, demostraciones en vivo y nómina de participantes.',
 };
 
-/** Forma cruda devuelta por PostgREST para la tabla `simuladores`. */
 interface FilaSimulador {
   id: string;
   nombre: string;
@@ -40,7 +36,6 @@ interface FilaSimulador {
   actividad_actual_id: string | null;
 }
 
-/** Participante anidado dentro del SELECT de `actividades`. */
 interface FilaParticipante {
   id: string;
   actividad_id: string;
@@ -50,10 +45,6 @@ interface FilaParticipante {
   puesto: string | null;
 }
 
-/**
- * Simulador asociado anidado. PostgREST puede devolver la relación muchos-a-uno
- * como objeto o como array (según el FK detectado), por eso se normaliza.
- */
 interface FilaActividadSimulador {
   id: string;
   actividad_id: string;
@@ -65,7 +56,6 @@ interface FilaActividadSimulador {
     | null;
 }
 
-/** Fila cruda de la tabla `actividades` con sus relaciones. */
 interface FilaActividad {
   id: string;
   tipo: TipoActividad;
@@ -83,7 +73,6 @@ interface FilaActividad {
   actividad_simuladores?: FilaActividadSimulador[] | null;
 }
 
-/** Normaliza la fila cruda al tipo público `Simulador`. */
 function mapearSimulador(fila: FilaSimulador): Simulador {
   return {
     id: fila.id,
@@ -94,7 +83,6 @@ function mapearSimulador(fila: FilaSimulador): Simulador {
   };
 }
 
-/** Extrae el nombre del simulador anidado (objeto o array, indistintamente). */
 function resolverNombreSimulador(
   relacion: FilaActividadSimulador['simuladores']
 ): string | null {
@@ -105,7 +93,6 @@ function resolverNombreSimulador(
   return relacion.nombre ?? null;
 }
 
-/** Normaliza la fila cruda al tipo público `ActividadItem`. */
 function mapearActividad(fila: FilaActividad): ActividadItem {
   const participantes: ParticipanteActividad[] = (
     fila.actividad_participantes ?? []
@@ -118,15 +105,15 @@ function mapearActividad(fila: FilaActividad): ActividadItem {
     puesto: p.puesto,
   }));
 
-  const simuladores: SimuladorActividad[] = (fila.actividad_simuladores ?? []).map(
-    (s) => ({
-      id: s.id,
-      actividad_id: s.actividad_id,
-      simulador_id: s.simulador_id,
-      minutos_uso: s.minutos_uso,
-      simulador_nombre: resolverNombreSimulador(s.simuladores),
-    })
-  );
+  const simuladores: SimuladorActividad[] = (
+    fila.actividad_simuladores ?? []
+  ).map((s) => ({
+    id: s.id,
+    actividad_id: s.actividad_id,
+    simulador_id: s.simulador_id,
+    minutos_uso: s.minutos_uso,
+    simulador_nombre: resolverNombreSimulador(s.simuladores),
+  }));
 
   return {
     id: fila.id,
@@ -146,18 +133,25 @@ function mapearActividad(fila: FilaActividad): ActividadItem {
   };
 }
 
-/** SELECT anidado de actividades + participantes + simuladores (con nombre). */
 const SELECT_ACTIVIDADES =
   '*, actividad_participantes(*), actividad_simuladores(*, simuladores(id, nombre))';
 
-export default async function RegistroActividadesPage() {
+interface RegistroActividadesPageProps {
+  searchParams?: Promise<{ nueva?: string | string[] | undefined }>;
+}
+
+export default async function RegistroActividadesPage({
+  searchParams,
+}: RegistroActividadesPageProps) {
+  const params = searchParams ? await searchParams : undefined;
+  const nuevaParam = Array.isArray(params?.nueva)
+    ? params?.nueva[0]
+    : params?.nueva;
+  const abrirModalInicial = nuevaParam === '1';
+
   const supabase = await createClient();
 
-  const [
-    respuestaSimuladores,
-    respuestaActividades,
-    estadisticas,
-  ] = await Promise.all([
+  const [respuestaSimuladores, respuestaActividades] = await Promise.all([
     supabase
       .from('simuladores')
       .select('*')
@@ -167,13 +161,10 @@ export default async function RegistroActividadesPage() {
       .from('actividades')
       .select(SELECT_ACTIVIDADES)
       .order('fecha_actividad', { ascending: false })
-      .limit(50)
+      .limit(500)
       .returns<FilaActividad[]>(),
-    obtenerEstadisticasGlobalesCentro(),
   ]);
 
-  // Fallos de lectura no bloquean la página: se renderiza vacío y el operador
-  // puede reintentar con el botón REFRESCAR del toolbar.
   if (respuestaSimuladores.error) {
     console.error('[registro-actividades] Error al cargar simuladores:', {
       code: respuestaSimuladores.error.code,
@@ -194,72 +185,24 @@ export default async function RegistroActividadesPage() {
     mapearActividad
   );
 
-  const enOperacion = simuladores.filter((s) => s.estado === 'en_operacion').length;
-  const enMantenimiento = simuladores.filter((s) => s.estado === 'mantenimiento').length;
-  const libres = simuladores.length - enOperacion - enMantenimiento;
-
   return (
     <section className="space-y-6">
       <header className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 pb-4">
         <div>
           <h1 className="text-xl font-bold tracking-tight text-slate-900">
-            Bitácora y Simuladores
+            Registro de Actividades e Institucionales
           </h1>
           <p className="mt-0.5 text-sm text-slate-600">
-            Estado de los simuladores, carga de prácticas y estadísticas del centro
+            Visitas institucionales, demostraciones en vivo, empresas y eventos especiales en el Centro
           </p>
         </div>
       </header>
 
-      <div className="space-y-3">
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-5 py-3.5 shadow-sm">
-          <div>
-            <h2 className="text-base font-bold text-slate-900">
-              Puestos de Simulación en Vivo
-            </h2>
-            <p className="text-sm text-slate-600">
-              Cambiá el estado de cada máquina entre libre, en uso o mantenimiento
-            </p>
-          </div>
-          <dl className="flex flex-wrap items-center gap-4 text-sm font-medium">
-            <div className="flex items-center gap-1.5">
-              <span aria-hidden className="h-2.5 w-2.5 rounded-full bg-amber-500" />
-              <dt className="text-slate-600">En uso:</dt>
-              <dd className="font-bold text-slate-900 tabular-nums">{enOperacion}</dd>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <span aria-hidden className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
-              <dt className="text-slate-600">Libres:</dt>
-              <dd className="font-bold text-slate-900 tabular-nums">{libres}</dd>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <span aria-hidden className="h-2.5 w-2.5 rounded-full bg-rose-500" />
-              <dt className="text-slate-600">Mantenimiento:</dt>
-              <dd className="font-bold text-slate-900 tabular-nums">{enMantenimiento}</dd>
-            </div>
-          </dl>
-        </div>
-
-        <RackSimuladores simuladores={simuladores} />
-      </div>
-
-      <div className="space-y-3">
-        <div className="rounded-xl border border-slate-200 bg-white px-5 py-3.5 shadow-sm">
-          <h2 className="text-base font-bold text-slate-900">
-            Historial de Actividades
-          </h2>
-          <p className="text-sm text-slate-600">
-            Últimas 50 jornadas registradas
-          </p>
-        </div>
-
-        <TablaActividades
-          actividades={actividades}
-          simuladores={simuladores}
-        />
-      </div>
-
-      <PanelEstadisticasCentro estadisticas={estadisticas} />
+      <TablaActividades
+        actividades={actividades}
+        simuladores={simuladores}
+        abrirModalInicial={abrirModalInicial}
+      />
     </section>
   );
 }

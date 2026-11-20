@@ -16,11 +16,13 @@ import type {
 
 /** Rutas que se revalidan tras cada mutación del módulo. */
 const RUTA_REGISTRO_ACTIVIDADES = '/admin/registro-actividades';
+const RUTA_SIMULADORES = '/admin/simuladores';
 const RUTA_ADMIN_HOME = '/admin';
 const RUTA_LANDING = '/';
 
 function revalidarRutasActividades(): void {
   revalidatePath(RUTA_REGISTRO_ACTIVIDADES);
+  revalidatePath(RUTA_SIMULADORES);
   revalidatePath(RUTA_ADMIN_HOME);
   revalidatePath(RUTA_LANDING);
 }

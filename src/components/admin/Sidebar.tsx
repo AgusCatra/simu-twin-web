@@ -13,6 +13,7 @@ import {
   ShieldCheck,
   Truck,
   UsersRound,
+  Wrench,
   type LucideIcon,
 } from 'lucide-react';
 import {
@@ -38,7 +39,8 @@ export const RUTAS_ADMIN: readonly RutaAdmin[] = [
   { href: '/admin/visitas-educativas', label: 'Visitas Educativas (Escuelas)', icono: BookOpen },
   { href: '/admin/tup', label: 'Colectivo TUP', icono: Truck },
   { href: '/admin/insumos', label: 'Stock de Merienda', icono: Package },
-  { href: '/admin/registro-actividades', label: 'Simuladores y Mantenimiento', icono: ClipboardList },
+  { href: '/admin/registro-actividades', label: 'Registro de Actividades', icono: ClipboardList },
+  { href: '/admin/simuladores', label: 'Simuladores y Mantenimiento', icono: Wrench },
 ];
 
 const SUBRUTAS_ESCUELAS: readonly RutaAdmin[] = [
@@ -83,7 +85,8 @@ export default function Sidebar({ rol = 'superadmin' }: { rol?: RolSistema }) {
     { href: '/gestion/cohortes', label: 'Capacitación Laboral (Cohortes)', icono: UsersRound },
     { href: '/cabina/evaluacion', label: 'Evaluar en Cabina / Patio (Tablet)', icono: Gauge },
     { href: '/admin/visitas-educativas', label: 'Visitas Educativas (Escuelas)', icono: BookOpen },
-    { href: '/admin/registro-actividades', label: 'Simuladores y Mantenimiento', icono: ClipboardList },
+    { href: '/admin/registro-actividades', label: 'Registro de Actividades', icono: ClipboardList },
+    { href: '/admin/simuladores', label: 'Simuladores y Mantenimiento', icono: Wrench },
   ];
 
   return (

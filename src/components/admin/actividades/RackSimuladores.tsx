@@ -87,7 +87,7 @@ export default function RackSimuladores({ simuladores }: RackSimuladoresProps) {
           },
           {
             valor: 'mantenimiento',
-            label: 'Mantenim.',
+            label: 'Mantenimiento',
             activo: 'border-orange-300 bg-orange-100 text-orange-900 font-bold',
           },
         ];
@@ -157,7 +157,7 @@ export default function RackSimuladores({ simuladores }: RackSimuladoresProps) {
                     disabled={ocupado}
                     aria-pressed={activo}
                     onClick={() => conmutar(simulador, op.valor)}
-                    className={`rounded-lg border px-2 py-2 text-xs transition-colors disabled:opacity-50 ${
+                    className={`rounded-lg border px-1.5 py-2 text-[11px] leading-tight transition-colors disabled:opacity-50 ${
                       activo
                         ? op.activo
                         : 'border-slate-200 bg-white font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900'

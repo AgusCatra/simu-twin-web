@@ -1,12 +1,15 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
+import Link from 'next/link';
 import {
   ArrowLeft,
   ArrowLeftRight,
   Award,
+  Building2,
   CheckCircle2,
   ClipboardCheck,
+  PlusCircle,
   Search,
   Users,
   Volume2,
@@ -673,6 +676,29 @@ export default function ConsolaTactil({
             Tocá una cohorte para seleccionar luego si vas a evaluar Diagnóstico, Prueba Final o Práctica en Patio.
           </p>
         </header>
+
+        <Link
+          href="/admin/registro-actividades?nueva=1"
+          className="flex items-center justify-between gap-4 rounded-2xl border-2 border-emerald-300 bg-emerald-50/70 p-4 text-left shadow-sm transition-all hover:border-emerald-500 hover:bg-emerald-50 active:scale-[0.99]"
+        >
+          <div className="flex items-center gap-3.5">
+            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-emerald-200 bg-white text-emerald-700">
+              <Building2 size={22} strokeWidth={2} aria-hidden />
+            </span>
+            <div>
+              <p className="text-base font-bold text-slate-900">
+                + Visita Institucional / Demo en Vivo
+              </p>
+              <p className="mt-0.5 text-xs text-slate-700">
+                Cargá en 10 segundos a cualquier autoridad, delegación o empresa fuera de cohorte.
+              </p>
+            </div>
+          </div>
+          <span className="inline-flex shrink-0 items-center gap-1.5 rounded-xl bg-emerald-600 px-3.5 py-2 text-xs font-bold text-white shadow-xs">
+            <PlusCircle size={15} aria-hidden />
+            Cargar ahora
+          </span>
+        </Link>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           {cohortes.map((c) => (

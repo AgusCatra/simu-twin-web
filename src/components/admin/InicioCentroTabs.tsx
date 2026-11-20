@@ -297,10 +297,10 @@ export default function InicioCentroTabs({
                 </p>
               </div>
               <Link
-                href="/admin/registro-actividades"
+                href="/admin/simuladores"
                 className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100"
               >
-                Abrir Bitácora Completa
+                Abrir Simuladores y Estadísticas
                 <ArrowUpRight size={13} aria-hidden />
               </Link>
             </div>
@@ -551,10 +551,17 @@ export default function InicioCentroTabs({
             </div>
             <div className="flex flex-wrap gap-2">
               <Link
-                href="/admin/registro-actividades"
+                href="/admin/simuladores"
                 className="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-700 hover:bg-blue-100"
               >
-                Abrir Bitácora
+                Simuladores y Mantenimiento
+                <ArrowUpRight size={13} aria-hidden />
+              </Link>
+              <Link
+                href="/admin/registro-actividades"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100"
+              >
+                Registro de Actividades
                 <ArrowUpRight size={13} aria-hidden />
               </Link>
               <Link
