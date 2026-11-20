@@ -76,7 +76,13 @@ const ENLACE_INACTIVO =
 const SUBENLACE_BASE =
   'flex items-center gap-2.5 rounded-lg border px-3 py-2 text-xs transition-colors focus-visible:outline-2 focus-visible:outline-blue-500';
 
-export default function Sidebar({ rol = 'superadmin' }: { rol?: RolSistema }) {
+// FIX SEC-1: antes el default era 'superadmin'. Hoy el único caller
+// (PanelLayoutShell) siempre pasa el rol real, pero un prop opcional por
+// defecto en superadmin es la clase de bug que ya causó el hallazgo
+// principal: si en el futuro alguien usa <Sidebar /> sin pasarlo, que falle
+// visualmente con 'chofer_tup' (el rol de menor privilegio) y no con acceso
+// total.
+export default function Sidebar({ rol = 'chofer_tup' }: { rol?: RolSistema }) {
   const pathname = usePathname();
   if (rol === 'chofer_tup') return null;
 
