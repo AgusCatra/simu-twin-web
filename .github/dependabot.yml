@@ -1,0 +1,25 @@
+# Qué hace y para qué: Dependabot abre un PR automático cada vez que hay una
+# actualización de una dependencia (npm) o de una acción de GitHub Actions.
+# Así las actualizaciones de seguridad llegan como PRs chicos y revisables en
+# vez de enterarnos meses después con `npm audit`.
+
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+    groups:
+      # Agrupa los parches y versiones menores en un solo PR semanal para no
+      # inundar el repo de PRs; una actualización mayor (que puede romper algo)
+      # sigue llegando en su propio PR para revisarla con más cuidado.
+      minor-and-patch:
+        update-types:
+          - "minor"
+          - "patch"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"

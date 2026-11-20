@@ -1,0 +1,52 @@
+name: CI
+
+# Qué hace y para qué: corre en cada push y cada PR para detectar errores de
+# tipos, de lint o de build ANTES de mergear, sin depender de que alguien lo
+# corra a mano en su máquina. No despliega nada: eso lo hace un workflow aparte
+# cuando se arme la Fase 2 (deploy automático a Cloudflare).
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# Si se empuja un nuevo commit a un PR mientras este workflow todavía está
+# corriendo para un commit anterior del mismo PR, cancela la corrida vieja:
+# evita gastar minutos de Actions en un resultado que ya quedó obsoleto.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint-typecheck-build:
+    name: Lint, typecheck y build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configurar Node (según .nvmrc)
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+          cache: "npm"
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Lint (eslint)
+        run: npm run lint
+
+      - name: Typecheck (tsc --noEmit)
+        run: npm run typecheck
+
+      - name: Build (next build)
+        run: npm run build
+
+      - name: npm audit (informativo, no bloquea el CI)
+        # continue-on-error: hoy hay vulnerabilidades conocidas sin fix
+        # disponible (ver docs/ESTADO_SISTEMA.md); este paso las deja
+        # visibles en el log de cada corrida sin romper el pipeline.
+        # Cuando se quiera, se puede subir a bloqueante sacando esta línea.
+        continue-on-error: true
+        run: npm audit --audit-level=high
