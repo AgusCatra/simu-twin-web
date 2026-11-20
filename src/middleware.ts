@@ -79,14 +79,23 @@ async function updateSession(request: NextRequest) {
       .eq('id', user.id)
       .maybeSingle<{ rol: string | null }>();
 
-    const emailLow = (user.email ?? '').trim().toLowerCase();
-    const esAdminPrincipal =
-      emailLow === 'catramado@gmail.com' ||
-      emailLow === 'catramado17@gmail.com';
-    // Fail-Safe: usuario autenticado sin fila o cuenta principal se trata como superadmin.
-    const rol = esAdminPrincipal
-      ? 'superadmin'
-      : normalizarRolSistema(filaPerfil?.rol);
+    // FIX SEC-1 / SEC-4: antes, sin fila válida (o para dos emails
+    // hardcodeados acá mismo), se trataba al usuario como 'superadmin'. Ahora
+    // sin rol asignado = sin acceso, y se lo manda a /acceso-pendiente en vez
+    // de dejarlo entrar a cualquier ruta protegida.
+    const rol = normalizarRolSistema(filaPerfil?.rol);
+
+    if (!rol) {
+      const pendienteUrl = request.nextUrl.clone();
+      pendienteUrl.pathname = '/acceso-pendiente';
+      pendienteUrl.search = '';
+      const redirectRes = NextResponse.redirect(pendienteUrl);
+      supabaseResponse.cookies.getAll().forEach((c) => {
+        redirectRes.cookies.set(c.name, c.value, c);
+      });
+      return redirectRes;
+    }
+
     const rutaInicial = obtenerRutaInicialPorRol(rol);
 
     if (esRutaLogin) {

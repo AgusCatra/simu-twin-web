@@ -31,11 +31,16 @@ export default async function CabinaEvaluacionPage() {
     obtenerDatosConsolaCabina(),
     obtenerPerfilUsuarioActual(),
   ]);
-  const rol = perfil?.rol ?? 'instructor';
+  // FIX SEC-1: antes, sin perfil, se asumía 'instructor' (acceso a esta
+  // ruta). Ahora sin perfil es sin rol asignado todavía.
+  if (!perfil) {
+    redirect('/acceso-pendiente');
+  }
+  const rol = perfil.rol;
   if (!puedeAccederRuta(rol, '/cabina/evaluacion')) {
     redirect('/admin');
   }
-  const instructorDefault = perfil?.nombre_completo || user.email || '';
+  const instructorDefault = perfil.nombre_completo || user.email || '';
 
   return (
     <div className="flex flex-col">

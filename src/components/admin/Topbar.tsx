@@ -60,8 +60,10 @@ const ENLACE_MOVIL_ACTIVO =
 const ENLACE_MOVIL_INACTIVO =
   'border-transparent text-slate-600 hover:bg-slate-100 hover:text-slate-900';
 
+// FIX SEC-1: mismo motivo que en Sidebar.tsx — default de menor privilegio,
+// no 'superadmin'.
 export default function Topbar({
-  rol = 'superadmin',
+  rol = 'chofer_tup',
   usuarioEmail,
 }: {
   rol?: RolSistema;

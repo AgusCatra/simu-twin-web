@@ -155,7 +155,12 @@ export default async function GestionCohortesPage({
       .returns<FilaFeriadoMunicipalRaw[]>(),
   ]);
 
-  const rol = perfil?.rol ?? 'empleo';
+  // FIX SEC-1: antes, sin perfil, se asumía 'empleo' (acceso a esta ruta).
+  // Ahora sin perfil es sin rol asignado todavía.
+  if (!perfil) {
+    redirect('/acceso-pendiente');
+  }
+  const rol = perfil.rol;
   if (!puedeAccederRuta(rol, '/gestion/cohortes')) {
     redirect('/admin');
   }

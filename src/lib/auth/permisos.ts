@@ -30,18 +30,20 @@ interface FilaPerfilDB {
   activo: boolean | null;
 }
 
-const EMAILS_SUPERADMIN_PRINCIPAL = new Set([
-  'catramado@gmail.com',
-  'catramado17@gmail.com',
-]);
-
 /**
  * Resuelve el perfil y rol RBAC del usuario autenticado en `public.perfiles_usuarios`.
  *
- * REGLA ANTI-BLOQUEO (Fail-Safe): si el usuario posee sesión válida en Supabase Auth
- * pero aún no tiene fila en `public.perfiles_usuarios`, su rol no es válido, o
- * corresponde al correo administrador principal con un rol degradado, se promueve y
- * persiste como `'superadmin'`.
+ * FIX SEC-1 / SEC-4: antes, si el usuario no tenía fila (o su rol era
+ * inválido), esta función lo PROMOVÍA y PERSISTÍA como 'superadmin' en la
+ * base ("Fail-Safe anti-bloqueo"), y además dos emails de Gmail hardcodeados
+ * en el código recibían superadmin incondicional. Cualquiera que lograra
+ * crear una cuenta (el registro público seguía habilitado) quedaba con
+ * acceso total a datos de postulantes, legajos y nóminas de menores.
+ *
+ * Ahora: sin fila válida en `perfiles_usuarios`, la función devuelve `null`
+ * (sin acceso) y NO escribe nada en la base. El acceso se habilita siempre de
+ * forma explícita: un superadmin existente le asigna un rol a la cuenta desde
+ * el panel de Usuarios y Permisos en /admin (ver cambiarRolUsuarioAction).
  */
 export async function obtenerPerfilUsuarioActual(): Promise<PerfilUsuario | null> {
   const supabase = await createClient();
@@ -65,62 +67,28 @@ export async function obtenerPerfilUsuarioActual(): Promise<PerfilUsuario | null
     });
   }
 
-  const emailUsuario = fila?.email?.trim() || user.email?.trim() || 'usuario@local';
-  const esAdminPrincipal = EMAILS_SUPERADMIN_PRINCIPAL.has(
-    emailUsuario.toLowerCase()
-  );
+  if (!fila || !esRolSistemaValido(fila.rol)) {
+    // Sin fila, o rol inválido: sin acceso. No se siembra ninguna fila acá;
+    // la crea cambiarRolUsuarioAction cuando un superadmin asigna el rol.
+    return null;
+  }
+
+  const emailUsuario = fila.email?.trim() || user.email?.trim() || 'usuario@local';
   const nombreDefault =
-    fila?.nombre_completo?.trim() ||
+    fila.nombre_completo?.trim() ||
     (typeof user.user_metadata?.full_name === 'string'
       ? user.user_metadata.full_name.trim()
       : '') ||
     emailUsuario.split('@')[0] ||
     'Administrador';
 
-  if (
-    fila &&
-    esRolSistemaValido(fila.rol) &&
-    (!esAdminPrincipal || fila.rol === 'superadmin')
-  ) {
-    return {
-      id: fila.id,
-      email: emailUsuario,
-      nombre_completo: nombreDefault,
-      rol: fila.rol,
-      activo: fila.activo !== false,
-      esFallbackFailSafe: false,
-    };
-  }
-
-  // Fail-Safe: sembrar/elevar fila a superadmin si falta o si es cuenta administradora principal.
-  const rolFailSafe: RolSistema = esAdminPrincipal
-    ? 'superadmin'
-    : normalizarRolSistema(fila?.rol);
-  try {
-    await reader.from('perfiles_usuarios').upsert(
-      {
-        id: user.id,
-        email: emailUsuario,
-        nombre_completo: nombreDefault,
-        rol: rolFailSafe,
-        activo: true,
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: 'id' }
-    );
-  } catch (errUpsert) {
-    console.error('[obtenerPerfilUsuarioActual] Aviso al sembrar perfil Fail-Safe:', {
-      message: errUpsert instanceof Error ? errUpsert.message : 'Error de escritura',
-    });
-  }
-
   return {
-    id: user.id,
+    id: fila.id,
     email: emailUsuario,
     nombre_completo: nombreDefault,
-    rol: rolFailSafe,
-    activo: true,
-    esFallbackFailSafe: true,
+    rol: fila.rol,
+    activo: fila.activo !== false,
+    esFallbackFailSafe: false,
   };
 }
 
@@ -159,7 +127,11 @@ export async function listarUsuariosConRolesParaSuperadmin(): Promise<
       id: f.id,
       email,
       nombre_completo: f.nombre_completo?.trim() || email.split('@')[0] || 'Usuario',
-      rol: normalizarRolSistema(f.rol),
+      // FIX SEC-1: si el rol guardado es inválido, se muestra el rol de menor
+      // privilegio (no 'superadmin') para no preseleccionar la opción más
+      // peligrosa en el <select> del panel; el badge "Sin asignar"
+      // (esFallbackFailSafe) ya le avisa al superadmin que debe elegirlo.
+      rol: normalizarRolSistema(f.rol) ?? 'chofer_tup',
       activo: f.activo !== false,
       esFallbackFailSafe: !esRolSistemaValido(f.rol),
     });
@@ -177,11 +149,15 @@ export async function listarUsuariosConRolesParaSuperadmin(): Promise<
           typeof u.user_metadata?.full_name === 'string'
             ? u.user_metadata.full_name.trim()
             : '';
+        // FIX SEC-1/SEC-4: antes se mostraban acá como 'superadmin' (eran
+        // justamente las cuentas de Auth sin fila propia, el caso que el
+        // registro público abierto podía crear). Mismo criterio que arriba:
+        // rol de menor privilegio + badge "Sin asignar".
         porId.set(u.id, {
           id: u.id,
           email,
           nombre_completo: metaNombre || email.split('@')[0] || 'Usuario',
-          rol: 'superadmin',
+          rol: 'chofer_tup',
           activo: true,
           esFallbackFailSafe: true,
         });

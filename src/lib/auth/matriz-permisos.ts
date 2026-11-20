@@ -38,8 +38,16 @@ export function esRolSistemaValido(valor: unknown): valor is RolSistema {
   );
 }
 
-export function normalizarRolSistema(valor: unknown): RolSistema {
-  return esRolSistemaValido(valor) ? valor : 'superadmin';
+/**
+ * FIX SEC-1: antes devolvía 'superadmin' por defecto cuando el valor era
+ * inválido o faltaba (fail-safe anti-bloqueo). Eso significaba que CUALQUIER
+ * usuario autenticado sin fila en `perfiles_usuarios` quedaba con acceso
+ * total. Ahora un rol inválido o ausente se trata como "sin rol asignado"
+ * (null): sin acceso a ninguna ruta protegida hasta que un superadmin lo
+ * asigne explícitamente.
+ */
+export function normalizarRolSistema(valor: unknown): RolSistema | null {
+  return esRolSistemaValido(valor) ? valor : null;
 }
 
 export function obtenerRutaInicialPorRol(rol: RolSistema): string {

@@ -19,7 +19,11 @@ const UUID_RE =
  */
 export async function resolverDestinoPostLoginAction(): Promise<string> {
   const perfil = await obtenerPerfilUsuarioActual();
-  if (!perfil) return '/login';
+  // FIX SEC-1: perfil null acá significa "se autenticó pero no tiene rol
+  // asignado todavía" (ya no existe el fail-safe a superadmin), no "no
+  // logueado" — por eso ya no vuelve a /login, sino a la pantalla que le
+  // explica que falta que un superadmin le asigne acceso.
+  if (!perfil) return '/acceso-pendiente';
   return obtenerRutaInicialPorRol(perfil.rol);
 }
 
